@@ -5,25 +5,44 @@ exports.handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body);
-    const { imageData, mediaType } = body;
-
-    if (!imageData) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'No image data received' }) };
-    }
+    const { imageData, mediaType, textOnly, description } = body;
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      return { statusCode: 500, body: JSON.stringify({ error: 'API key not configured in environment' }) };
+      return { statusCode: 500, body: JSON.stringify({ error: 'API key not configured' }) };
     }
 
-    console.log('API key prefix:', apiKey.substring(0, 12) + '...');
-    console.log('Image data length:', imageData.length);
-    console.log('Media type:', mediaType);
+    let messages;
 
-    const requestBody = {
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 4000,
-      messages: [{
+    if (textOnly && description) {
+      // Text-only mode — no image needed
+      messages = [{
+        role: 'user',
+        content: `You are a parking lot layout generator. Based on the description below, generate a JSON layout for a parking lot map.
+
+Description: ${description}
+
+Return ONLY valid JSON with no markdown or explanation. Use this exact format:
+{
+  "description": "brief summary",
+  "elements": [
+    {
+      "type": "stall-standard",
+      "count": 22,
+      "label": "Row A",
+      "row": "A"
+    }
+  ],
+  "layout": "horizontal",
+  "totalStalls": 80
+}
+
+Valid types: stall-standard, stall-reserved, stall-handicap, stall-ev, stall-guest, stall-moto, zone-carport, zone-garage, zone-yard, zone-storage, zone-loading, zone-firelane, zone-service, zone-landscape, label.
+Be precise about counts. Each row should be a separate element entry.`
+      }];
+    } else if (imageData) {
+      // Image mode
+      messages = [{
         role: 'user',
         content: [
           {
@@ -36,11 +55,29 @@ exports.handler = async (event) => {
           },
           {
             type: 'text',
-            text: 'Analyze this parking lot image. Return ONLY valid JSON with no markdown or explanation. Format: {"description":"what you see","elements":[{"type":"stall-standard","count":10,"label":"Row A","row":"A"}],"layout":"horizontal","totalStalls":10}'
+            text: `Analyze this parking lot image and generate a JSON layout. Return ONLY valid JSON with no markdown or explanation.
+Format:
+{
+  "description": "brief summary of what you see",
+  "elements": [
+    {
+      "type": "stall-standard",
+      "count": 22,
+      "label": "Row A",
+      "row": "A"
+    }
+  ],
+  "layout": "horizontal",
+  "totalStalls": 80
+}
+Valid types: stall-standard, stall-reserved, stall-handicap, stall-ev, stall-guest, stall-moto, zone-carport, zone-garage, zone-yard, zone-storage, zone-loading, zone-firelane, zone-service, zone-landscape.
+Count all visible stalls carefully. Each row is a separate element. Identify any special zones like fire lanes, loading docks, covered carports.`
           }
         ]
-      }]
-    };
+      }];
+    } else {
+      return { statusCode: 400, body: JSON.stringify({ error: 'No image data or description provided' }) };
+    }
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -49,19 +86,20 @@ exports.handler = async (event) => {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 4000,
+        messages
+      })
     });
 
-    console.log('Anthropic response status:', response.status);
-
     const responseText = await response.text();
-    console.log('Response text preview:', responseText.substring(0, 200));
 
     if (!response.ok) {
       return {
         statusCode: response.status,
         body: JSON.stringify({
-          error: 'Anthropic API returned error ' + response.status,
+          error: 'Anthropic API error ' + response.status,
           details: responseText
         })
       };
@@ -74,13 +112,9 @@ exports.handler = async (event) => {
     };
 
   } catch (err) {
-    console.error('Function error:', err);
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        error: err.message,
-        type: err.constructor.name
-      })
+      body: JSON.stringify({ error: err.message })
     };
   }
 };
