@@ -16,13 +16,12 @@ exports.handler = async (event) => {
       return { statusCode: 500, body: JSON.stringify({ error: 'API key not configured in environment' }) };
     }
 
-    // Log key prefix for debugging (never log full key)
     console.log('API key prefix:', apiKey.substring(0, 12) + '...');
     console.log('Image data length:', imageData.length);
     console.log('Media type:', mediaType);
 
     const requestBody = {
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 1000,
       messages: [{
         role: 'user',
@@ -61,7 +60,7 @@ exports.handler = async (event) => {
     if (!response.ok) {
       return {
         statusCode: response.status,
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           error: 'Anthropic API returned error ' + response.status,
           details: responseText
         })
@@ -78,7 +77,7 @@ exports.handler = async (event) => {
     console.error('Function error:', err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         error: err.message,
         type: err.constructor.name
       })
