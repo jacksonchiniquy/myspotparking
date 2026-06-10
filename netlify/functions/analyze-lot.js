@@ -4,7 +4,16 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { imageData, mediaType } = JSON.parse(event.body);
+    const body = JSON.parse(event.body);
+    const { imageData, mediaType } = body;
+
+    if (!imageData) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'No image data received' }) };
+    }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return { statusCode: 500, body: JSON.stringify({ error: 'API key not configured' }) };
+    }
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -21,43 +30,36 @@ exports.handler = async (event) => {
           content: [
             {
               type: 'image',
-              source: { type: 'base64', media_type: mediaType, data: imageData }
+              source: { type: 'base64', media_type: mediaType || 'image/jpeg', data: imageData }
             },
             {
               type: 'text',
-              text: `Analyze this parking lot image and identify the parking layout. Return ONLY a JSON object with no explanation, no markdown, no backticks. The JSON must have this exact structure:
-{
-  "description": "brief description of what you see",
-  "elements": [
-    {
-      "type": "stall-standard|stall-reserved|stall-handicap|stall-ev|stall-guest|zone-carport|zone-garage|zone-yard|zone-storage|zone-loading|zone-firelane|zone-landscape|label",
-      "count": 1,
-      "label": "descriptive label",
-      "row": "A or B or null",
-      "notes": "any relevant notes"
-    }
-  ],
-  "layout": "horizontal or vertical",
-  "totalStalls": 0
-}
-Be accurate about stall types and counts. Group stalls in the same row together.`
+              text: 'Analyze this parking lot image. Return ONLY valid JSON, no markdown, no explanation. Format: {"description":"what you see","elements":[{"type":"stall-standard","count":10,"label":"Row A","row":"A"}],"layout":"horizontal","totalStalls":10}'
             }
           ]
         }]
       })
     });
 
-    const data = await response.json();
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      return {
+        statusCode: response.status,
+        body: JSON.stringify({ error: 'Anthropic API error: ' + responseText })
+      };
+    }
+
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: responseText
     };
 
   } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: err.message })
+      body: JSON.stringify({ error: err.message, stack: err.stack })
     };
   }
 };
