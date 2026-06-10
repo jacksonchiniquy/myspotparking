@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Permits — My Spot Parking</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+:root{
+  --bg:#f0f4ff;--surface:#ffffff;--surface2:#f4f7ff;
+  --blue:#1a6fff;--blue2:#4d8fff;--bluelight:#e8f1ff;
+  --green:#00c87a;--amber:#ffaa00;--red:#ef4444;
+  --text:#0f172a;--text2:#475569;--text3:#94a3b8;
+  --border:rgba(15,23,42,0.09);--border2:rgba(15,23,42,0.05);
+  --shadow:0 1px 4px rgba(15,23,42,0.06),0 4px 16px rgba(15,23,42,0.04);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sans-serif;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.35;}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:600;height:60px;background:rgba(255,255,255,0.97);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:16px;}
+.tn-logo{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--text);}
+.tn-logo-mark{width:30px;height:30px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#000;box-shadow:0 2px 12px rgba(0,200,122,.45);}
+.tn-logo-text{font-size:17px;font-weight:700;letter-spacing:-.03em;}
+.tn-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.tn-badge{background:rgba(0,200,122,.12);border:1px solid rgba(0,200,122,.22);color:var(--green);padding:3px 10px;border-radius:20px;font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.06em;}
+.tn-sub-status{display:flex;align-items:center;gap:6px;font-size:12px;font-family:'JetBrains Mono',monospace;padding:4px 12px;border-radius:20px;}
+.tn-sub-status.active{background:rgba(0,200,122,.1);color:var(--green);border:1px solid rgba(0,200,122,.2);}
+.tn-sub-status.inactive{background:rgba(239,68,68,.08);color:var(--red);border:1px solid rgba(239,68,68,.18);}
+.tn-sub-dot{width:6px;height:6px;border-radius:50%;}
+.tn-avatar{width:32px;height:32px;background:linear-gradient(135deg,var(--green),#00a063);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;}
+.tn-name{font-size:13px;color:var(--text2);}
+.btn-so{background:none;border:1px solid var(--border);color:var(--text3);padding:5px 12px;border-radius:7px;cursor:pointer;font-size:12px;font-family:'Bricolage Grotesque',sans-serif;transition:all .2s;}
+.btn-so:hover{border-color:var(--red);color:var(--red);}
+#gate{position:fixed;inset:0;z-index:900;background:var(--bg);display:flex;align-items:center;justify-content:center;}
+#app{display:none;padding-top:60px;min-height:100vh;}
+.layout{display:flex;min-height:calc(100vh - 60px);}
+.sidebar{width:230px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;display:flex;flex-direction:column;}
+.sidebar-user{padding:20px 20px 16px;border-bottom:1px solid var(--border);}
+.su-avatar{width:44px;height:44px;background:linear-gradient(135deg,var(--green),#00a063);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#000;margin-bottom:10px;}
+.su-name{font-size:14px;font-weight:700;letter-spacing:-.02em;margin-bottom:2px;}
+.su-email{font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sidebar-nav{padding:12px 10px;flex:1;}
+.sb-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--text3);padding:10px 10px 6px;}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;font-size:13.5px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .18s;border:none;background:none;width:100%;text-align:left;font-family:'Bricolage Grotesque',sans-serif;}
+.sb-item:hover{background:rgba(0,200,122,.07);color:var(--text);}
+.sb-item.active{background:rgba(0,200,122,.12);color:#007a4a;font-weight:600;}
+.sb-icon{font-size:16px;width:24px;text-align:center;flex-shrink:0;}
+.sb-count{margin-left:auto;background:rgba(0,200,122,.18);color:#008550;font-size:10px;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:10px;}
+.sidebar-footer{padding:14px 10px;border-top:1px solid var(--border);}
+.main{flex:1;overflow-y:auto;}
+.panel{display:none;padding:32px 36px 80px;}
+.panel.active{display:block;}
+.panel-title{font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;}
+.panel-sub{font-size:13px;color:var(--text2);margin-bottom:28px;}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;}
+.sc-green::after{background:var(--green);}
+.sc-blue::after{background:var(--blue);}
+.sc-amber::after{background:var(--amber);}
+.sc-red::after{background:var(--red);}
+.sc-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;}
+.sc-val{font-size:28px;font-weight:800;letter-spacing:-.04em;line-height:1;margin-bottom:3px;}
+.sc-sub{font-size:11px;color:var(--text3);}
+.sub-banner{border-radius:14px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:24px;flex-wrap:wrap;}
+.sub-banner.active-sub{background:linear-gradient(135deg,rgba(0,200,122,.07),rgba(0,200,122,.02));border:1px solid rgba(0,200,122,.22);}
+.sub-banner.no-sub{background:linear-gradient(135deg,rgba(239,68,68,.05),#fff8f8);border:1px solid rgba(239,68,68,.2);}
+.sub-banner.mgr-sub{background:linear-gradient(135deg,rgba(26,111,255,.05),#f0f6ff);border:1px solid rgba(26,111,255,.18);}
+.permit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;}
+.pcard{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s;position:relative;}
+.pcard:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(0,0,0,0.09);}
+.pcard-watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-15deg);font-size:48px;font-weight:800;opacity:.025;white-space:nowrap;pointer-events:none;letter-spacing:.08em;}
+.pcard-top{padding:22px 22px 0;}
+.pcard-meta{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+.pcard-source{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;}
+.pcard-plate{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:500;letter-spacing:.14em;line-height:1;margin-bottom:4px;}
+.pcard-vehicle{font-size:13px;color:var(--text2);}
+.pcard-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:14px 22px;border-top:1px solid var(--border2);margin-top:14px;}
+.pf-label{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:3px;}
+.pf-val{font-size:12px;font-weight:600;}
+.pcard-bottom{padding:12px 22px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.pcard-qr{width:52px;height:52px;background:rgba(15,23,42,.04);border:1px solid var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-direction:column;}
+.pcard-qr-inner{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;width:30px;}
+.pcard-qr-cell{height:9px;border-radius:1px;background:rgba(15,23,42,.5);}
+.pcard-accent{height:3px;}
+.vehicle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+.vcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);transition:transform .2s;}
+.vcard:hover{transform:translateY(-2px);}
+.gcard{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:14px;padding:18px;box-shadow:var(--shadow);}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-size:15px;font-weight:700;letter-spacing:-.02em;}
+.section-sub{font-size:12px;color:var(--text3);margin-top:2px;}
+.empty-state{background:var(--surface);border:1px dashed rgba(15,23,42,.12);border-radius:14px;padding:48px 24px;text-align:center;}
+.empty-icon{font-size:36px;margin-bottom:12px;}
+.empty-title{font-size:15px;font-weight:700;margin-bottom:6px;}
+.empty-sub{font-size:13px;color:var(--text3);margin-bottom:18px;line-height:1.5;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 18px;font-family:'Bricolage Grotesque',sans-serif;font-size:13.5px;font-weight:600;border-radius:9px;cursor:pointer;border:none;transition:all .2s;text-decoration:none;white-space:nowrap;}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 3px 12px rgba(26,111,255,.3);}
+.btn-primary:hover{background:#0d5de0;transform:translateY(-1px);}
+.btn-green{background:var(--green);color:#000;box-shadow:0 3px 12px rgba(0,200,122,.3);}
+.btn-green:hover{background:#00b06c;transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--text);border-color:rgba(15,23,42,.25);}
+.btn-danger{background:rgba(239,68,68,.08);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+.btn-danger:hover{background:rgba(239,68,68,.15);}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:7px;}
+.btn-full{width:100%;}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-family:'JetBrains Mono',monospace;}
+.pill::before{content:'';width:5px;height:5px;border-radius:50%;}
+.pill-active{background:rgba(0,200,122,.12);color:#007a4a;border:1px solid rgba(0,200,122,.22);}
+.pill-active::before{background:var(--green);}
+.pill-revoked{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+.pill-revoked::before{background:var(--red);}
+.pill-expired{background:rgba(148,163,184,.1);color:#64748b;border:1px solid rgba(148,163,184,.2);}
+.pill-expired::before{background:#94a3b8;}
+.pill-mgr{background:rgba(26,111,255,.1);color:var(--blue);border:1px solid rgba(26,111,255,.2);}
+.pill-mgr::before{background:var(--blue);}
+.form-group{margin-bottom:16px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-label{display:block;font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
+.form-input,.form-select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:9px;font-family:'Bricolage Grotesque',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;}
+.form-input:focus,.form-select:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(0,200,122,.1);background:#fff;}
+.form-input::placeholder{color:var(--text3);}
+.form-hint{font-size:11px;color:var(--text3);margin-top:5px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.22);backdrop-filter:blur(6px);z-index:800;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;transform:scale(.96) translateY(10px);transition:transform .25s;position:relative;box-shadow:0 8px 40px rgba(15,23,42,0.13);}
+.modal-overlay.open .modal{transform:scale(1) translateY(0);}
+.modal-close{position:absolute;top:14px;right:14px;width:28px;height:28px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.modal-title{font-size:19px;font-weight:700;letter-spacing:-.03em;margin-bottom:3px;}
+.modal-sub{font-size:13px;color:var(--text2);margin-bottom:22px;}
+.divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--text3);font-size:12px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.modal-switch{text-align:center;margin-top:16px;font-size:13px;color:var(--text3);}
+.modal-switch a{color:var(--green);cursor:pointer;}
+.err-msg{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:14px;display:none;}
+.err-msg.show{display:block;}
+.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
+.plan-card{background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:16px 12px;cursor:pointer;transition:all .2s;text-align:center;}
+.plan-card:hover{border-color:rgba(0,200,122,.4);}
+.plan-card.selected{border-color:var(--green);background:rgba(0,200,122,.06);}
+.plan-name{font-size:10px;font-weight:600;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em;font-family:'JetBrains Mono',monospace;}
+.plan-price{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1;}
+.plan-per{font-size:11px;color:var(--text3);margin-top:3px;}
+.plan-save{font-size:10px;color:var(--green);font-weight:600;margin-top:4px;min-height:14px;}
+#toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 18px;font-size:13px;z-index:9999;transform:translateY(12px);opacity:0;transition:all .3s;max-width:320px;box-shadow:0 8px 28px rgba(15,23,42,.1);}
+#toast.show{opacity:1;transform:translateY(0);}
+@media(max-width:820px){.sidebar{display:none;}.panel{padding:20px 16px 60px;}.stat-row{grid-template-columns:1fr 1fr;}.form-row{grid-template-columns:1fr;}.plan-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- ══ GATE ══ -->
+<div id="gate">
+  <div style="max-width:440px;width:92%;padding:20px;">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="display:inline-flex;align-items:center;gap:10px;">
+        <div class="tn-logo-mark" style="width:36px;height:36px;font-size:18px;">P</div>
+        <span style="font-size:21px;font-weight:700;letter-spacing:-.03em;">My Spot Parking</span>
+      </div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:22px;padding:36px;box-shadow:0 8px 40px rgba(15,23,42,.1);">
+      <!-- SIGNUP -->
+      <div id="panel-signup">
+        <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(0,200,122,.1);border:1px solid rgba(0,200,122,.2);border-radius:20px;padding:4px 13px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:14px;">🚗 Permit Holder</div>
+        <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Create your account</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:24px;">Get your digital parking permit</div>
+        <div class="err-msg" id="su-err"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">First Name</label><input class="form-input" id="su-fname" type="text" placeholder="Jane"></div>
+          <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="su-lname" type="text" placeholder="Smith"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" id="su-email" type="email" placeholder="jane@example.com"><div class="form-hint">Use the same email your property manager has on file — permits will link automatically.</div></div>
+        <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" id="su-phone" type="tel" placeholder="+1 (555) 000-0000"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="su-pass" type="password" placeholder="••••••••"></div>
+          <div class="form-group"><label class="form-label">Confirm</label><input class="form-input" id="su-pass2" type="password" placeholder="••••••••"></div>
+        </div>
+        <button class="btn btn-green btn-full" style="font-size:15px;padding:12px;" id="su-btn" onclick="handleSignUp()">Create Account →</button>
+        <div class="divider">or</div>
+        <button class="btn btn-ghost btn-full" onclick="toast('Google sign-in coming soon')">Continue with Google</button>
+        <div class="modal-switch" style="margin-top:18px;">Already have an account? <a onclick="switchPanel('signin')">Sign in</a></div>
+        <div style="text-align:center;margin-top:10px;"><a href="index.html" style="font-size:12px;color:var(--text3);text-decoration:none;">← Back to Home</a></div>
+      </div>
+      <!-- SIGNIN -->
+      <div id="panel-signin" style="display:none;">
+        <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(0,200,122,.1);border:1px solid rgba(0,200,122,.2);border-radius:20px;padding:4px 13px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:14px;">🚗 Permit Holder</div>
+        <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Welcome back</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:24px;">Sign in to manage your permits</div>
+        <div class="err-msg" id="si-err"></div>
+        <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="si-email" type="email" placeholder="jane@example.com"></div>
+        <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="si-pass" type="password" placeholder="••••••••"></div>
+        <button class="btn btn-green btn-full" style="font-size:15px;padding:12px;" id="si-btn" onclick="handleSignIn()">Sign In →</button>
+        <div class="divider">or</div>
+        <button class="btn btn-ghost btn-full" onclick="toast('Google sign-in coming soon')">Continue with Google</button>
+        <div class="modal-switch" style="margin-top:18px;">New to My Spot Parking? <a onclick="switchPanel('signup')">Create an account</a></div>
+        <div style="text-align:center;margin-top:10px;"><a href="index.html" style="font-size:12px;color:var(--text3);text-decoration:none;">← Back to Home</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+  <nav class="topnav">
+    <a class="tn-logo" href="index.html"><div class="tn-logo-mark">M</div><span class="tn-logo-text">My Spot Parking</span></a>
+    <div class="tn-right">
+      <div class="tn-sub-status inactive" id="sub-nav-status"><div class="tn-sub-dot" id="sub-nav-dot" style="background:var(--red)"></div><span id="sub-nav-label">No Subscription</span></div>
+      <span class="tn-badge">Permit Holder</span>
+      <div class="tn-avatar" id="tn-avatar">--</div>
+      <span class="tn-name" id="tn-name">Loading...</span>
+      <button class="btn-so" onclick="signOut()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-user">
+        <div class="su-avatar" id="sb-avatar">--</div>
+        <div class="su-name" id="sb-name">Loading...</div>
+        <div class="su-email" id="sb-email">—</div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="sb-label">My Parking</div>
+        <button class="sb-item active" id="sb-overview" onclick="showPanel('overview',this)"><span class="sb-icon">📊</span>Overview</button>
+        <button class="sb-item" id="sb-permits" onclick="showPanel('permits',this)"><span class="sb-icon">🎫</span>My Permits<span class="sb-count" id="sb-count-permits">0</span></button>
+        <button class="sb-item" id="sb-vehicles" onclick="showPanel('vehicles',this)"><span class="sb-icon">🚗</span>My Vehicles<span class="sb-count" id="sb-count-vehicles">0</span></button>
+        <button class="sb-item" id="sb-guests" onclick="showPanel('guests',this)"><span class="sb-icon">🎟</span>Guest Passes<span class="sb-count" id="sb-count-guests">0</span></button>
+        <div class="sb-label">Account</div>
+        <button class="sb-item" id="sb-subscription" onclick="showPanel('subscription',this)"><span class="sb-icon">💳</span>Subscription</button>
+        <button class="sb-item" id="sb-account" onclick="showPanel('account',this)"><span class="sb-icon">⚙️</span>Settings</button>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="btn btn-ghost btn-full btn-sm" onclick="signOut()">Sign Out</button>
+      </div>
+    </aside>
+
+    <!-- PANELS -->
+    <main class="main">
+
+      <!-- OVERVIEW -->
+      <div id="panel-overview" class="panel active">
+        <div class="panel-title" id="ov-greeting">Dashboard</div>
+        <div class="panel-sub" id="ov-date"></div>
+        <div class="sub-banner no-sub" id="ov-sub-banner"></div>
+        <div class="stat-row">
+          <div class="stat-card sc-green"><div class="sc-label">Active Permits</div><div class="sc-val" style="color:var(--green)" id="ov-active">0</div><div class="sc-sub">Currently valid</div></div>
+          <div class="stat-card sc-blue"><div class="sc-label">Vehicles</div><div class="sc-val" style="color:var(--blue)" id="ov-vehicles">0</div><div class="sc-sub">Registered</div></div>
+          <div class="stat-card sc-amber"><div class="sc-label">Guest Passes</div><div class="sc-val" style="color:var(--amber)" id="ov-guests">0</div><div class="sc-sub">Issued</div></div>
+          <div class="stat-card sc-red"><div class="sc-label">Expiring Soon</div><div class="sc-val" style="color:var(--red)" id="ov-expiring">0</div><div class="sc-sub">Within 30 days</div></div>
+        </div>
+        <div class="section-head">
+          <div><div class="section-title">Active Permits</div><div class="section-sub">Your currently valid parking permits</div></div>
+          <button class="btn btn-ghost btn-sm" onclick="showPanel('permits',document.getElementById('sb-permits'))">View All →</button>
+        </div>
+        <div class="permit-grid" id="ov-permits-grid"></div>
+      </div>
+
+      <!-- MY PERMITS -->
+      <div id="panel-permits" class="panel">
+        <div class="panel-title">My Permits</div>
+        <div class="panel-sub">All permits assigned to your account</div>
+        <div class="section-head" style="margin-bottom:14px;">
+          <div><div class="section-title">🏢 Assigned by Property Manager</div><div class="section-sub">Managed by your property — contact your manager to update</div></div>
+        </div>
+        <div class="permit-grid" id="mgr-permits-grid" style="margin-bottom:36px;"></div>
+        <div class="section-head" style="margin-bottom:14px;">
+          <div><div class="section-title">🚗 Self-Registered Vehicles</div><div class="section-sub">Permits you registered directly</div></div>
+          <button class="btn btn-green btn-sm" id="btn-add-veh-permits" onclick="openAddVehicle()">+ Register Vehicle</button>
+        </div>
+        <div class="permit-grid" id="self-permits-grid"></div>
+      </div>
+
+      <!-- VEHICLES -->
+      <div id="panel-vehicles" class="panel">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:28px;">
+          <div><div class="panel-title">My Vehicles</div><div class="panel-sub" style="margin-bottom:0;">Manage all vehicles registered to your account</div></div>
+          <button class="btn btn-green" id="btn-add-veh-vehicles" onclick="openAddVehicle()">+ Add Vehicle</button>
+        </div>
+        <div class="vehicle-grid" id="vehicles-grid"></div>
+      </div>
+
+      <!-- GUEST PASSES -->
+      <div id="panel-guests" class="panel">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:28px;">
+          <div><div class="panel-title">Guest Passes</div><div class="panel-sub" style="margin-bottom:0;">Issue temporary passes for visitors</div></div>
+          <button class="btn btn-primary" onclick="openModal('modal-guest-pass')">+ New Guest Pass</button>
+        </div>
+        <div id="guests-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;"></div>
+      </div>
+
+      <!-- SUBSCRIPTION -->
+      <div id="panel-subscription" class="panel">
+        <div class="panel-title">Subscription</div>
+        <div class="panel-sub">Manage your My Spot Parking billing plan</div>
+        <div id="sub-status-card" style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:24px;box-shadow:var(--shadow);"></div>
+        <div id="sub-plan-picker" style="display:none;">
+          <div class="section-title" style="margin-bottom:14px;">Choose a Plan</div>
+          <div class="plan-grid">
+            <div class="plan-card selected" onclick="selectPlan(this,'monthly',12)"><div class="plan-name">Monthly</div><div class="plan-price">$12</div><div class="plan-per">per month</div><div class="plan-save">&nbsp;</div></div>
+            <div class="plan-card" onclick="selectPlan(this,'quarterly',30)"><div class="plan-name">Quarterly</div><div class="plan-price">$30</div><div class="plan-per">per quarter</div><div class="plan-save">Save 17%</div></div>
+            <div class="plan-card" onclick="selectPlan(this,'annual',99)"><div class="plan-name">Annual</div><div class="plan-price">$99</div><div class="plan-per">per year</div><div class="plan-save">Save 31%</div></div>
+          </div>
+          <div style="background:rgba(0,200,122,.07);border:1px solid rgba(0,200,122,.15);border-radius:9px;padding:12px 16px;font-size:12px;color:#007a4a;margin-bottom:16px;">✓ Up to 2 vehicles &nbsp;·&nbsp; ✓ Digital permit card &nbsp;·&nbsp; ✓ Cancel anytime</div>
+          <button class="btn btn-green" id="sub-pay-btn" onclick="processPayment()">Subscribe — $<span id="sub-pay-amount">12</span> →</button>
+          <div style="font-size:11px;color:var(--text3);margin-top:10px;">Test mode · Use card 4242 4242 4242 4242, any future date, any CVC</div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="panel-account" class="panel">
+        <div class="panel-title">Account Settings</div>
+        <div class="panel-sub">Your profile and contact information</div>
+        <div style="max-width:540px;">
+          <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:24px;box-shadow:var(--shadow);margin-bottom:20px;">
+            <div style="font-size:14px;font-weight:700;margin-bottom:16px;">Personal Information</div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">First Name</label><input class="form-input" id="acc-fname" type="text"></div>
+              <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="acc-lname" type="text"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" id="acc-email" type="email" disabled style="opacity:.6;cursor:not-allowed;"><div class="form-hint">Email cannot be changed after account creation.</div></div>
+            <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" id="acc-phone" type="tel"></div>
+            <div class="form-group"><label class="form-label">Unit / Apt Number</label><input class="form-input" id="acc-unit" type="text" placeholder="A-102"></div>
+            <button class="btn btn-green" id="acc-save-btn" onclick="saveAccount()">Save Changes</button>
+          </div>
+          <div style="background:#fff;border:1px solid rgba(239,68,68,.15);border-radius:14px;padding:24px;box-shadow:var(--shadow);">
+            <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Danger Zone</div>
+            <div style="font-size:13px;color:var(--text2);margin-bottom:14px;">To delete your account, contact your property manager.</div>
+            <button class="btn btn-danger btn-sm" onclick="toast('⚠️ Contact your property manager to remove your account.')">Delete Account</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ══ MODALS ══ -->
+
+<!-- Add / Edit Vehicle -->
+<div class="modal-overlay" id="modal-add-vehicle">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-add-vehicle')">✕</button>
+    <div class="modal-title" id="av-modal-title">🚗 Register Vehicle</div>
+    <div class="modal-sub" id="av-modal-sub">Add a vehicle to get a digital parking permit</div>
+    <div class="err-msg" id="av-err"></div>
+    <input type="hidden" id="av-edit-id">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">License Plate *</label><input class="form-input" id="av-plate" type="text" placeholder="TXK-4821" style="font-family:'JetBrains Mono',monospace;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+      <div class="form-group"><label class="form-label">State</label><input class="form-input" id="av-state" type="text" placeholder="TX" maxlength="2" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Year / Make / Model *</label><input class="form-input" id="av-vehicle" type="text" placeholder="2023 Tesla Model 3"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="av-color" type="text" placeholder="Pearl White"></div>
+      <div class="form-group"><label class="form-label">Unit / Apt #</label><input class="form-input" id="av-unit" type="text" placeholder="A-102"></div>
+    </div>
+    <div id="av-sub-warning" style="display:none;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:12px;">⚠️ You need an active subscription to register a vehicle. <span style="text-decoration:underline;cursor:pointer;" onclick="closeModal('modal-add-vehicle');showPanel('subscription',document.getElementById('sb-subscription'))">Subscribe first →</span></div>
+    <button class="btn btn-green btn-full" id="av-btn" onclick="saveVehicle()">Register Vehicle</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="closeModal('modal-add-vehicle')">Cancel</button>
+  </div>
+</div>
+
+<!-- Guest Pass -->
+<div class="modal-overlay" id="modal-guest-pass">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-guest-pass')">✕</button>
+    <div class="modal-title">🎟 New Guest Pass</div>
+    <div class="modal-sub">Issue a temporary parking pass for a visitor</div>
+    <div class="err-msg" id="gp-err"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Guest Name *</label><input class="form-input" id="gp-name" type="text" placeholder="John Doe"></div>
+      <div class="form-group"><label class="form-label">Guest's Plate *</label><input class="form-input" id="gp-plate" type="text" placeholder="XYZ-1234" style="font-family:'JetBrains Mono',monospace;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Visit Date *</label><input class="form-input" id="gp-date" type="date"></div>
+      <div class="form-group"><label class="form-label">Duration</label><select class="form-select" id="gp-duration"><option>24 hours</option><option>48 hours</option><option>72 hours</option><option>1 week</option></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Notes (optional)</label><input class="form-input" id="gp-notes" type="text" placeholder="e.g. Moving help, family visit..."></div>
+    <button class="btn btn-primary btn-full" id="gp-btn" onclick="addGuestPass()">Issue Guest Pass</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="closeModal('modal-guest-pass')">Cancel</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SUPABASE_URL='https://ajadbfojccztiauxyxos.supabase.co';
+const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYWRiZm9qY2N6dGlhdXh5eG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTU1NDcsImV4cCI6MjA5MjM3MTU0N30.dHMc-kGb0YFHnTfxnwGYfikmKZBLPzS5lfe6SyRsguU';
+const STRIPE_KEY='pk_test_51TOk85GdAFYH72S6df2gszF5M7QX00ahLjEPipDuRqGLKZC8kIov5zXYz7qRgkI8dQysJyYfnlKRnaRU3tGAzICE00d3Fyf3EG';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
+const stripe=Stripe(STRIPE_KEY);
+
+let cu=null;
+let mgrPermits=[];   // Permits where source='manager' (or issued by manager with holder_id)
+let selfPermits=[];  // Permits where source='self' (holder registered their own vehicle)
+let guestPasses=[];
+let hasSubscription=false;
+let selectedPlan={name:'monthly',amount:12};
+
+// ── AUTH ──────────────────────────────────────────────────────────────
+
+function switchPanel(p){
+  document.getElementById('panel-signup').style.display=p==='signup'?'block':'none';
+  document.getElementById('panel-signin').style.display=p==='signin'?'block':'none';
+}
+
+async function handleSignUp(){
+  const fname=g('su-fname'),lname=g('su-lname'),email=g('su-email'),phone=g('su-phone');
+  const pass=g('su-pass'),pass2=g('su-pass2');
+  const err=document.getElementById('su-err'),btn=document.getElementById('su-btn');
+  err.classList.remove('show');
+  if(!fname||!email||!pass){err.textContent='First name, email and password are required.';err.classList.add('show');return;}
+  if(pass!==pass2){err.textContent='Passwords do not match.';err.classList.add('show');return;}
+  if(pass.length<6){err.textContent='Password must be at least 6 characters.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Creating account...';
+  const {data,error}=await sb.auth.signUp({email,password:pass});
+  if(error){err.textContent=error.message;err.classList.add('show');btn.disabled=false;btn.textContent='Create Account →';return;}
+  await sb.from('users').insert({id:data.user.id,email,full_name:(fname+' '+lname).trim(),phone,role:'holder'});
+  // Auto-link any manager-issued permits waiting for this email
+  await sb.from('permits').update({holder_id:data.user.id}).eq('holder_email',email).is('holder_id',null);
+  toast('✅ Account created! Check your email to confirm, then sign in.');
+  btn.disabled=false;btn.textContent='Create Account →';
+  switchPanel('signin');
+}
+
+async function handleSignIn(){
+  const email=g('si-email'),pass=g('si-pass');
+  const err=document.getElementById('si-err'),btn=document.getElementById('si-btn');
+  err.classList.remove('show');
+  if(!email||!pass){err.textContent='Enter your email and password.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Signing in...';
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){err.textContent=error.message;err.classList.add('show');btn.disabled=false;btn.textContent='Sign In →';return;}
+  const {data:profile}=await sb.from('users').select('*').eq('id',data.user.id).single();
+  if(!profile||profile.role!=='holder'){
+    err.textContent='This account is not a Permit Holder account.';err.classList.add('show');
+    await sb.auth.signOut();btn.disabled=false;btn.textContent='Sign In →';return;
+  }
+  // Link any unlinked manager-issued permits
+  await sb.from('permits').update({holder_id:data.user.id}).eq('holder_email',email).is('holder_id',null);
+  enterApp(profile);
+}
+
+async function checkExistingSession(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session) return;
+  const {data:profile}=await sb.from('users').select('*').eq('id',session.user.id).single();
+  if(profile&&profile.role==='holder') enterApp(profile);
+}
+
+async function signOut(){
+  await sb.auth.signOut();
+  document.getElementById('gate').style.display='flex';
+  document.getElementById('app').style.display='none';
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────
+
+function enterApp(profile){
+  cu=profile;
+  document.getElementById('gate').style.display='none';
+  document.getElementById('app').style.display='block';
+  const init=(profile.full_name||'?').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2)||'?';
+  document.getElementById('tn-avatar').textContent=init;
+  document.getElementById('tn-name').textContent=profile.full_name||profile.email;
+  document.getElementById('sb-avatar').textContent=init;
+  document.getElementById('sb-name').textContent=profile.full_name||'Permit Holder';
+  document.getElementById('sb-email').textContent=profile.email;
+  const parts=(profile.full_name||'').split(' ');
+  document.getElementById('acc-fname').value=parts[0]||'';
+  document.getElementById('acc-lname').value=parts.slice(1).join(' ')||'';
+  document.getElementById('acc-email').value=profile.email||'';
+  document.getElementById('acc-phone').value=profile.phone||'';
+  const hr=new Date().getHours();
+  const first=(profile.full_name||'').split(' ')[0]||'there';
+  document.getElementById('ov-greeting').textContent=(hr<12?'Good morning':hr<17?'Good afternoon':'Good evening')+', '+first+' 👋';
+  document.getElementById('ov-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('gp-date').value=today();
+  loadAll();
+}
+
+// ── DATA ──────────────────────────────────────────────────────────────
+
+async function loadAll(){
+  await Promise.all([loadPermits(),loadGuests()]);
+  renderAll();
+}
+
+async function loadPermits(){
+  const {data}=await sb.from('permits').select('*').eq('holder_id',cu.id).order('created_at',{ascending:false});
+  const all=data||[];
+  // Manager-issued = source is 'manager', OR no source but has a property_id
+  mgrPermits=all.filter(p=>p.source==='manager'||(p.source!=='self'&&p.property_id));
+  // Self-registered = source is 'self'
+  selfPermits=all.filter(p=>p.source==='self');
+  hasSubscription=all.some(p=>p.status==='active'&&['monthly','quarterly','annual'].includes(p.plan));
+}
+
+async function loadGuests(){
+  const {data}=await sb.from('guest_passes').select('*').eq('host_id',cu.id).order('created_at',{ascending:false});
+  guestPasses=data||[];
+}
+
+// ── RENDER ──────────────────────────────────────────────────────────────
+
+function renderAll(){
+  updateNav();
+  updateCounts();
+  renderOverview();
+  renderPermitsPanel();
+  renderVehiclesPanel();
+  renderGuestsPanel();
+  renderSubPanel();
+}
+
+function updateNav(){
+  const el=document.getElementById('sub-nav-status'),dot=document.getElementById('sub-nav-dot'),lbl=document.getElementById('sub-nav-label');
+  if(hasSubscription){el.className='tn-sub-status active';dot.style.background='var(--green)';lbl.textContent='Subscription Active';}
+  else{el.className='tn-sub-status inactive';dot.style.background='var(--red)';lbl.textContent='No Subscription';}
+}
+
+function updateCounts(){
+  document.getElementById('sb-count-permits').textContent=mgrPermits.length+selfPermits.length;
+  document.getElementById('sb-count-vehicles').textContent=selfPermits.length;
+  document.getElementById('sb-count-guests').textContent=guestPasses.length;
+}
+
+function renderOverview(){
+  const allP=[...mgrPermits,...selfPermits];
+  const active=allP.filter(p=>p.status==='active').length;
+  const expiring=allP.filter(p=>p.status==='active'&&p.end_date&&daysBetween(new Date(),new Date(p.end_date))<=30).length;
+  document.getElementById('ov-active').textContent=active;
+  document.getElementById('ov-vehicles').textContent=selfPermits.length;
+  document.getElementById('ov-guests').textContent=guestPasses.length;
+  document.getElementById('ov-expiring').textContent=expiring;
+  const banner=document.getElementById('ov-sub-banner');
+  if(hasSubscription){
+    const plan=allP.find(p=>p.plan&&p.plan!=='none')?.plan||'active';
+    banner.className='sub-banner active-sub';
+    banner.innerHTML=`<div><div style="font-size:15px;font-weight:700;color:var(--green);margin-bottom:3px;">✓ Subscription Active</div><div style="font-size:13px;color:var(--text2);">Plan: <strong>${plan.charAt(0).toUpperCase()+plan.slice(1)}</strong> · Auto-renews via Stripe</div></div><button class="btn btn-ghost btn-sm" onclick="showPanel('subscription',document.getElementById('sb-subscription'))">Manage →</button>`;
+  } else {
+    banner.className='sub-banner no-sub';
+    banner.innerHTML=`<div><div style="font-size:15px;font-weight:700;margin-bottom:3px;">No active subscription</div><div style="font-size:13px;color:var(--text2);">Subscribe to activate your resident permit</div></div><button class="btn btn-primary btn-sm" onclick="showPanel('subscription',document.getElementById('sb-subscription'))">Subscribe Now →</button>`;
+  }
+  const grid=document.getElementById('ov-permits-grid');
+  const activePmts=allP.filter(p=>p.status==='active').slice(0,4);
+  grid.innerHTML=activePmts.length
+    ? activePmts.map(p=>pcardHTML(p)).join('')
+    : `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🎫</div><div class="empty-title">No active permits yet</div><div class="empty-sub">Your manager will issue a permit to your email, or you can register your own vehicle below.</div><button class="btn btn-green btn-sm" onclick="showPanel('vehicles',document.getElementById('sb-vehicles'))">Add Vehicle</button></div>`;
+}
+
+function renderPermitsPanel(){
+  const mGrid=document.getElementById('mgr-permits-grid');
+  const sGrid=document.getElementById('self-permits-grid');
+  mGrid.innerHTML=mgrPermits.length
+    ? mgrPermits.map(p=>pcardHTML(p,true)).join('')
+    : `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏢</div><div class="empty-title">No manager-issued permits yet</div><div class="empty-sub">Your property manager hasn't issued a permit to your email yet.<br>Make sure they have <strong>${cu?.email||'your email'}</strong> on file.</div></div>`;
+  sGrid.innerHTML=selfPermits.length
+    ? selfPermits.map(p=>pcardHTML(p,false,true)).join('')
+    : `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚗</div><div class="empty-title">No self-registered vehicles</div><div class="empty-sub">Register your own vehicle to get a permit</div><button class="btn btn-green btn-sm" onclick="openAddVehicle()">Register Vehicle</button></div>`;
+}
+
+function renderVehiclesPanel(){
+  const grid=document.getElementById('vehicles-grid');
+  if(!selfPermits.length){grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚗</div><div class="empty-title">No vehicles registered</div><div class="empty-sub">Add your vehicle to get a digital parking permit</div><button class="btn btn-green btn-sm" onclick="openAddVehicle()">+ Add Vehicle</button></div>`;return;}
+  grid.innerHTML=selfPermits.map(p=>`
+    <div class="vcard">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
+        <div style="width:44px;height:44px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;">🚗</div>
+        <span class="pill pill-${p.status}">${p.status}</span>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:500;letter-spacing:.12em;margin-bottom:3px;">${p.plate}</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:12px;">${p.vehicle||'—'} ${p.color?'· '+p.color:''}</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--text3);">
+        <span>Zone: <strong style="color:var(--text2)">${p.zone||'—'}</strong></span>
+        <span>Unit: <strong style="color:var(--text2)">${p.unit_number||'—'}</strong></span>
+        <span>Exp: <strong style="color:var(--text2)">${p.end_date||'—'}</strong></span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm" onclick="editVehicle('${p.id}')">✏️ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="removeVehicle('${p.id}')">Remove</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderGuestsPanel(){
+  const grid=document.getElementById('guests-grid');
+  if(!guestPasses.length){grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🎟</div><div class="empty-title">No guest passes issued</div><div class="empty-sub">Issue a temporary pass for a visitor</div><button class="btn btn-primary btn-sm" onclick="openModal('modal-guest-pass')">+ New Guest Pass</button></div>`;return;}
+  grid.innerHTML=guestPasses.map(g=>`
+    <div class="gcard">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">GUEST PASS</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;letter-spacing:.12em;">${g.guest_plate}</div>
+          <div style="font-size:13px;color:var(--text2);">${g.guest_name||'Guest'}</div>
+        </div>
+        <span class="pill pill-active">active</span>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--text2);">
+        <span>📅 ${g.visit_date||'—'}</span><span>⏱ ${g.duration||'—'}</span>${g.notes?`<span>📝 ${g.notes}</span>`:''}
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="removeGuest('${g.id}')">Cancel Pass</button>
+    </div>`).join('');
+}
+
+function renderSubPanel(){
+  const card=document.getElementById('sub-status-card'),picker=document.getElementById('sub-plan-picker');
+  if(hasSubscription){
+    const plan=[...mgrPermits,...selfPermits].find(p=>p.plan&&p.plan!=='none')?.plan||'monthly';
+    card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;"><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--green);"></div><div style="font-size:16px;font-weight:700;color:var(--green);">Subscription Active</div></div><div style="font-size:13px;color:var(--text2);">Plan: <strong>${plan.charAt(0).toUpperCase()+plan.slice(1)}</strong> · Auto-renews · Powered by Stripe</div></div><div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm" onclick="toast('🔗 Opening Stripe billing portal...')">Manage Billing</button><button class="btn btn-danger btn-sm" onclick="cancelSub()">Cancel Plan</button></div></div>`;
+    picker.style.display='none';
+  } else {
+    card.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--red);"></div><div style="font-size:15px;font-weight:700;color:var(--red);">No Active Subscription</div></div><div style="font-size:13px;color:var(--text2);">Choose a plan below to activate your parking permit.</div>`;
+    picker.style.display='block';
+  }
+}
+
+// ── PERMIT CARD ──────────────────────────────────────────────────────────────
+
+function pcardHTML(p,isMgr=false,isEditable=false){
+  const sc=p.status==='active'?'pill-active':p.status==='revoked'?'pill-revoked':'pill-expired';
+  const accent=p.status==='active'?'linear-gradient(90deg,var(--green),#00a063)':p.status==='revoked'?'var(--red)':'#94a3b8';
+  const sourceTag=isMgr
+    ?`<span class="pill pill-mgr" style="font-size:10px;">🏢 Manager</span>`
+    :`<span class="pill" style="background:rgba(0,200,122,.1);color:#007a4a;border:1px solid rgba(0,200,122,.2);font-size:10px;">Self</span>`;
+  const cells=Array(9).fill(0).map(()=>`<div class="pcard-qr-cell" style="opacity:${Math.random()>.4?1:.2}"></div>`).join('');
+  return `<div class="pcard">
+    <div class="pcard-watermark">MY SPOT PARKING</div>
+    <div class="pcard-top">
+      <div class="pcard-meta">
+        <div>
+          <div class="pcard-source">Parking Permit</div>
+          <div class="pcard-plate">${p.plate}</div>
+          <div class="pcard-vehicle">${p.vehicle||'—'}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          <span class="pill ${sc}">${p.status}</span>
+          ${sourceTag}
+        </div>
+      </div>
+    </div>
+    <div class="pcard-fields">
+      <div><div class="pf-label">Type</div><div class="pf-val">${p.permit_type||'—'}</div></div>
+      <div><div class="pf-label">Zone</div><div class="pf-val">${p.zone||'—'}</div></div>
+      <div><div class="pf-label">Expires</div><div class="pf-val">${p.end_date||'—'}</div></div>
+    </div>
+    <div class="pcard-bottom">
+      <div style="flex:1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+        ${p.status==='active'?`<button class="btn btn-ghost btn-sm" onclick="toast('🖨 Printing permit card...')">Print Card</button>`:''}
+        ${isEditable&&p.status!=='revoked'?`<button class="btn btn-ghost btn-sm" onclick="editVehicle('${p.id}')">Edit</button><button class="btn btn-danger btn-sm" onclick="removeVehicle('${p.id}')">Remove</button>`:''}
+        ${isMgr&&p.status==='revoked'?`<span style="font-size:12px;color:var(--red);">⛔ Revoked by manager</span>`:''}
+      </div>
+      <div class="pcard-qr"><div class="pcard-qr-inner">${cells}</div></div>
+    </div>
+    <div class="pcard-accent" style="background:${accent}"></div>
+  </div>`;
+}
+
+// ── VEHICLE ACTIONS ──────────────────────────────────────────────────────────────
+
+function openAddVehicle(){
+  document.getElementById('av-edit-id').value='';
+  document.getElementById('av-modal-title').textContent='🚗 Register Vehicle';
+  document.getElementById('av-modal-sub').textContent='Add a vehicle to get a digital parking permit';
+  document.getElementById('av-btn').textContent='Register Vehicle';
+  ['av-plate','av-vehicle','av-color','av-state','av-unit'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('av-err').classList.remove('show');
+  document.getElementById('av-sub-warning').style.display='none';
+  openModal('modal-add-vehicle');
+}
+
+function editVehicle(id){
+  const p=selfPermits.find(x=>x.id===id);if(!p)return;
+  document.getElementById('av-edit-id').value=id;
+  document.getElementById('av-modal-title').textContent='✏️ Edit Vehicle';
+  document.getElementById('av-modal-sub').textContent='Update your vehicle details';
+  document.getElementById('av-btn').textContent='Save Changes';
+  document.getElementById('av-plate').value=p.plate||'';
+  document.getElementById('av-vehicle').value=p.vehicle||'';
+  document.getElementById('av-color').value=p.color||'';
+  document.getElementById('av-unit').value=p.unit_number||'';
+  document.getElementById('av-err').classList.remove('show');
+  document.getElementById('av-sub-warning').style.display='none';
+  openModal('modal-add-vehicle');
+}
+
+async function saveVehicle(){
+  const plate=g('av-plate'),vehicle=g('av-vehicle'),color=g('av-color'),unit=g('av-unit'),editId=g('av-edit-id');
+  const err=document.getElementById('av-err'),btn=document.getElementById('av-btn'),warn=document.getElementById('av-sub-warning');
+  err.classList.remove('show');warn.style.display='none';
+  if(!plate){err.textContent='License plate is required.';err.classList.add('show');return;}
+  if(!editId&&!hasSubscription){warn.style.display='block';return;}
+  btn.disabled=true;btn.textContent=editId?'Saving...':'Registering...';
+  let error;
+  if(editId){
+    ({error}=await sb.from('permits').update({plate,vehicle:vehicle||plate,color,unit_number:unit}).eq('id',editId).eq('holder_id',cu.id));
+  } else {
+    ({error}=await sb.from('permits').insert({holder_id:cu.id,holder_email:cu.email,plate,vehicle:vehicle||plate,color,unit_number:unit,permit_type:'Monthly Resident',plan:selectedPlan.name,start_date:today(),end_date:futureDate(30),status:'active',source:'self'}));
+  }
+  btn.disabled=false;btn.textContent=editId?'Save Changes':'Register Vehicle';
+  if(error){err.textContent=error.message;err.classList.add('show');return;}
+  closeModal('modal-add-vehicle');
+  await loadAll();
+  toast(editId?'✅ Vehicle updated!':'✅ Vehicle registered!');
+}
+
+async function removeVehicle(id){
+  if(!confirm('Remove this vehicle and its permit?'))return;
+  await sb.from('permits').delete().eq('id',id).eq('holder_id',cu.id);
+  await loadAll();
+  toast('🗑 Vehicle removed');
+}
+
+// ── GUEST PASSES ──────────────────────────────────────────────────────────────
+
+async function addGuestPass(){
+  const name=g('gp-name'),plate=g('gp-plate'),date=g('gp-date'),notes=g('gp-notes');
+  const dur=document.getElementById('gp-duration').value;
+  const err=document.getElementById('gp-err'),btn=document.getElementById('gp-btn');
+  err.classList.remove('show');
+  if(!name||!plate){err.textContent='Guest name and plate are required.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Issuing...';
+  const {error}=await sb.from('guest_passes').insert({host_id:cu.id,guest_name:name,guest_plate:plate,duration:dur,visit_date:date||today(),notes,status:'active'});
+  btn.disabled=false;btn.textContent='Issue Guest Pass';
+  if(error){err.textContent=error.message;err.classList.add('show');return;}
+  closeModal('modal-guest-pass');
+  ['gp-name','gp-plate','gp-notes'].forEach(id=>document.getElementById(id).value='');
+  await loadAll();
+  toast('🎟 Guest pass issued for '+plate);
+}
+
+async function removeGuest(id){
+  if(!confirm('Cancel this guest pass?'))return;
+  await sb.from('guest_passes').delete().eq('id',id).eq('host_id',cu.id);
+  await loadAll();
+  toast('🗑 Guest pass cancelled');
+}
+
+// ── SUBSCRIPTION ──────────────────────────────────────────────────────────────
+
+function selectPlan(el,name,amount){
+  document.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');selectedPlan={name,amount};
+  document.getElementById('sub-pay-amount').textContent=amount;
+}
+
+async function processPayment(){
+  const btn=document.getElementById('sub-pay-btn');
+  btn.disabled=true;btn.textContent='Processing...';
+  // Production: POST to backend → Stripe Checkout Session → redirect to session.url
+  await sleep(1600);
+  hasSubscription=true;renderAll();
+  btn.disabled=false;
+  toast('🎉 Subscription activated — '+selectedPlan.name+' plan!');
+}
+
+async function cancelSub(){
+  if(!confirm('Cancel your subscription? Permits remain active until expiry.'))return;
+  hasSubscription=false;renderAll();
+  toast('Subscription cancelled. Permits stay active until their end date.');
+}
+
+// ── ACCOUNT ──────────────────────────────────────────────────────────────
+
+async function saveAccount(){
+  const btn=document.getElementById('acc-save-btn');
+  btn.disabled=true;btn.textContent='Saving...';
+  const full_name=(g('acc-fname')+' '+g('acc-lname')).trim();
+  const phone=g('acc-phone');
+  const {error}=await sb.from('users').update({full_name,phone}).eq('id',cu.id);
+  btn.disabled=false;btn.textContent='Save Changes';
+  if(error){toast('Error: '+error.message);return;}
+  cu.full_name=full_name;cu.phone=phone;
+  document.getElementById('sb-name').textContent=full_name||'Permit Holder';
+  document.getElementById('tn-name').textContent=full_name||cu.email;
+  toast('✅ Account updated!');
+}
+
+// ── NAV ──────────────────────────────────────────────────────────────
+
+const PANELS=['overview','permits','vehicles','guests','subscription','account'];
+function showPanel(name,sbEl){
+  PANELS.forEach(p=>document.getElementById('panel-'+p)?.classList.remove('active'));
+  document.getElementById('panel-'+name)?.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(el=>el.classList.remove('active'));
+  if(sbEl)sbEl.classList.add('active');
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────────────
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+let toastTimer;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3200);}
+function g(id){return(document.getElementById(id)?.value||'').trim();}
+function today(){return new Date().toISOString().split('T')[0];}
+function futureDate(d){const dt=new Date();dt.setDate(dt.getDate()+d);return dt.toISOString().split('T')[0];}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function daysBetween(a,b){return Math.round((b-a)/(1000*60*60*24));}
+
+checkExistingSession();
+</script>
+</body>
+</html>

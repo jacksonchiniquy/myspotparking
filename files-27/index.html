@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Spot Parking — Digital Parking Permits</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --navy:#f0f4ff; --navy2:#ffffff; --navy3:#e8eef8;
+  --blue:#1a6fff; --blue2:#4d8fff; --sky:#e8f1ff;
+  --white:#0f172a; --slate:#64748b; --slate2:#475569;
+  --green:#00c87a; --amber:#ffaa00; --red:#ff4d4d;
+  --border:rgba(15,23,42,0.10); --border2:rgba(15,23,42,0.06);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--navy);color:#0f172a;font-family:'Bricolage Grotesque',sans-serif;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.4;}
+
+.nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:0 52px;height:68px;background:rgba(255,255,255,0.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--white);}
+.logo-mark{width:34px;height:34px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:#fff;box-shadow:0 0 20px rgba(26,111,255,0.5);}
+.logo-text{font-size:19px;font-weight:700;letter-spacing:-0.03em;}
+.nav-center{display:flex;align-items:center;gap:4px;position:relative;}
+.nav-link{padding:8px 14px;font-size:14px;font-weight:500;color:#64748b;text-decoration:none;border-radius:8px;transition:color .2s,background .2s;cursor:pointer;position:relative;border:none;background:none;font-family:'Bricolage Grotesque',sans-serif;}
+.nav-link:hover{color:#1a6fff;background:rgba(26,111,255,0.08);}
+.nav-dropdown-trigger{display:flex;align-items:center;gap:5px;}
+.nav-dropdown-trigger svg{transition:transform .25s;}
+.nav-dropdown-trigger.open svg{transform:rotate(180deg);}
+.nav-dropdown{position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%) translateY(-8px);background:#fff;border:1px solid rgba(15,23,42,0.12);border-radius:16px;padding:8px;width:330px;box-shadow:0 24px 48px rgba(0,0,0,0.12);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;}
+.nav-dropdown.open{opacity:1;pointer-events:all;transform:translateX(-50%) translateY(0);}
+.dd-item{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:10px;text-decoration:none;color:var(--white);transition:background .15s;}
+.dd-item:hover{background:rgba(26,111,255,0.06);}
+.dd-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.dd-icon.blue{background:rgba(26,111,255,.15);border:1px solid rgba(26,111,255,.2);}
+.dd-icon.green{background:rgba(0,200,122,.15);border:1px solid rgba(0,200,122,.2);}
+.dd-icon.amber{background:rgba(255,170,0,.15);border:1px solid rgba(255,170,0,.2);}
+.dd-label{font-size:14px;font-weight:600;margin-bottom:2px;}
+.dd-sub{font-size:11px;color:var(--slate);}
+.dd-sep{height:1px;background:var(--border);margin:4px 0;}
+.nav-right{display:flex;align-items:center;gap:10px;}
+.btn-nav-ghost{padding:8px 18px;font-size:14px;font-weight:500;color:#475569;background:none;border:1px solid rgba(15,23,42,0.15);border-radius:8px;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;transition:all .2s;text-decoration:none;display:inline-block;}
+.btn-nav-ghost:hover{color:#1a6fff;border-color:#1a6fff;}
+.btn-nav-primary{padding:8px 20px;font-size:14px;font-weight:600;color:#fff;background:var(--blue);border:none;border-radius:8px;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;transition:all .2s;text-decoration:none;display:inline-block;box-shadow:0 4px 16px rgba(26,111,255,.4);}
+.btn-nav-primary:hover{background:#0d5de0;transform:translateY(-1px);}
+
+.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;overflow:hidden;}
+.hero-glow{position:absolute;top:-20%;left:50%;transform:translateX(-50%);width:800px;height:600px;background:radial-gradient(ellipse at center,rgba(26,111,255,0.10) 0%,transparent 70%);pointer-events:none;}
+.hero-grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(15,23,42,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(15,23,42,0.06) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(ellipse at center,black 30%,transparent 80%);pointer-events:none;}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(26,111,255,.1);border:1px solid rgba(26,111,255,.2);border-radius:20px;padding:6px 14px 6px 8px;font-size:12px;color:#7aaeff;margin-bottom:28px;font-weight:500;}
+.hero-badge-dot{width:6px;height:6px;background:var(--blue);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.6;transform:scale(0.8);}}
+.hero-title{font-size:clamp(44px,7vw,84px);font-weight:800;letter-spacing:-0.04em;line-height:1.0;margin-bottom:24px;position:relative;z-index:1;}
+.hero-title em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;color:var(--blue2);}
+.hero-sub{font-size:clamp(16px,2.5vw,20px);color:#475569;max-width:580px;line-height:1.6;margin-bottom:44px;font-weight:400;}
+.hero-ctas{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:60px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 28px;font-family:'Bricolage Grotesque',sans-serif;font-size:15px;font-weight:600;border-radius:11px;cursor:pointer;border:none;transition:all .2s;text-decoration:none;white-space:nowrap;}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 4px 20px rgba(26,111,255,.4);}
+.btn-primary:hover{background:#0d5de0;transform:translateY(-2px);}
+.btn-ghost{background:transparent;color:var(--slate2);border:1px solid var(--border);}
+.btn-ghost:hover{color:#1a6fff;border-color:#1a6fff;}
+.btn-green{background:var(--green);color:#000;box-shadow:0 4px 20px rgba(0,200,122,.3);}
+.btn-green:hover{background:#00b06c;transform:translateY(-2px);}
+.btn-amber{background:var(--amber);color:#000;}
+.btn-amber:hover{background:#e09600;transform:translateY(-2px);}
+.btn-lg{padding:17px 38px;font-size:17px;border-radius:13px;}
+.btn-full{width:100%;}
+
+.permit-mockup{position:relative;display:inline-block;margin:0 auto;}
+.permit-card-visual{width:min(460px,90vw);background:linear-gradient(135deg,#eef2fc 0%,#f8faff 100%);border:1px solid var(--border);border-radius:20px;padding:28px 32px;text-align:left;position:relative;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,0.10);}
+.permit-card-visual::before{content:'MY SPOT PARKING';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-20deg);font-size:72px;font-weight:800;opacity:.04;white-space:nowrap;pointer-events:none;}
+.pc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;}
+.pc-logo{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;}
+.pc-logo-dot{width:22px;height:22px;background:var(--blue);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;}
+.pc-plate{font-family:'JetBrains Mono',monospace;font-size:36px;font-weight:500;letter-spacing:0.12em;margin-bottom:4px;}
+.pc-make{font-size:13px;color:var(--slate2);margin-bottom:20px;}
+.pc-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding-top:18px;border-top:1px solid var(--border2);}
+.pc-field-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:4px;}
+.pc-field-val{font-size:13px;font-weight:600;}
+.pc-status{display:inline-flex;align-items:center;gap:5px;background:rgba(0,200,122,.15);border:1px solid rgba(0,200,122,.25);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--green);font-family:'JetBrains Mono',monospace;}
+.pc-status::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--green);}
+.pc-accent-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--green));}
+.float-tag{position:absolute;background:#ffffff;border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.08);}
+.float-tag-1{top:-18px;right:-30px;color:var(--green);}
+.float-tag-2{bottom:20px;left:-50px;color:var(--blue2);}
+
+.split{padding:80px 52px;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:28px;}
+.split-card{border-radius:22px;padding:44px;position:relative;overflow:hidden;cursor:pointer;text-decoration:none;display:block;transition:transform .3s,box-shadow .3s;}
+.split-card:hover{transform:translateY(-4px);}
+.split-card.owner{background:linear-gradient(135deg,rgba(26,111,255,.07) 0%,#ffffff 60%);border:1px solid rgba(26,111,255,.2);}
+.split-card.owner:hover{box-shadow:0 24px 60px rgba(26,111,255,.15);}
+.split-card.resident{background:linear-gradient(135deg,rgba(0,200,122,.06) 0%,#ffffff 60%);border:1px solid rgba(0,200,122,.2);}
+.split-card.resident:hover{box-shadow:0 24px 60px rgba(0,200,122,.12);}
+.split-tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:4px 10px;border-radius:20px;margin-bottom:18px;}
+.split-tag.blue{background:rgba(26,111,255,.15);color:#7aaeff;border:1px solid rgba(26,111,255,.2);}
+.split-tag.green{background:rgba(0,200,122,.15);color:#00c87a;border:1px solid rgba(0,200,122,.2);}
+.split-title{font-size:30px;font-weight:800;letter-spacing:-0.04em;line-height:1.1;margin-bottom:14px;}
+.split-desc{font-size:15px;color:var(--slate2);line-height:1.65;margin-bottom:28px;}
+.split-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:32px;}
+.split-features li{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--slate2);}
+.split-features li::before{content:'✓';width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.split-card.owner .split-features li::before{background:rgba(26,111,255,.15);color:var(--blue2);}
+.split-card.resident .split-features li::before{background:rgba(0,200,122,.15);color:var(--green);}
+.split-bg-num{position:absolute;bottom:-20px;right:-10px;font-size:160px;font-weight:800;opacity:.04;line-height:1;pointer-events:none;font-family:'Instrument Serif',serif;}
+
+.how{padding:80px 52px;border-top:1px solid var(--border2);}
+.how-inner{max-width:1100px;margin:0 auto;}
+.section-eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--blue2);margin-bottom:12px;}
+.section-heading{font-size:clamp(28px,4vw,42px);font-weight:800;letter-spacing:-0.04em;line-height:1.1;margin-bottom:48px;}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+.step{background:#ffffff;border:1px solid rgba(15,23,42,0.10);border-radius:16px;padding:28px;position:relative;box-shadow:0 2px 12px rgba(15,23,42,0.05);}
+.step-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--slate);margin-bottom:16px;}
+.step-icon{font-size:28px;margin-bottom:14px;}
+.step-title{font-size:17px;font-weight:700;letter-spacing:-0.02em;margin-bottom:8px;}
+.step-desc{font-size:13px;color:var(--slate2);line-height:1.6;}
+.step-connector{position:absolute;top:40px;right:-13px;width:24px;height:24px;background:#ffffff;border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--slate);z-index:1;}
+
+.pricing{padding:80px 52px;border-top:1px solid var(--border2);}
+.pricing-inner{max-width:900px;margin:0 auto;text-align:center;}
+.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:44px;}
+.plan{background:#ffffff;border:1px solid rgba(15,23,42,0.10);border-radius:18px;padding:32px 28px;text-align:center;position:relative;box-shadow:0 2px 12px rgba(15,23,42,0.05);}
+.plan.featured{border-color:rgba(26,111,255,.4);background:linear-gradient(180deg,rgba(26,111,255,.08) 0%,#fff 60%);}
+.plan.featured::before{content:'Most Popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--blue);color:#fff;font-size:11px;font-weight:700;padding:3px 14px;border-radius:20px;}
+.plan-name{font-size:14px;font-weight:600;color:var(--slate2);margin-bottom:12px;letter-spacing:.05em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}
+.plan-price{font-size:44px;font-weight:800;letter-spacing:-0.04em;line-height:1;}
+.plan-period{font-size:13px;color:var(--slate);margin-bottom:24px;}
+.plan-features{list-style:none;text-align:left;display:flex;flex-direction:column;gap:10px;margin-bottom:28px;}
+.plan-features li{font-size:13px;color:var(--slate2);display:flex;align-items:center;gap:8px;}
+.plan-features li::before{content:'✓';color:var(--green);font-weight:700;}
+
+.enforcement-cta{margin:0 auto 80px;max-width:1076px;border-radius:20px;background:linear-gradient(135deg,rgba(255,170,0,.06) 0%,#fffdf0 60%);border:1px solid rgba(255,170,0,.2);padding:44px 52px;display:flex;align-items:center;justify-content:space-between;gap:24px;}
+.ec-title{font-size:24px;font-weight:800;letter-spacing:-0.03em;margin-bottom:8px;}
+.ec-sub{font-size:14px;color:var(--slate2);}
+
+footer{border-top:1px solid rgba(15,23,42,0.10);padding:40px 52px;display:flex;align-items:center;justify-content:space-between;color:#64748b;background:#f8faff;font-size:13px;}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.15);backdrop-filter:blur(6px);z-index:800;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:#ffffff;border:1px solid rgba(15,23,42,0.12);border-radius:22px;padding:40px;box-shadow:0 24px 60px rgba(15,23,42,0.12);width:480px;max-width:96vw;max-height:90vh;overflow-y:auto;transform:scale(.96) translateY(12px);transition:transform .3s;position:relative;}
+.modal-overlay.open .modal{transform:scale(1) translateY(0);}
+.modal-close{position:absolute;top:16px;right:16px;width:32px;height:32px;background:#f1f5f9;border:1px solid rgba(15,23,42,0.12);border-radius:8px;color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;}
+.modal-icon{font-size:36px;margin-bottom:12px;}
+.modal-title{font-size:22px;font-weight:700;letter-spacing:-.03em;margin-bottom:4px;}
+.modal-sub{font-size:14px;color:var(--slate);margin-bottom:28px;}
+.form-group{margin-bottom:18px;}
+.form-label{display:block;font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--slate);margin-bottom:7px;}
+.form-input,.form-select{width:100%;background:#f8faff;border:1px solid rgba(15,23,42,0.15);color:#0f172a;padding:11px 16px;border-radius:10px;font-family:'Bricolage Grotesque',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;}
+.form-input:focus,.form-select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,111,255,.12);}
+.form-input::placeholder{color:#94a3b8;}
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--slate);font-size:12px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.modal-switch{text-align:center;margin-top:20px;font-size:13px;color:var(--slate);}
+.modal-switch a{color:var(--blue2);cursor:pointer;}
+.err-msg{background:rgba(255,77,77,.08);border:1px solid rgba(255,77,77,.2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:14px;display:none;}
+.err-msg.show{display:block;}
+
+#toast{position:fixed;bottom:28px;right:28px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 20px;font-size:13px;z-index:9999;transform:translateY(16px);opacity:0;transition:all .3s;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.08);}
+#toast.show{opacity:1;transform:translateY(0);}
+
+@media(max-width:900px){
+  .nav{padding:0 20px;}.nav-center{display:none;}
+  .hero{padding:100px 20px 60px;}
+  .split,.how,.pricing{padding:60px 20px;}
+  .split{grid-template-columns:1fr;}.steps{grid-template-columns:1fr;}
+  .plan-grid{grid-template-columns:1fr;}
+  .enforcement-cta{margin:0 20px 60px;flex-direction:column;padding:32px;}
+  footer{padding:28px 20px;flex-direction:column;gap:12px;text-align:center;}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="index.html">
+    <div class="logo-mark">M</div>
+    <span class="logo-text">My Spot Parking</span>
+  </a>
+  <div class="nav-center">
+    <a class="nav-link" href="index.html">Home</a>
+    <a class="nav-link" href="#how">How it Works</a>
+    <a class="nav-link" href="#pricing">Pricing</a>
+    <div style="position:relative;" id="portals-wrap">
+      <a class="nav-link nav-dropdown-trigger" href="portals.html" id="portals-trigger"
+        onmouseenter="openDropdown()" onmouseleave="scheduleCloseDropdown()">
+        Portals
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </a>
+      <div class="nav-dropdown" id="portals-dropdown"
+        onmouseenter="cancelCloseDropdown()" onmouseleave="scheduleCloseDropdown()">
+        <a class="dd-item" href="manager.html"><div class="dd-icon blue">🏢</div><div><div class="dd-label">Property Manager</div><div class="dd-sub">Manage properties, issue &amp; revoke permits</div></div></a>
+        <div class="dd-sep"></div>
+        <a class="dd-item" href="holder.html"><div class="dd-icon green">🚗</div><div><div class="dd-label">Resident / Spot User</div><div class="dd-sub">View, add &amp; manage your vehicle permits</div></div></a>
+        <div class="dd-sep"></div>
+        <a class="dd-item" href="enforcer.html"><div class="dd-icon amber">🚨</div><div><div class="dd-label">Enforcement Company</div><div class="dd-sub">Scan plates, log violations &amp; print citations</div></div></a>
+      </div>
+    </div>
+  </div>
+  <div class="nav-right">
+    <a class="btn-nav-ghost" href="portals.html">Sign In</a>
+    <a class="btn-nav-primary" href="get-started.html">Get Started</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-grid-bg"></div>
+  <div class="hero-badge"><div class="hero-badge-dot"></div>Digital-first parking management — no stickers, no paper</div>
+  <h1 class="hero-title">Parking Management<br><em>reimagined</em> for<br>the modern age</h1>
+  <p class="hero-sub">Issue digital parking permits, Manage space, and enforce across all your properties. Real-time verification, Stripe-powered payments, and zero paperwork.</p>
+  <div class="hero-ctas">
+    <a class="btn btn-primary btn-lg" href="get-started.html">Get Started <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></a>
+    <a class="btn btn-ghost btn-lg" href="#how">See how it works</a>
+  </div>
+  <div class="permit-mockup">
+    <div class="float-tag float-tag-1">✅ Verified Active</div>
+    <div class="float-tag float-tag-2">🔒 Stripe Secured</div>
+    <div class="permit-card-visual">
+      <div class="pc-top"><div class="pc-logo"><div class="pc-logo-dot">M</div>My Spot Parking</div><div class="pc-status">Active</div></div>
+      <div class="pc-plate">TXK · 4821</div>
+      <div class="pc-make">2023 Tesla Model 3 · Pearl White</div>
+      <div class="pc-fields">
+        <div><div class="pc-field-label">Property</div><div class="pc-field-val">Maple Gardens A</div></div>
+        <div><div class="pc-field-label">Permit Type</div><div class="pc-field-val">Monthly Resident</div></div>
+        <div><div class="pc-field-label">Expires</div><div class="pc-field-val" id="permit-expiry">—</div></div>
+      </div>
+      <div class="pc-accent-bar"></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding:0 52px 20px;max-width:1280px;margin:0 auto;">
+  <div style="text-align:center;margin-bottom:44px;">
+    <div class="section-eyebrow">Parking Solutions For Everyone</div>
+    <h2 style="font-size:clamp(28px,4vw,42px);font-weight:800;letter-spacing:-0.04em;">Built for owners <em style="font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;">and</em> residents</h2>
+  </div>
+  <div class="split" style="padding:0;">
+    <a class="split-card owner" href="manager.html">
+      <div class="split-bg-num">O</div>
+      <div class="split-tag blue">Property Owner / Spot Manager</div>
+      <div class="split-title">Take full control of your parking operations</div>
+      <div class="split-desc">Say goodbye to paper permits and spreadsheets. Manage every property, zone, and permit from one powerful dashboard.</div>
+      <ul class="split-features"><li>Issue &amp; revoke permits instantly</li><li>Manage multiple properties &amp; zones</li><li>Real-time violation reports</li><li>Automated Stripe billing &amp; renewals</li><li>Enforcement company integration</li></ul>
+      <button class="btn btn-primary">Open Manager Portal →</button>
+    </a>
+    <a class="split-card resident" href="holder.html">
+      <div class="split-bg-num">R</div>
+      <div class="split-tag green">Resident / Permit Holder / Spot User</div>
+      <div class="split-title">Your digital parking pass, always with you</div>
+      <div class="split-desc">No more paper permits fading in your windshield. Your permit lives on your phone and renews automatically every month.</div>
+      <ul class="split-features"><li>Digital permit on your phone</li><li>Add multiple vehicles</li><li>Request guest passes instantly</li><li>QR code verified by enforcement</li></ul>
+      <button class="btn btn-green">Open My Permits →</button>
+    </a>
+  </div>
+</section>
+
+<section class="how" id="how">
+  <div class="how-inner">
+    <div class="section-eyebrow">Simple Process</div>
+    <h2 class="section-heading">Up and running in minutes</h2>
+    <div class="steps">
+      <div class="step"><div class="step-num">01</div><div class="step-icon">🏢</div><div class="step-title">Manager creates property</div><div class="step-desc">Property owners sign up, add their properties, configure zones, and set permit rules — all in under 5 minutes.</div><div class="step-connector">→</div></div>
+      <div class="step"><div class="step-num">02</div><div class="step-icon">🚗</div><div class="step-title">Resident subscribes &amp; registers</div><div class="step-desc">Residents sign up, subscribe via Stripe, and register their vehicles. Their digital permit is issued instantly.</div><div class="step-connector">→</div></div>
+      <div class="step"><div class="step-num">03</div><div class="step-icon">🚨</div><div class="step-title">Enforcement verifies on patrol</div><div class="step-desc">Enforcement officers scan any plate in real-time to verify validity, log violations, and print citations.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="pricing" id="pricing">
+  <div class="pricing-inner">
+    <div class="section-eyebrow">Flexible For Every Property</div>
+    <h2 style="font-size:clamp(28px,4vw,42px);font-weight:800;letter-spacing:-0.04em;">Pricing built around your property</h2>
+    <p style="margin-top:12px;font-size:15px;color:var(--slate2);max-width:560px;margin-left:auto;margin-right:auto;">Every property is different. Pricing is set up during onboarding to match your parking mix — whether that's open, reserved, covered, EV, garage, or yard space.</p>
+    <div class="plan-grid" style="margin-top:44px;">
+      <div class="plan">
+        <div class="plan-name">Open Parking</div>
+        <div style="font-size:36px;margin:12px 0 4px;">🅿️</div>
+        <div class="plan-period">Unassigned or general lot parking</div>
+        <ul class="plan-features" style="margin-top:18px;"><li>Flexible permit structures</li><li>Guest &amp; visitor passes</li><li>Real-time enforcement sync</li><li>Digital QR permit cards</li></ul>
+      </div>
+      <div class="plan featured">
+        <div class="plan-name">Reserved &amp; Covered</div>
+        <div style="font-size:36px;margin:12px 0 4px;">🏠</div>
+        <div class="plan-period">Assigned stalls, carports &amp; garages</div>
+        <ul class="plan-features" style="margin-top:18px;"><li>Stall-level assignment</li><li>Visual lot map included</li><li>Revoke &amp; reassign anytime</li><li>Full violation tracking</li><li>Enforcement integration</li></ul>
+      </div>
+      <div class="plan">
+        <div class="plan-name">Industrial &amp; Storage</div>
+        <div style="font-size:36px;margin:12px 0 4px;">📦</div>
+        <div class="plan-period">Open storage, yards &amp; loading areas</div>
+        <ul class="plan-features" style="margin-top:18px;"><li>Zone &amp; area management</li><li>Equipment &amp; vehicle tracking</li><li>Self-managed or linked</li><li>Internal roster view</li></ul>
+      </div>
+    </div>
+    <div style="margin-top:40px;background:linear-gradient(135deg,rgba(26,111,255,.07),rgba(26,111,255,.02));border:1px solid rgba(26,111,255,.18);border-radius:16px;padding:32px;text-align:center;">
+      <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Ready to talk pricing?</div>
+      <div style="font-size:14px;color:var(--slate2);margin-bottom:20px;">Our team will configure a plan specifically for your properties during onboarding.</div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+        <a class="btn btn-primary" href="get-started.html">Get Started →</a>
+        <a class="btn btn-ghost" href="tel:+18013748487">📞 (801) 374-8487</a>
+        <a class="btn btn-ghost" href="mailto:sales@myspotparking.com">✉️ sales@myspotparking.com</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="enforcement-cta" style="margin:0 52px 80px;">
+  <div>
+    <div style="display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:10px;"><span style="width:6px;height:6px;background:var(--amber);border-radius:50%;display:inline-block;"></span>Enforcement Company</div>
+    <div class="ec-title">Run a parking enforcement company?</div>
+    <div class="ec-sub">Join My Spot Parking to access real-time permit lookups, violation logging, and citation management.</div>
+  </div>
+  <a class="btn btn-amber" href="enforcer.html" style="flex-shrink:0;">Enforcement Portal →</a>
+</div>
+
+<footer>
+  <div style="display:flex;align-items:center;gap:10px;"><div class="logo-mark" style="width:26px;height:26px;font-size:13px;border-radius:6px;">M</div><span style="font-weight:600;">My Spot Parking</span></div>
+  <div>© 2026 My Spot Parking Inc. · Payments secured by Stripe</div>
+  <div style="display:flex;gap:20px;"><a href="#" style="color:var(--slate);text-decoration:none;">Privacy</a><a href="#" style="color:var(--slate);text-decoration:none;">Terms</a><a href="#" style="color:var(--slate);text-decoration:none;">Contact</a></div>
+</footer>
+
+<!-- Get Started Modal -->
+<div class="modal-overlay" id="modal-getstarted">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-getstarted')">✕</button>
+    <div class="modal-icon">🅿️</div>
+    <div class="modal-title">Create an account</div>
+    <div class="modal-sub">Choose how you'll be using My Spot Parking</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <a href="manager.html" class="btn btn-primary btn-full" style="justify-content:flex-start;gap:12px;padding:16px 20px;"><span style="font-size:20px;">🏢</span><div style="text-align:left;"><div style="font-size:15px;">Property Manager / Owner</div><div style="font-size:12px;opacity:.7;font-weight:400;">Manage properties &amp; issue permits</div></div></a>
+      <a href="holder.html" class="btn btn-green btn-full" style="justify-content:flex-start;gap:12px;padding:16px 20px;color:#000;"><span style="font-size:20px;">🚗</span><div style="text-align:left;"><div style="font-size:15px;">Resident / Permit Holder</div><div style="font-size:12px;opacity:.7;font-weight:400;">Register my vehicle &amp; get a permit</div></div></a>
+      <a href="enforcer.html" class="btn btn-amber btn-full" style="justify-content:flex-start;gap:12px;padding:16px 20px;color:#000;"><span style="font-size:20px;">🚨</span><div style="text-align:left;"><div style="font-size:15px;">Enforcement Company</div><div style="font-size:12px;opacity:.7;font-weight:400;">Verify permits &amp; log violations</div></div></a>
+    </div>
+    <div class="modal-switch">Already have an account? <a onclick="closeModal('modal-getstarted');openModal('modal-signin')">Sign in</a></div>
+  </div>
+</div>
+
+<!-- Sign In Modal -->
+<div class="modal-overlay" id="modal-signin">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-signin')">✕</button>
+    <div class="modal-icon">👋</div>
+    <div class="modal-title">Welcome back</div>
+    <div class="modal-sub">Sign in to your My Spot Parking account</div>
+    <div class="err-msg" id="signin-err"></div>
+    <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" id="si-email" type="email" placeholder="you@example.com"></div>
+    <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="si-pass" type="password" placeholder="••••••••"></div>
+    <button class="btn btn-primary btn-full" id="si-btn" onclick="handleSignIn()">Sign In</button>
+    <div class="modal-switch">New to My Spot Parking? <a onclick="closeModal('modal-signin');openModal('modal-getstarted')">Create an account</a></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// Set permit expiry to tomorrow's date
+(function(){
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate()+1);
+  const opts={month:'long',day:'numeric',year:'numeric'};
+  const el=document.getElementById('permit-expiry');
+  if(el) el.textContent=tomorrow.toLocaleDateString('en-US',opts);
+})();
+
+// Hover dropdown for Portals
+let ddCloseTimer=null;
+function openDropdown(){
+  clearTimeout(ddCloseTimer);
+  document.getElementById('portals-dropdown').classList.add('open');
+}
+function scheduleCloseDropdown(){
+  ddCloseTimer=setTimeout(()=>{
+    document.getElementById('portals-dropdown').classList.remove('open');
+  },200);
+}
+function cancelCloseDropdown(){
+  clearTimeout(ddCloseTimer);
+}
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+let toastTimer;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3200);}
+</script>
+</body>
+</html>
