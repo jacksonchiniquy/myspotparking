@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — My Spot Parking</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface2:#21262d;--surface3:#30363d;
+  --blue:#2f81f7;--blue2:#79c0ff;--green:#3fb950;--green2:#56d364;
+  --amber:#d29922;--amber2:#e3b341;--red:#f85149;--red2:#ff7b72;
+  --purple:#a371f7;--text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+  --border:rgba(240,246,252,0.1);--border2:rgba(240,246,252,0.06);
+  --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.2);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sans-serif;display:flex;flex-direction:column;}
+
+/* ── GATE ── */
+#gate{position:fixed;inset:0;z-index:900;background:var(--bg);display:flex;align-items:center;justify-content:center;}
+.gate-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:420px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,.5);}
+.gate-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;}
+.gate-logo-mark{width:36px;height:36px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:#fff;}
+.gate-logo-text{font-size:18px;font-weight:700;letter-spacing:-.03em;}
+.gate-eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--purple);background:rgba(163,113,247,.15);border:1px solid rgba(163,113,247,.3);border-radius:20px;padding:3px 10px;display:inline-block;margin-bottom:14px;}
+.gate-title{font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;}
+.gate-sub{font-size:13px;color:var(--text2);margin-bottom:24px;}
+.form-group{margin-bottom:16px;}
+.form-label{display:block;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
+.form-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;font-family:'Bricolage Grotesque',sans-serif;font-size:14px;outline:none;transition:border-color .2s;}
+.form-input:focus{border-color:var(--blue);}
+.form-input::placeholder{color:var(--text3);}
+.err-msg{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--red2);margin-bottom:14px;display:none;}
+.err-msg.show{display:block;}
+
+/* ── LAYOUT ── */
+#app{display:none;flex:1;overflow:hidden;flex-direction:row;}
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow-y:auto;}
+.sb-logo{display:flex;align-items:center;gap:9px;padding:18px 16px;border-bottom:1px solid var(--border);}
+.sb-logo-mark{width:28px;height:28px;background:var(--blue);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;}
+.sb-logo-text{font-size:15px;font-weight:700;letter-spacing:-.03em;}
+.sb-badge{font-size:9px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;background:rgba(163,113,247,.2);color:var(--purple);border:1px solid rgba(163,113,247,.3);border-radius:10px;padding:1px 7px;margin-left:auto;}
+.sb-section{padding:14px 10px 6px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--text3);}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:'Bricolage Grotesque',sans-serif;}
+.sb-item:hover{background:var(--surface2);color:var(--text);}
+.sb-item.active{background:rgba(47,129,247,.15);color:var(--blue2);font-weight:600;}
+.sb-count{margin-left:auto;background:var(--surface3);color:var(--text2);font-size:10px;font-family:'JetBrains Mono',monospace;padding:1px 7px;border-radius:10px;}
+.sb-footer{padding:12px 10px;border-top:1px solid var(--border);margin-top:auto;}
+.sb-user{font-size:12px;color:var(--text3);margin-bottom:8px;}
+
+/* ── MAIN ── */
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+.topbar{height:52px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:14px;flex-shrink:0;}
+.topbar-title{font-size:15px;font-weight:700;letter-spacing:-.02em;}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.search-input{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:7px;font-size:13px;outline:none;width:220px;font-family:'Bricolage Grotesque',sans-serif;transition:border-color .2s;}
+.search-input:focus{border-color:var(--blue);}
+.search-input::placeholder{color:var(--text3);}
+.content{padding:24px 28px 60px;flex:1;}
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* ── STAT CARDS ── */
+.stat-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:28px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
+.sc-blue::after{background:var(--blue);}
+.sc-green::after{background:var(--green);}
+.sc-amber::after{background:var(--amber);}
+.sc-red::after{background:var(--red);}
+.sc-purple::after{background:var(--purple);}
+.sc-teal::after{background:#2ea8a8;}
+.sc-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;}
+.sc-val{font-size:26px;font-weight:800;letter-spacing:-.04em;line-height:1;margin-bottom:3px;}
+.sc-sub{font-size:11px;color:var(--text3);}
+
+/* ── TABLES ── */
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface2);}
+.tbl td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border2);color:var(--text);}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:rgba(240,246,252,.03);}
+.tbl-actions{display:flex;gap:6px;}
+
+/* ── PILLS ── */
+.pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:10px;font-family:'JetBrains Mono',monospace;}
+.pill::before{content:'';width:5px;height:5px;border-radius:50%;}
+.pill-active{background:rgba(63,185,80,.12);color:var(--green2);border:1px solid rgba(63,185,80,.25);}
+.pill-active::before{background:var(--green);}
+.pill-revoked{background:rgba(248,81,73,.1);color:var(--red2);border:1px solid rgba(248,81,73,.2);}
+.pill-revoked::before{background:var(--red);}
+.pill-expired{background:rgba(110,118,129,.12);color:var(--text2);border:1px solid rgba(110,118,129,.2);}
+.pill-expired::before{background:var(--text3);}
+.pill-manager{background:rgba(47,129,247,.12);color:var(--blue2);border:1px solid rgba(47,129,247,.2);}
+.pill-manager::before{background:var(--blue);}
+.pill-admin{background:rgba(163,113,247,.15);color:var(--purple);border:1px solid rgba(163,113,247,.3);}
+.pill-admin::before{background:var(--purple);}
+.pill-self{background:rgba(110,118,129,.1);color:var(--text2);border:1px solid rgba(110,118,129,.2);}
+.pill-self::before{background:var(--text3);}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-family:'Bricolage Grotesque',sans-serif;font-size:12.5px;font-weight:600;border-radius:7px;cursor:pointer;border:none;transition:all .2s;text-decoration:none;white-space:nowrap;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:#1a6dd8;}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2);}
+.btn-danger{background:rgba(248,81,73,.12);color:var(--red2);border:1px solid rgba(248,81,73,.2);}
+.btn-danger:hover{background:rgba(248,81,73,.2);}
+.btn-sm{padding:4px 10px;font-size:11.5px;border-radius:6px;}
+.btn-full{width:100%;justify-content:center;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:800;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;transform:scale(.96) translateY(8px);transition:transform .2s;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.5);}
+.modal-overlay.open .modal{transform:scale(1) translateY(0);}
+.modal-close{position:absolute;top:12px;right:12px;width:26px;height:26px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;}
+.modal-title{font-size:17px;font-weight:700;letter-spacing:-.03em;margin-bottom:3px;}
+.modal-sub{font-size:12px;color:var(--text2);margin-bottom:20px;}
+
+/* ── MISC ── */
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.section-title{font-size:14px;font-weight:700;}
+.loading{text-align:center;padding:48px;color:var(--text3);font-size:13px;}
+#toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 16px;font-size:13px;z-index:9999;transform:translateY(10px);opacity:0;transition:all .3s;max-width:300px;box-shadow:var(--shadow);}
+#toast.show{opacity:1;transform:translateY(0);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.select-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;font-family:'Bricolage Grotesque',sans-serif;font-size:14px;outline:none;-webkit-appearance:none;}
+.select-input:focus{border-color:var(--blue);}
+
+@media(max-width:900px){
+  .sidebar{display:none;}
+  .stat-grid{grid-template-columns:1fr 1fr 1fr;}
+  .content{padding:16px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── GATE ── -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-logo">
+      <div class="gate-logo-mark">M</div>
+      <span class="gate-logo-text">My Spot Parking</span>
+    </div>
+    <div class="gate-eyebrow">⚡ Admin Access</div>
+    <div class="gate-title">Admin Portal</div>
+    <div class="gate-sub">Restricted access — authorized personnel only</div>
+    <div class="err-msg" id="gate-err"></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="gate-email" type="email" placeholder="admin@myspotparking.com"></div>
+    <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="gate-pass" type="password" placeholder="••••••••"></div>
+    <button class="btn btn-primary btn-full" id="gate-btn" onclick="adminSignIn()" style="font-size:15px;padding:12px;margin-top:4px;">Sign In →</button>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app" style="display:none;flex:1;overflow:hidden;display:flex;flex-direction:row;height:100vh;">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-mark">M</div>
+      <span class="sb-logo-text">MSP Admin</span>
+      <span class="sb-badge">Admin</span>
+    </div>
+    <nav style="padding:10px;flex:1;">
+      <div class="sb-section">Overview</div>
+      <button class="sb-item active" id="sb-dashboard" onclick="showPanel('dashboard',this)">📊 Dashboard</button>
+      <div class="sb-section">Platform</div>
+      <button class="sb-item" id="sb-managers" onclick="showPanel('managers',this)">🏢 Managers<span class="sb-count" id="cnt-managers">0</span></button>
+      <button class="sb-item" id="sb-properties" onclick="showPanel('properties',this)">🗺 Properties<span class="sb-count" id="cnt-properties">0</span></button>
+      <button class="sb-item" id="sb-permits" onclick="showPanel('permits',this)">🎫 Permits<span class="sb-count" id="cnt-permits">0</span></button>
+      <button class="sb-item" id="sb-residents" onclick="showPanel('residents',this)">👥 Residents<span class="sb-count" id="cnt-residents">0</span></button>
+      <button class="sb-item" id="sb-violations" onclick="showPanel('violations',this)">🚨 Violations<span class="sb-count" id="cnt-violations">0</span></button>
+      <div class="sb-section">Admin</div>
+      <button class="sb-item" id="sb-staff" onclick="showPanel('staff',this)">⚡ Staff Access</button>
+    </nav>
+    <div class="sb-footer">
+      <div class="sb-user" id="sb-user-name">Loading...</div>
+      <button class="btn btn-ghost btn-sm btn-full" onclick="adminSignOut()">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-right">
+        <input class="search-input" type="text" placeholder="🔍 Search everything..." id="global-search" oninput="globalSearch(this.value)">
+        <button class="btn btn-ghost btn-sm" onclick="loadAll()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div id="panel-dashboard" class="panel active">
+        <div class="stat-grid">
+          <div class="stat-card sc-blue"><div class="sc-label">Managers</div><div class="sc-val" id="s-managers" style="color:var(--blue2);">—</div><div class="sc-sub">Active accounts</div></div>
+          <div class="stat-card sc-purple"><div class="sc-label">Properties</div><div class="sc-val" id="s-properties" style="color:var(--purple);">—</div><div class="sc-sub">All locations</div></div>
+          <div class="stat-card sc-green"><div class="sc-label">Active Permits</div><div class="sc-val" id="s-permits" style="color:var(--green2);">—</div><div class="sc-sub">Platform-wide</div></div>
+          <div class="stat-card sc-amber"><div class="sc-label">Residents</div><div class="sc-val" id="s-residents" style="color:var(--amber2);">—</div><div class="sc-sub">Holder accounts</div></div>
+          <div class="stat-card sc-red"><div class="sc-label">Violations</div><div class="sc-val" id="s-violations" style="color:var(--red2);">—</div><div class="sc-sub">Open citations</div></div>
+          <div class="stat-card sc-teal"><div class="sc-label">Staff Admins</div><div class="sc-val" id="s-staff" style="color:#2ea8a8;">—</div><div class="sc-sub">Admin accounts</div></div>
+        </div>
+
+        <!-- Recent activity -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div>
+            <div class="section-head"><div class="section-title">Recent Permits</div><button class="btn btn-ghost btn-sm" onclick="showPanel('permits',document.getElementById('sb-permits'))">View All →</button></div>
+            <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Manager</th><th>Status</th></tr></thead><tbody id="dash-permits"></tbody></table></div>
+          </div>
+          <div>
+            <div class="section-head"><div class="section-title">Recent Violations</div><button class="btn btn-ghost btn-sm" onclick="showPanel('violations',document.getElementById('sb-violations'))">View All →</button></div>
+            <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Reason</th><th>Status</th></tr></thead><tbody id="dash-violations"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MANAGERS -->
+      <div id="panel-managers" class="panel">
+        <div class="section-head">
+          <div class="section-title">All Managers</div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-manager')">+ Add Manager</button>
+        </div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Properties</th><th>Permits</th><th>Joined</th><th>Actions</th></tr></thead><tbody id="tbl-managers"></tbody></table></div>
+      </div>
+
+      <!-- PROPERTIES -->
+      <div id="panel-properties" class="panel">
+        <div class="section-head"><div class="section-title">All Properties</div></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
+      </div>
+
+      <!-- PERMITS -->
+      <div id="panel-permits" class="panel">
+        <div class="section-head">
+          <div class="section-title">All Permits</div>
+          <div style="display:flex;gap:8px;">
+            <select class="select-input" id="filter-permit-status" onchange="renderPermits()" style="font-size:12px;padding:5px 10px;width:auto;">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="revoked">Revoked</option>
+              <option value="expired">Expired</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" onclick="exportCSV('permits')">Export CSV</button>
+          </div>
+        </div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Vehicle</th><th>Holder</th><th>Property</th><th>Manager</th><th>Type</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead><tbody id="tbl-permits"></tbody></table></div>
+      </div>
+
+      <!-- RESIDENTS -->
+      <div id="panel-residents" class="panel">
+        <div class="section-head">
+          <div class="section-title">All Residents / Holders</div>
+          <button class="btn btn-ghost btn-sm" onclick="exportCSV('residents')">Export CSV</button>
+        </div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Permits</th><th>Joined</th><th>Actions</th></tr></thead><tbody id="tbl-residents"></tbody></table></div>
+      </div>
+
+      <!-- VIOLATIONS -->
+      <div id="panel-violations" class="panel">
+        <div class="section-head">
+          <div class="section-title">All Violations</div>
+          <button class="btn btn-ghost btn-sm" onclick="exportCSV('violations')">Export CSV</button>
+        </div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Reason</th><th>Property</th><th>Officer</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody id="tbl-violations"></tbody></table></div>
+      </div>
+
+      <!-- STAFF -->
+      <div id="panel-staff" class="panel">
+        <div class="section-head">
+          <div class="section-title">Admin Staff Access</div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-staff')">+ Add Staff Admin</button>
+        </div>
+        <div style="background:rgba(163,113,247,.08);border:1px solid rgba(163,113,247,.2);border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:13px;color:var(--purple);">⚡ Staff admins have full read and write access to the entire platform. Only grant this to trusted team members.</div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Added</th><th>Actions</th></tr></thead><tbody id="tbl-staff"></tbody></table></div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- MODALS -->
+
+<!-- Add Manager -->
+<div class="modal-overlay" id="modal-add-manager">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-add-manager')">✕</button>
+    <div class="modal-title">🏢 Add Manager Account</div>
+    <div class="modal-sub">Create a new property manager account</div>
+    <div class="err-msg" id="am-err"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">First Name *</label><input class="form-input" id="am-fname" type="text" placeholder="Jane"></div>
+      <div class="form-group"><label class="form-label">Last Name *</label><input class="form-input" id="am-lname" type="text" placeholder="Smith"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Company / Property Name</label><input class="form-input" id="am-company" type="text" placeholder="Maple Gardens LLC"></div>
+    <div class="form-group"><label class="form-label">Email *</label><input class="form-input" id="am-email" type="email" placeholder="manager@company.com"></div>
+    <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="am-phone" type="tel" placeholder="+1 (555) 000-0000"></div>
+    <div class="form-group"><label class="form-label">Temporary Password *</label><input class="form-input" id="am-pass" type="text" value="WelcomeMSP2026!" placeholder="Temporary password"></div>
+    <button class="btn btn-primary btn-full" id="am-btn" onclick="addManager()">Create Manager Account →</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="closeModal('modal-add-manager')">Cancel</button>
+  </div>
+</div>
+
+<!-- Add Staff Admin -->
+<div class="modal-overlay" id="modal-add-staff">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-add-staff')">✕</button>
+    <div class="modal-title">⚡ Add Staff Admin</div>
+    <div class="modal-sub">Grant full admin access to a team member</div>
+    <div class="err-msg" id="as-err"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">First Name *</label><input class="form-input" id="as-fname" type="text" placeholder="Team"></div>
+      <div class="form-group"><label class="form-label">Last Name *</label><input class="form-input" id="as-lname" type="text" placeholder="Member"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Email *</label><input class="form-input" id="as-email" type="email" placeholder="staff@myspotparking.com"></div>
+    <div class="form-group"><label class="form-label">Temporary Password *</label><input class="form-input" id="as-pass" type="text" value="AdminMSP2026!" placeholder="Temporary password"></div>
+    <button class="btn btn-primary btn-full" id="as-btn" onclick="addStaffAdmin()">Grant Admin Access →</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="closeModal('modal-add-staff')">Cancel</button>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal" style="width:400px;">
+    <div class="modal-title" id="confirm-title">Confirm Action</div>
+    <div class="modal-sub" id="confirm-msg" style="margin-bottom:24px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-danger" id="confirm-ok" style="flex:1;">Confirm</button>
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-confirm')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SUPABASE_URL='https://ajadbfojccztiauxyxos.supabase.co';
+const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYWRiZm9qY2N6dGlhdXh5eG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTU1NDcsImV4cCI6MjA5MjM3MTU0N30.dHMc-kGb0YFHnTfxnwGYfikmKZBLPzS5lfe6SyRsguU';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
+
+let currentAdmin=null;
+let allManagers=[];
+let allProperties=[];
+let allPermits=[];
+let allResidents=[];
+let allViolations=[];
+let allStaff=[];
+
+// ── AUTH ──────────────────────────────────────────────────────
+
+async function adminSignIn(){
+  const email=g('gate-email'),pass=g('gate-pass');
+  const err=document.getElementById('gate-err'),btn=document.getElementById('gate-btn');
+  err.classList.remove('show');
+  if(!email||!pass){err.textContent='Enter your email and password.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Signing in...';
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){err.textContent=error.message;err.classList.add('show');btn.disabled=false;btn.textContent='Sign In →';return;}
+
+  const userId=data.user.id;
+
+  // Try multiple ways to get the profile — RLS may block single() but not others
+  let profile=null;
+
+  // Attempt 1: standard select
+  const {data:p1}=await sb.from('users').select('*').eq('id',userId).single();
+  if(p1) profile=p1;
+
+  // Attempt 2: select without .single() in case of RLS issue
+  if(!profile){
+    const {data:p2}=await sb.from('users').select('*').eq('id',userId);
+    if(p2&&p2.length) profile=p2[0];
+  }
+
+  // Attempt 3: select by email
+  if(!profile){
+    const {data:p3}=await sb.from('users').select('*').eq('email',email);
+    if(p3&&p3.length) profile=p3[0];
+  }
+
+  if(!profile){
+    // Profile row not found or all queries blocked — check if this is the known admin email
+    // as a last resort bootstrap
+    err.textContent='Could not load your profile. Please check Supabase RLS policies or contact support.';
+    err.classList.add('show');
+    await sb.auth.signOut();btn.disabled=false;btn.textContent='Sign In →';
+    return;
+  }
+
+  if(profile.role!=='admin'){
+    err.textContent='This account does not have admin access. Role: '+(profile.role||'none');
+    err.classList.add('show');
+    await sb.auth.signOut();btn.disabled=false;btn.textContent='Sign In →';return;
+  }
+
+  currentAdmin=profile;
+  enterApp();
+}
+
+async function checkSession(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session) return;
+  const userId=session.user.id;
+  const email=session.user.email;
+  let profile=null;
+  const {data:p1}=await sb.from('users').select('*').eq('id',userId).single();
+  if(p1) profile=p1;
+  if(!profile){const {data:p2}=await sb.from('users').select('*').eq('email',email);if(p2&&p2.length)profile=p2[0];}
+  if(profile&&profile.role==='admin'){currentAdmin=profile;enterApp();}
+}
+
+async function adminSignOut(){
+  await sb.auth.signOut();
+  document.getElementById('gate').style.display='flex';
+  document.getElementById('app').style.display='none';
+}
+
+function enterApp(){
+  document.getElementById('gate').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('sb-user-name').textContent=currentAdmin.full_name||currentAdmin.email||'Admin';
+  loadAll();
+}
+
+// ── DATA ──────────────────────────────────────────────────────
+
+async function loadAll(){
+  await Promise.all([loadManagers(),loadProperties(),loadPermits(),loadResidents(),loadViolations(),loadStaff()]);
+  renderDashboard();
+  restoreFromHash();
+}
+
+async function loadManagers(){
+  const {data}=await sb.from('users').select('*').eq('role','manager').order('full_name',{ascending:true});
+  allManagers=data||[];
+  document.getElementById('cnt-managers').textContent=allManagers.length;
+  document.getElementById('s-managers').textContent=allManagers.length;
+  renderManagers(allManagers);
+}
+
+async function loadProperties(){
+  const {data}=await sb.from('properties').select('*').order('name',{ascending:true});
+  allProperties=data||[];
+  document.getElementById('cnt-properties').textContent=allProperties.length;
+  document.getElementById('s-properties').textContent=allProperties.length;
+  renderProperties(allProperties);
+}
+
+async function loadPermits(){
+  const {data}=await sb.from('permits').select('*').order('created_at',{ascending:false});
+  allPermits=data||[];
+  const active=allPermits.filter(p=>p.status==='active').length;
+  document.getElementById('cnt-permits').textContent=allPermits.length;
+  document.getElementById('s-permits').textContent=active;
+  renderPermits();
+}
+
+async function loadResidents(){
+  const {data}=await sb.from('users').select('*').eq('role','holder').order('created_at',{ascending:false});
+  allResidents=data||[];
+  document.getElementById('cnt-residents').textContent=allResidents.length;
+  document.getElementById('s-residents').textContent=allResidents.length;
+  renderResidents(allResidents);
+}
+
+async function loadViolations(){
+  const {data}=await sb.from('violations').select('*').order('noted_at',{ascending:false});
+  allViolations=data||[];
+  const open=allViolations.filter(v=>v.status==='Open').length;
+  document.getElementById('cnt-violations').textContent=allViolations.length;
+  document.getElementById('s-violations').textContent=open;
+  renderViolations(allViolations);
+}
+
+async function loadStaff(){
+  const {data}=await sb.from('users').select('*').eq('role','admin').order('created_at',{ascending:false});
+  allStaff=data||[];
+  document.getElementById('s-staff').textContent=allStaff.length;
+  renderStaff(allStaff);
+}
+
+// ── RENDER ──────────────────────────────────────────────────────
+
+function renderDashboard(){
+  // Recent permits
+  const tbody=document.getElementById('dash-permits');
+  tbody.innerHTML=allPermits.slice(0,8).map(p=>{
+    const mgr=mgrName(propMgrId(p.property_id));
+    return `<tr><td><strong style="font-family:'JetBrains Mono',monospace;font-size:12px;">${p.plate}</strong></td><td style="font-size:12px;color:var(--text2)">${mgr}</td><td><span class="pill pill-${p.status}">${p.status}</span></td></tr>`;
+  }).join('')||'<tr><td colspan="3" class="loading">No permits</td></tr>';
+  // Recent violations
+  const vbody=document.getElementById('dash-violations');
+  vbody.innerHTML=allViolations.slice(0,8).map(v=>`
+    <tr><td><strong style="font-family:'JetBrains Mono',monospace;font-size:12px;">${v.plate}</strong></td><td style="font-size:12px;color:var(--text2)">${(v.reason||'—').slice(0,28)}</td><td><span class="pill ${v.status==='Open'?'pill-revoked':'pill-active'}">${v.status}</span></td></tr>
+  `).join('')||'<tr><td colspan="3" class="loading">No violations</td></tr>';
+}
+
+function renderManagers(data){
+  document.getElementById('tbl-managers').innerHTML=data.map(m=>{
+    const props=allProperties.filter(p=>p.manager_id===m.id).length;
+    const permits=allPermits.filter(p=>allProperties.filter(x=>x.manager_id===m.id).map(x=>x.id).includes(p.property_id)&&p.status==='active').length;
+    return `<tr>
+      <td><div style="font-weight:600">${m.full_name||'—'}</div></td>
+      <td style="font-size:12px;color:var(--text2)">${m.email||'—'}</td>
+      <td style="font-size:12px">${m.company||'—'}</td>
+      <td style="font-size:12px;text-align:center">${props}</td>
+      <td style="font-size:12px;text-align:center">${permits}</td>
+      <td style="font-size:12px;color:var(--text3)">${m.created_at?new Date(m.created_at).toLocaleDateString():'—'}</td>
+      <td><div class="tbl-actions">
+        <button class="btn btn-ghost btn-sm" onclick="impersonate('${m.id}','manager')">View</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete('user','${m.id}','${(m.full_name||m.email||'').replace(/'/g,'')}')">Delete</button>
+      </div></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="7" class="loading">No managers found</td></tr>';
+}
+
+function renderProperties(data){
+  document.getElementById('tbl-properties').innerHTML=data.map(p=>{
+    const mgr=mgrName(p.manager_id);
+    const active=allPermits.filter(x=>x.property_id===p.id&&x.status==='active').length;
+    return `<tr>
+      <td><div style="font-weight:600">${p.name}</div></td>
+      <td style="font-size:12px;color:var(--text2)">${mgr}</td>
+      <td style="font-size:12px;color:var(--text3)">${p.address||'—'}</td>
+      <td><span class="pill ${p.property_type==='self'?'pill-self':'pill-manager'}">${p.property_type==='self'?'Self-Managed':'Linked'}</span></td>
+      <td style="font-size:12px;text-align:center">${p.total_spots||0}</td>
+      <td style="font-size:12px;text-align:center;color:var(--green2)">${active}</td>
+      <td><div class="tbl-actions">
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete('property','${p.id}','${(p.name||'').replace(/'/g,'')}')">Delete</button>
+      </div></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="7" class="loading">No properties found</td></tr>';
+}
+
+function renderPermits(){
+  const statusFilter=document.getElementById('filter-permit-status')?.value||'';
+  const data=statusFilter?allPermits.filter(p=>p.status===statusFilter):allPermits;
+  document.getElementById('tbl-permits').innerHTML=data.map(p=>{
+    const holder=allResidents.find(r=>r.id===p.holder_id);
+    const holderName=holder?(holder.full_name||holder.email):(p.holder_name||p.holder_email||'—');
+    const prop=allProperties.find(x=>x.id===p.property_id);
+    const mgr=mgrName(prop?.manager_id);
+    return `<tr>
+      <td><strong style="font-family:'JetBrains Mono',monospace;font-size:12px;">${p.plate}</strong></td>
+      <td style="font-size:12px">${p.vehicle||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${holderName}</td>
+      <td style="font-size:12px">${prop?.name||'—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${mgr}</td>
+      <td style="font-size:12px">${p.permit_type||'—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${p.end_date||'—'}</td>
+      <td><span class="pill pill-${p.status}">${p.status}</span></td>
+      <td><div class="tbl-actions">
+        ${p.status==='active'?`<button class="btn btn-danger btn-sm" onclick="revokePermit('${p.id}')">Revoke</button>`:`<button class="btn btn-ghost btn-sm" onclick="reinstatePermit('${p.id}')">Reinstate</button>`}
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete('permit','${p.id}','${p.plate}')">Delete</button>
+      </div></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="9" class="loading">No permits found</td></tr>';
+}
+
+function renderResidents(data){
+  document.getElementById('tbl-residents').innerHTML=data.map(r=>{
+    const permitCount=allPermits.filter(p=>p.holder_id===r.id).length;
+    return `<tr>
+      <td><div style="font-weight:600">${r.full_name||'—'}</div></td>
+      <td style="font-size:12px;color:var(--text2)">${r.email||'<span style="color:var(--text3);font-style:italic;">No email</span>'}</td>
+      <td style="font-size:12px">${r.phone||'—'}</td>
+      <td style="font-size:12px;text-align:center">${permitCount}</td>
+      <td style="font-size:12px;color:var(--text3)">${r.created_at?new Date(r.created_at).toLocaleDateString():'—'}</td>
+      <td><div class="tbl-actions">
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete('user','${r.id}','${(r.full_name||r.email||'').replace(/'/g,'')}')">Delete</button>
+      </div></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="6" class="loading">No residents found</td></tr>';
+}
+
+function renderViolations(data){
+  document.getElementById('tbl-violations').innerHTML=data.map(v=>{
+    const prop=allProperties.find(p=>p.id===v.property_id);
+    const officer=allManagers.find(m=>m.id===v.officer_id)||allResidents.find(r=>r.id===v.officer_id);
+    return `<tr>
+      <td><strong style="font-family:'JetBrains Mono',monospace;font-size:12px;">${v.plate}</strong></td>
+      <td style="font-size:12px">${v.reason||'—'}</td>
+      <td style="font-size:12px">${prop?.name||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${officer?.full_name||officer?.email||'—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${v.noted_at?new Date(v.noted_at).toLocaleDateString():'—'}</td>
+      <td><span class="pill ${v.status==='Open'?'pill-revoked':'pill-active'}">${v.status||'Open'}</span></td>
+      <td><div class="tbl-actions">
+        ${v.status==='Open'?`<button class="btn btn-ghost btn-sm" onclick="resolveViolation('${v.id}')">Resolve</button>`:''}
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete('violation','${v.id}','${v.plate}')">Delete</button>
+      </div></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="7" class="loading">No violations found</td></tr>';
+}
+
+function renderStaff(data){
+  document.getElementById('tbl-staff').innerHTML=data.map(s=>`
+    <tr>
+      <td><div style="font-weight:600">${s.full_name||'—'}</div></td>
+      <td style="font-size:12px;color:var(--text2)">${s.email||'—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${s.created_at?new Date(s.created_at).toLocaleDateString():'—'}</td>
+      <td><div class="tbl-actions">
+        ${s.id!==currentAdmin?.id?`<button class="btn btn-danger btn-sm" onclick="confirmDelete('user','${s.id}','${(s.full_name||s.email||'').replace(/'/g,'')}')">Revoke Access</button>`:'<span style="font-size:11px;color:var(--text3);">You</span>'}
+      </div></td>
+    </tr>`).join('')||'<tr><td colspan="4" class="loading">No staff admins</td></tr>';
+}
+
+// ── ACTIONS ──────────────────────────────────────────────────────
+
+async function addManager(){
+  const fname=g('am-fname'),lname=g('am-lname'),email=g('am-email'),pass=g('am-pass');
+  const company=g('am-company'),phone=g('am-phone');
+  const err=document.getElementById('am-err'),btn=document.getElementById('am-btn');
+  err.classList.remove('show');
+  if(!fname||!email||!pass){err.textContent='First name, email and password are required.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Creating...';
+  const {data,error}=await sb.auth.signUp({email,password:pass});
+  if(error&&error.message!=='User already registered'){err.textContent=error.message;err.classList.add('show');btn.disabled=false;btn.textContent='Create Manager Account →';return;}
+  if(data?.user?.id){
+    await sb.from('users').upsert({id:data.user.id,email,full_name:(fname+' '+lname).trim(),company,phone,role:'manager'},{onConflict:'id'});
+  }
+  btn.disabled=false;btn.textContent='Create Manager Account →';
+  closeModal('modal-add-manager');
+  await loadManagers();
+  toast('✅ Manager account created for '+fname);
+}
+
+async function addStaffAdmin(){
+  const fname=g('as-fname'),lname=g('as-lname'),email=g('as-email'),pass=g('as-pass');
+  const err=document.getElementById('as-err'),btn=document.getElementById('as-btn');
+  err.classList.remove('show');
+  if(!fname||!email||!pass){err.textContent='All fields are required.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Creating...';
+  const {data,error}=await sb.auth.signUp({email,password:pass});
+  if(error&&error.message!=='User already registered'){err.textContent=error.message;err.classList.add('show');btn.disabled=false;btn.textContent='Grant Admin Access →';return;}
+  if(data?.user?.id){
+    await sb.from('users').upsert({id:data.user.id,email,full_name:(fname+' '+lname).trim(),role:'admin'},{onConflict:'id'});
+  }
+  btn.disabled=false;btn.textContent='Grant Admin Access →';
+  closeModal('modal-add-staff');
+  await loadStaff();
+  toast('✅ Admin access granted to '+fname);
+}
+
+async function revokePermit(id){
+  await sb.from('permits').update({status:'revoked'}).eq('id',id);
+  await loadPermits();
+  toast('🚫 Permit revoked');
+}
+
+async function reinstatePermit(id){
+  await sb.from('permits').update({status:'active'}).eq('id',id);
+  await loadPermits();
+  toast('✅ Permit reinstated');
+}
+
+async function resolveViolation(id){
+  await sb.from('violations').update({status:'Resolved'}).eq('id',id);
+  await loadViolations();
+  toast('✅ Violation resolved');
+}
+
+function confirmDelete(type,id,name){
+  const messages={
+    user:`Delete account for "${name}"? This cannot be undone.`,
+    property:`Delete property "${name}" and all its permits? This cannot be undone.`,
+    permit:`Delete permit for plate "${name}"? This cannot be undone.`,
+    violation:`Delete violation for plate "${name}"?`
+  };
+  document.getElementById('confirm-title').textContent='Confirm Delete';
+  document.getElementById('confirm-msg').textContent=messages[type]||'Are you sure?';
+  document.getElementById('confirm-ok').onclick=()=>doDelete(type,id);
+  openModal('modal-confirm');
+}
+
+async function doDelete(type,id){
+  closeModal('modal-confirm');
+  if(type==='user') await sb.from('users').delete().eq('id',id);
+  else if(type==='property') await sb.from('properties').delete().eq('id',id);
+  else if(type==='permit') await sb.from('permits').delete().eq('id',id);
+  else if(type==='violation') await sb.from('violations').delete().eq('id',id);
+  await loadAll();
+  toast('🗑 Deleted successfully');
+}
+
+function impersonate(managerId,role){
+  toast('👀 Viewing manager: '+mgrName(managerId));
+}
+
+// ── SEARCH ──────────────────────────────────────────────────────
+
+function globalSearch(q){
+  if(!q){renderManagers(allManagers);renderProperties(allProperties);renderPermits();renderResidents(allResidents);return;}
+  const ql=q.toLowerCase();
+  renderManagers(allManagers.filter(m=>(m.full_name||'').toLowerCase().includes(ql)||(m.email||'').toLowerCase().includes(ql)||(m.company||'').toLowerCase().includes(ql)));
+  renderProperties(allProperties.filter(p=>(p.name||'').toLowerCase().includes(ql)||(p.address||'').toLowerCase().includes(ql)));
+  renderResidents(allResidents.filter(r=>(r.full_name||'').toLowerCase().includes(ql)||(r.email||'').toLowerCase().includes(ql)));
+}
+
+// ── EXPORT ──────────────────────────────────────────────────────
+
+function exportCSV(type){
+  let csv='',filename='';
+  if(type==='permits'){
+    csv=['Plate,Vehicle,Holder,Property,Type,Status,Expires',...allPermits.map(p=>{
+      const holder=allResidents.find(r=>r.id===p.holder_id);
+      const prop=allProperties.find(x=>x.id===p.property_id);
+      return `${p.plate},"${p.vehicle||''}","${holder?.full_name||p.holder_email||''}","${prop?.name||''}","${p.permit_type||''}",${p.status},${p.end_date||''}`;
+    })].join('\n');filename='permits.csv';
+  } else if(type==='residents'){
+    csv=['Name,Email,Phone,Permits',...allResidents.map(r=>`"${r.full_name||''}","${r.email||''}","${r.phone||''}",${allPermits.filter(p=>p.holder_id===r.id).length}`)].join('\n');filename='residents.csv';
+  } else if(type==='violations'){
+    csv=['Plate,Reason,Property,Date,Status',...allViolations.map(v=>{
+      const prop=allProperties.find(p=>p.id===v.property_id);
+      return `${v.plate},"${v.reason||''}","${prop?.name||''}",${v.noted_at?new Date(v.noted_at).toLocaleDateString():''},${v.status}`;
+    })].join('\n');filename='violations.csv';
+  }
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=filename;a.click();
+  toast('📁 Exported '+filename);
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────
+
+function mgrName(mgrId){
+  const m=allManagers.find(x=>x.id===mgrId);
+  return m?(m.full_name||m.email||'—'):'—';
+}
+function propMgrId(propId){
+  return allProperties.find(p=>p.id===propId)?.manager_id||null;
+}
+
+const PANELS=['dashboard','managers','properties','permits','residents','violations','staff'];
+const PANEL_TITLES={dashboard:'Dashboard',managers:'Managers',properties:'Properties',permits:'Permits',residents:'Residents / Holders',violations:'Violations',staff:'Staff Access'};
+function showPanel(name,el){
+  PANELS.forEach(p=>document.getElementById('panel-'+p)?.classList.remove('active'));
+  document.getElementById('panel-'+name)?.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(s=>s.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('topbar-title').textContent=PANEL_TITLES[name]||name;
+  history.replaceState(null,'','#'+name);
+}
+
+function restoreFromHash(){
+  const hash=window.location.hash.replace('#','');
+  if(!hash) return;
+  const sbEl=document.getElementById('sb-'+hash);
+  if(sbEl) showPanel(hash,sbEl);
+}
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+let toastTimer;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3200);}
+function g(id){return(document.getElementById(id)?.value||'').trim();}
+
+checkSession();
+</script>
+</body>
+</html>
