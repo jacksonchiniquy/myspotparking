@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pay for Parking — My Spot Parking</title>
+<meta name="description" content="Pay for parking quickly and securely. No app required.">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+:root{
+  --blue:#1B6FFF; --blue-dark:#0D5AE5;
+  --green:#00C87A; --red:#EF4444;
+  --ink:#0B1220; --slate:#5A6A85; --slate2:#8899AA;
+  --white:#FFFFFF; --off:#F7F8FA;
+  --border:rgba(11,18,32,0.09);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+.page-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:24px 16px 60px;}
+
+/* HEADER */
+.pay-header{display:flex;align-items:center;gap:10px;margin-bottom:32px;padding-top:8px;}
+.pay-logo{width:36px;height:36px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(27,111,255,0.3);}
+.pay-logo svg{width:17px;height:17px;stroke:white;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+.pay-brand{font-family:'Sora',sans-serif;font-size:17px;font-weight:700;letter-spacing:-0.025em;}
+
+/* CARD */
+.pay-card{background:white;border:1px solid var(--border);border-radius:20px;width:100%;max-width:440px;overflow:hidden;box-shadow:0 4px 24px rgba(11,18,32,0.07);}
+
+/* PROPERTY HEADER */
+.prop-header{padding:24px 28px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(27,111,255,0.04),white);}
+.prop-name{font-family:'Sora',sans-serif;font-size:20px;font-weight:800;letter-spacing:-0.03em;margin-bottom:4px;}
+.prop-address{font-size:13px;color:var(--slate2);}
+.prop-loading{color:var(--slate2);font-size:14px;}
+
+/* STEPS */
+.steps-wrap{padding:24px 28px;}
+
+/* RATE SELECTOR */
+.rate-section{margin-bottom:24px;}
+.section-label{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate2);margin-bottom:10px;}
+.rate-grid{display:grid;gap:10px;}
+.rate-option{border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:space-between;}
+.rate-option:hover{border-color:rgba(27,111,255,0.3);background:rgba(27,111,255,0.02);}
+.rate-option.selected{border-color:var(--blue);background:rgba(27,111,255,0.05);}
+.rate-left{}
+.rate-name{font-size:15px;font-weight:600;margin-bottom:2px;}
+.rate-desc{font-size:12px;color:var(--slate2);}
+.rate-price{font-family:'Sora',sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.04em;color:var(--blue);}
+.rate-price span{font-size:12px;font-weight:500;color:var(--slate2);margin-left:2px;}
+
+/* VEHICLE FORM */
+.vehicle-section{margin-bottom:24px;}
+.form-group{margin-bottom:14px;}
+.form-label{display:block;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate2);margin-bottom:7px;}
+.form-input{width:100%;background:var(--off);border:1.5px solid var(--border);color:var(--ink);padding:12px 14px;border-radius:10px;font-family:'Inter',sans-serif;font-size:15px;font-weight:500;outline:none;transition:border-color .18s,box-shadow .18s;-webkit-appearance:none;}
+.form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(27,111,255,0.09);background:white;}
+.form-input::placeholder{color:#A0AEC0;font-weight:400;}
+.plate-input{text-transform:uppercase;letter-spacing:0.08em;font-size:20px;font-family:'Sora',sans-serif;font-weight:700;}
+
+/* SUMMARY */
+.summary-box{background:var(--off);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;}
+.summary-row{display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:4px 0;}
+.summary-row.total{border-top:1px solid var(--border);margin-top:8px;padding-top:12px;font-weight:700;font-size:16px;}
+.summary-label{color:var(--slate);}
+.summary-val{font-weight:600;}
+
+/* BUTTONS */
+.btn-pay{width:100%;padding:16px;font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:white;background:var(--blue);border:none;border-radius:12px;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(27,111,255,0.35);display:flex;align-items:center;justify-content:center;gap:10px;letter-spacing:-0.01em;}
+.btn-pay:hover:not(:disabled){background:var(--blue-dark);transform:translateY(-1px);}
+.btn-pay:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+.pay-note{text-align:center;font-size:12px;color:var(--slate2);margin-top:12px;display:flex;align-items:center;justify-content:center;gap:5px;}
+.pay-note svg{width:12px;height:12px;stroke:var(--slate2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+/* ERROR / SUCCESS */
+.err-banner{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--red);margin-bottom:16px;display:none;}
+.err-banner.show{display:block;}
+
+/* SUCCESS SCREEN */
+.success-screen{display:none;padding:36px 28px;text-align:center;}
+.success-check{width:64px;height:64px;background:rgba(0,200,122,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;}
+.success-check svg{width:32px;height:32px;stroke:var(--green);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+.success-h{font-family:'Sora',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.04em;margin-bottom:8px;}
+.success-sub{font-size:14px;color:var(--slate);line-height:1.6;margin-bottom:24px;}
+.session-card{background:var(--off);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:left;margin-bottom:20px;}
+.sc-plate{font-family:'Sora',sans-serif;font-size:28px;font-weight:800;letter-spacing:0.06em;margin-bottom:6px;}
+.sc-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;}
+.sc-field-label{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate2);margin-bottom:3px;}
+.sc-field-val{font-size:13px;font-weight:600;}
+.sc-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(0,200,122,0.12);border:1px solid rgba(0,200,122,0.22);color:var(--green);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;}
+.sc-badge::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--green);}
+.success-note{font-size:12px;color:var(--slate2);line-height:1.6;}
+
+/* LOADING */
+.loading-screen{padding:60px 28px;text-align:center;}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-size:14px;color:var(--slate2);}
+
+/* NOT FOUND */
+.notfound-screen{padding:60px 28px;text-align:center;display:none;}
+.notfound-icon{font-size:48px;margin-bottom:16px;}
+.notfound-h{font-family:'Sora',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px;}
+.notfound-sub{font-size:14px;color:var(--slate);line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- HEADER -->
+  <div class="pay-header">
+    <div class="pay-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+    </div>
+    <span class="pay-brand">My Spot Parking</span>
+  </div>
+
+  <!-- CARD -->
+  <div class="pay-card">
+
+    <!-- LOADING -->
+    <div class="loading-screen" id="screen-loading">
+      <div class="spinner"></div>
+      <div class="loading-text">Loading parking details...</div>
+    </div>
+
+    <!-- NOT FOUND -->
+    <div class="notfound-screen" id="screen-notfound">
+      <div class="notfound-icon">🔍</div>
+      <div class="notfound-h">Lot not found</div>
+      <p class="notfound-sub">This parking lot could not be found. Please check the QR code or contact the property manager.</p>
+    </div>
+
+    <!-- PAYMENT FORM -->
+    <div id="screen-form" style="display:none;">
+      <div class="prop-header">
+        <div class="prop-name" id="prop-name">—</div>
+        <div class="prop-address" id="prop-address"></div>
+      </div>
+
+      <div class="steps-wrap">
+        <div class="err-banner" id="pay-err"></div>
+
+        <!-- STEP 1: SELECT RATE -->
+        <div class="rate-section">
+          <div class="section-label">Select Parking Duration</div>
+          <div class="rate-grid" id="rate-grid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- STEP 2: VEHICLE INFO -->
+        <div class="vehicle-section">
+          <div class="section-label">Your Vehicle</div>
+          <div class="form-group">
+            <label class="form-label">License Plate *</label>
+            <input class="form-input plate-input" id="plate" type="text" placeholder="ABC-1234" maxlength="10" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9\-]/g,'');updateSummary()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Vehicle Description <span style="color:var(--slate2);font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
+            <input class="form-input" id="vehicle-desc" type="text" placeholder="e.g. Blue Toyota Camry">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email <span style="color:var(--slate2);font-weight:400;text-transform:none;letter-spacing:0;">(for receipt)</span></label>
+            <input class="form-input" id="pay-email" type="email" placeholder="you@example.com">
+          </div>
+        </div>
+
+        <!-- SUMMARY -->
+        <div class="summary-box" id="summary-box" style="display:none;">
+          <div class="summary-row">
+            <span class="summary-label">Duration</span>
+            <span class="summary-val" id="sum-duration">—</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Plate</span>
+            <span class="summary-val" id="sum-plate">—</span>
+          </div>
+          <div class="summary-row total">
+            <span class="summary-label">Total</span>
+            <span class="summary-val" id="sum-total" style="color:var(--blue);">—</span>
+          </div>
+        </div>
+
+        <!-- PAY BUTTON -->
+        <button class="btn-pay" id="pay-btn" onclick="startPayment()" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          Pay & Park
+        </button>
+        <div class="pay-note">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Secured by Stripe · No account required
+        </div>
+      </div>
+    </div>
+
+    <!-- SUCCESS SCREEN -->
+    <div class="success-screen" id="screen-success">
+      <div class="success-check">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="success-h">You're all set!</div>
+      <p class="success-sub">Your parking session is confirmed. Show this screen if an enforcement officer checks your vehicle.</p>
+      <div class="session-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+          <div class="sc-plate" id="ss-plate">—</div>
+          <div class="sc-badge">Active</div>
+        </div>
+        <div style="font-size:13px;color:var(--slate2);" id="ss-vehicle"></div>
+        <div class="sc-fields">
+          <div><div class="sc-field-label">Location</div><div class="sc-field-val" id="ss-prop">—</div></div>
+          <div><div class="sc-field-label">Duration</div><div class="sc-field-val" id="ss-duration">—</div></div>
+          <div><div class="sc-field-label">Started</div><div class="sc-field-val" id="ss-start">—</div></div>
+          <div><div class="sc-field-label">Expires</div><div class="sc-field-val" id="ss-expires">—</div></div>
+        </div>
+      </div>
+      <p class="success-note">Keep this page open or take a screenshot. A receipt has been sent to your email if provided.</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://ajadbfojccztiauxyxos.supabase.co';
+const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYWRiZm9qY2N6dGlhdXh5eG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTU1NDcsImV4cCI6MjA5MjM3MTU0N30.dHMc-kGb0YFHnTfxnwGYfikmKZBLPzS5lfe6SyRsguU';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
+
+let currentProperty=null;
+let selectedRate=null;
+
+// Get property ID from URL
+const params=new URLSearchParams(window.location.search);
+const propId=params.get('lot')||params.get('property');
+
+// Check for returning from Stripe
+const sessionId=params.get('session_id');
+
+function showScreen(name){
+  ['loading','notfound','form','success'].forEach(s=>{
+    const el=document.getElementById('screen-'+s);
+    if(el) el.style.display=s===name?(name==='success'?'block':'block'):'none';
+  });
+  if(name==='success') document.getElementById('screen-success').style.display='block';
+}
+
+async function init(){
+  showScreen('loading');
+
+  // Check if returning from Stripe payment
+  if(sessionId){
+    await handlePaymentReturn(sessionId);
+    return;
+  }
+
+  if(!propId){showScreen('notfound');return;}
+
+  const {data:prop,error}=await sb.from('properties').select('*').eq('id',propId).single();
+  if(error||!prop){showScreen('notfound');return;}
+
+  currentProperty=prop;
+  document.getElementById('prop-name').textContent=prop.name;
+  document.getElementById('prop-address').textContent=prop.address||'';
+
+  // Build rate options
+  const rates=prop.transient_rates||[];
+  if(!rates.length){
+    // Default rates if none configured
+    rates.push(
+      {id:'1h',name:'1 Hour',minutes:60,amount:300,desc:'Short stay'},
+      {id:'2h',name:'2 Hours',minutes:120,amount:500,desc:'Most popular'},
+      {id:'4h',name:'4 Hours',minutes:240,amount:800,desc:'Half day'},
+      {id:'day',name:'Full Day',minutes:480,amount:1200,desc:'All day parking'}
+    );
+  }
+
+  const grid=document.getElementById('rate-grid');
+  grid.innerHTML=rates.map((r,i)=>`
+    <div class="rate-option${i===1?' selected':''}" onclick="selectRate(${i})" id="rate-${i}">
+      <div class="rate-left">
+        <div class="rate-name">${r.name}</div>
+        <div class="rate-desc">${r.desc||''}</div>
+      </div>
+      <div class="rate-price">$${(r.amount/100).toFixed(2)}<span>/${r.minutes>=480?'day':r.minutes>=60?'hr':'min'}</span></div>
+    </div>
+  `).join('');
+
+  // Default select second option (or first)
+  selectedRate=rates[rates.length>1?1:0];
+  updateSummary();
+  showScreen('form');
+}
+
+function selectRate(idx){
+  const rates=currentProperty.transient_rates||[
+    {id:'1h',name:'1 Hour',minutes:60,amount:300},
+    {id:'2h',name:'2 Hours',minutes:120,amount:500},
+    {id:'4h',name:'4 Hours',minutes:240,amount:800},
+    {id:'day',name:'Full Day',minutes:480,amount:1200}
+  ];
+  selectedRate=rates[idx];
+  document.querySelectorAll('.rate-option').forEach((el,i)=>{
+    el.classList.toggle('selected',i===idx);
+  });
+  updateSummary();
+}
+
+function updateSummary(){
+  const plate=document.getElementById('plate').value.trim();
+  const btn=document.getElementById('pay-btn');
+  const box=document.getElementById('summary-box');
+
+  if(selectedRate&&plate.length>=2){
+    box.style.display='block';
+    document.getElementById('sum-duration').textContent=selectedRate.name;
+    document.getElementById('sum-plate').textContent=plate;
+    document.getElementById('sum-total').textContent='$'+(selectedRate.amount/100).toFixed(2);
+    btn.disabled=false;
+  } else {
+    box.style.display='none';
+    btn.disabled=true;
+  }
+}
+
+async function startPayment(){
+  const plate=document.getElementById('plate').value.trim();
+  const desc=document.getElementById('vehicle-desc').value.trim();
+  const email=document.getElementById('pay-email').value.trim();
+  const err=document.getElementById('pay-err');
+  const btn=document.getElementById('pay-btn');
+  err.classList.remove('show');
+
+  if(!plate){err.textContent='Please enter your license plate.';err.classList.add('show');return;}
+  if(!selectedRate){err.textContent='Please select a parking duration.';err.classList.add('show');return;}
+
+  btn.disabled=true;btn.innerHTML='<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div> Processing...';
+
+  try{
+    // Call Netlify function to create Stripe checkout session
+    const response=await fetch('/.netlify/functions/create-parking-session',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        propertyId:currentProperty.id,
+        propertyName:currentProperty.name,
+        plate,
+        vehicleDesc:desc,
+        email:email||null,
+        rateName:selectedRate.name,
+        amount:selectedRate.amount,
+        durationMinutes:selectedRate.minutes,
+        successUrl:window.location.origin+window.location.pathname+'?lot='+propId+'&session_id={CHECKOUT_SESSION_ID}',
+        cancelUrl:window.location.href
+      })
+    });
+
+    const data=await response.json();
+    if(data.error){
+      err.textContent='Payment error: '+data.error;
+      err.classList.add('show');
+      btn.disabled=false;
+      btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Pay & Park';
+      return;
+    }
+
+    // Redirect to Stripe Checkout
+    window.location.href=data.url;
+
+  } catch(e){
+    err.textContent='Something went wrong. Please try again.';
+    err.classList.add('show');
+    btn.disabled=false;
+    btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Pay & Park';
+  }
+}
+
+async function handlePaymentReturn(sessionId){
+  // Look up the parking session by stripe session ID
+  const {data:session}=await sb.from('parking_sessions')
+    .select('*')
+    .eq('stripe_session_id',sessionId)
+    .single();
+
+  if(!session){
+    // Session might still be creating — wait and retry
+    await new Promise(r=>setTimeout(r,2000));
+    const {data:session2}=await sb.from('parking_sessions')
+      .select('*')
+      .eq('stripe_session_id',sessionId)
+      .single();
+    if(!session2){showScreen('notfound');return;}
+    showSuccessScreen(session2);
+  } else {
+    showSuccessScreen(session);
+  }
+}
+
+async function showSuccessScreen(session){
+  // Get property name
+  const {data:prop}=await sb.from('properties').select('name').eq('id',session.property_id).single();
+
+  document.getElementById('ss-plate').textContent=session.plate;
+  document.getElementById('ss-vehicle').textContent=session.vehicle_desc||'';
+  document.getElementById('ss-prop').textContent=prop?.name||'—';
+  document.getElementById('ss-duration').textContent=formatMinutes(session.duration_minutes);
+  document.getElementById('ss-start').textContent=formatTime(session.started_at);
+  document.getElementById('ss-expires').textContent=formatTime(session.expires_at);
+  showScreen('success');
+}
+
+function formatMinutes(min){
+  if(min>=480) return 'Full Day';
+  if(min>=60) return (min/60)+' Hour'+(min>60?'s':'');
+  return min+' Min';
+}
+
+function formatTime(iso){
+  return new Date(iso).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+}
+
+init();
+</script>
+</body>
+</html>
