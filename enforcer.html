@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enforcement — My Spot Parking</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--navy:#f0f4ff;--blue:#1a6fff;--white:#0f172a;--slate:#64748b;--slate2:#475569;--green:#00c87a;--amber:#ffaa00;--red:#ff4d4d;--border:rgba(15,23,42,0.10);--border2:rgba(15,23,42,0.06);}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--navy);color:#0f172a;font-family:'Bricolage Grotesque',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4;}
+.nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:64px;background:rgba(255,255,255,0.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--white);}
+.logo-mark{width:30px;height:30px;background:var(--amber);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#000;box-shadow:0 0 16px rgba(255,170,0,.5);}
+.logo-text{font-size:17px;font-weight:700;letter-spacing:-.03em;}
+.nav-right{display:flex;align-items:center;gap:10px;}
+.nav-badge{background:rgba(255,170,0,.15);border:1px solid rgba(255,170,0,.2);color:var(--amber);padding:4px 12px;border-radius:20px;font-size:12px;font-family:'JetBrains Mono',monospace;}
+.nav-user{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--slate2);}
+.avatar{width:30px;height:30px;background:linear-gradient(135deg,var(--amber),#e09600);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#000;}
+.btn-signout{background:none;border:1px solid var(--border);color:var(--slate);padding:6px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-family:'Bricolage Grotesque',sans-serif;transition:all .2s;}
+.btn-signout:hover{border-color:var(--red);color:var(--red);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;font-family:'Bricolage Grotesque',sans-serif;font-size:14px;font-weight:600;border-radius:9px;cursor:pointer;border:none;transition:all .2s;text-decoration:none;white-space:nowrap;}
+.btn-amber{background:var(--amber);color:#000;box-shadow:0 4px 16px rgba(255,170,0,.3);}
+.btn-amber:hover{background:#e09600;transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:var(--slate2);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--white);border-color:rgba(15,23,42,.3);}
+.btn-sm{padding:6px 14px;font-size:12px;border-radius:7px;}
+.btn-full{width:100%;}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
+.form-group{margin-bottom:18px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.form-label{display:block;font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--slate);margin-bottom:7px;}
+.form-input,.form-select{width:100%;background:#f8faff;border:1px solid rgba(15,23,42,0.15);color:#0f172a;padding:11px 16px;border-radius:10px;font-family:'Bricolage Grotesque',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;}
+.form-input:focus,.form-select:focus{border-color:var(--amber);box-shadow:0 0 0 3px rgba(255,170,0,.1);}
+.form-input::placeholder{color:#94a3b8;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.15);backdrop-filter:blur(6px);z-index:800;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:#ffffff;border:1px solid rgba(15,23,42,0.12);border-radius:20px;padding:36px;width:500px;max-width:96vw;max-height:90vh;overflow-y:auto;transform:scale(.96) translateY(12px);transition:transform .3s;position:relative;box-shadow:0 24px 60px rgba(15,23,42,0.12);}
+.modal-overlay.open .modal{transform:scale(1) translateY(0);}
+.modal-close{position:absolute;top:16px;right:16px;width:30px;height:30px;background:#f1f5f9;border:1px solid rgba(15,23,42,0.12);border-radius:7px;color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;line-height:1;}
+.modal-title{font-size:20px;font-weight:700;letter-spacing:-.03em;margin-bottom:4px;}
+.modal-sub{font-size:13px;color:var(--slate);margin-bottom:24px;}
+.divider{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--slate);font-size:12px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.modal-switch{text-align:center;margin-top:18px;font-size:13px;color:var(--slate);}
+.modal-switch a{color:var(--amber);cursor:pointer;}
+.err-msg{background:rgba(255,77,77,.08);border:1px solid rgba(255,77,77,.2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:14px;display:none;}
+.err-msg.show{display:block;}
+.tbl{width:100%;border-collapse:collapse;background:#ffffff;border:1px solid rgba(15,23,42,0.10);border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(15,23,42,0.04);}
+.tbl th{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);padding:11px 14px;text-align:left;border-bottom:1px solid var(--border);background:#f1f5fb;}
+.tbl td{padding:13px 14px;font-size:13px;border-bottom:1px solid var(--border2);}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:rgba(15,23,42,0.02);}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-family:'JetBrains Mono',monospace;}
+.pill::before{content:'';width:5px;height:5px;border-radius:50%;}
+.pill-valid{background:rgba(0,200,122,.15);color:#00c87a;border:1px solid rgba(0,200,122,.25);}
+.pill-valid::before{background:#00c87a;}
+.pill-violation{background:rgba(255,77,77,.15);color:#ff6b6b;border:1px solid rgba(255,77,77,.25);}
+.pill-violation::before{background:#ff6b6b;}
+.pill-open{background:rgba(255,170,0,.15);color:var(--amber);border:1px solid rgba(255,170,0,.25);}
+.pill-open::before{background:var(--amber);}
+.pill-resolved{background:rgba(120,140,120,.15);color:#5a9a5a;border:1px solid rgba(120,140,120,.25);}
+.pill-resolved::before{background:#5a9a5a;}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.stat-card{background:#ffffff;border:1px solid rgba(15,23,42,0.10);border-radius:14px;padding:20px;position:relative;overflow:hidden;box-shadow:0 2px 8px rgba(15,23,42,0.05);}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
+.stat-card.green::after{background:var(--green);}
+.stat-card.red::after{background:var(--red);}
+.stat-card.amber::after{background:var(--amber);}
+.stat-card.blue::after{background:var(--blue);}
+.stat-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:8px;}
+.stat-val{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1;margin-bottom:4px;}
+.stat-sub{font-size:12px;color:var(--slate);}
+.layout{display:flex;padding-top:64px;min-height:100vh;}
+.sidebar{width:220px;flex-shrink:0;background:#f8faff;border-right:1px solid rgba(15,23,42,0.10);position:fixed;top:64px;left:0;bottom:0;overflow-y:auto;padding:20px 0;}
+.sidebar-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--slate);padding:16px 20px 8px;}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:13px;font-weight:500;color:#64748b;cursor:pointer;transition:all .2s;border-left:2px solid transparent;}
+.sidebar-item:hover{color:var(--white);background:rgba(15,23,42,0.04);}
+.sidebar-item.active{color:#e09600;background:rgba(255,170,0,.08);border-left-color:var(--amber);}
+.sidebar-icon{font-size:16px;width:22px;text-align:center;}
+.main{margin-left:220px;flex:1;padding:36px 40px 80px;}
+.scan-box{background:#ffffff;border:1px solid rgba(15,23,42,0.10);border-radius:16px;padding:32px;box-shadow:0 2px 12px rgba(15,23,42,0.05);margin-bottom:24px;}
+.plate-input{background:#f1f5fb;border:2px solid var(--border);color:var(--white);padding:14px 20px;border-radius:12px;font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;outline:none;flex:1;transition:border-color .2s;text-align:center;}
+.plate-input:focus{border-color:var(--amber);}
+.plate-input::placeholder{color:#94a3b8;}
+.result-valid{background:rgba(0,200,122,.06);border:1px solid rgba(0,200,122,.25);border-radius:14px;padding:24px;animation:fadeUp .3s ease;}
+.result-violation{background:rgba(255,77,77,.06);border:1px solid rgba(255,77,77,.25);border-left:3px solid var(--red);border-radius:14px;padding:24px;animation:fadeUp .3s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.v-card{background:#ffffff;border:1px solid rgba(15,23,42,0.10);border-left:3px solid var(--red);border-radius:12px;padding:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+#gate{position:fixed;inset:0;z-index:900;background:#f0f4ff;display:flex;align-items:center;justify-content:center;}
+#dashboard{display:none;}
+#toast{position:fixed;bottom:24px;right:24px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 18px;font-size:13px;z-index:9999;transform:translateY(12px);opacity:0;transition:all .3s;max-width:320px;}
+#toast.show{opacity:1;transform:translateY(0);}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+@media(max-width:900px){.sidebar{display:none;}.main{margin-left:0;padding:20px;}.stat-grid{grid-template-columns:1fr 1fr;}.form-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div style="max-width:440px;width:90%;padding:20px;">
+    <div style="text-align:center;margin-bottom:36px;">
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;">
+        <div class="logo-mark" style="width:36px;height:36px;font-size:18px;">P</div>
+        <span style="font-size:20px;font-weight:700;letter-spacing:-.03em;">My Spot Parking</span>
+      </div>
+    </div>
+    <div style="background:#ffffff;border:1px solid rgba(15,23,42,0.12);border-radius:22px;padding:40px;box-shadow:0 24px 60px rgba(15,23,42,0.12);">
+
+      <div id="panel-signup">
+        <div style="font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:12px;background:rgba(255,170,0,.1);display:inline-block;padding:4px 12px;border-radius:20px;border:1px solid rgba(255,170,0,.2);">🚨 Enforcement Company</div>
+        <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Register your company</div>
+        <div style="font-size:13px;color:var(--slate);margin-bottom:28px;">Set up your enforcement patrol account</div>
+        <div class="err-msg" id="su-err"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">First Name</label><input class="form-input" id="su-fname" type="text" placeholder="Officer"></div>
+          <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="su-lname" type="text" placeholder="Johnson"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Company Name</label><input class="form-input" id="su-company" type="text" placeholder="SecurePark Enforcement Inc."></div>
+        <div class="form-group"><label class="form-label">Work Email</label><input class="form-input" id="su-email" type="email" placeholder="officer@securepark.com"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Badge / Employee ID</label><input class="form-input" id="su-badge" type="text" placeholder="SP-4421"></div>
+          <div class="form-group"><label class="form-label">Patrol Region</label><select class="form-select" id="su-region"><option>Austin, TX</option><option>Dallas, TX</option><option>Houston, TX</option><option>San Antonio, TX</option><option>Other</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="su-pass" type="password" placeholder="••••••••"></div>
+          <div class="form-group"><label class="form-label">Confirm</label><input class="form-input" id="su-pass2" type="password" placeholder="••••••••"></div>
+        </div>
+        <button class="btn btn-amber btn-full" id="su-btn" onclick="handleSignUp()">Create Enforcement Account →</button>
+        <div class="divider">or</div>
+        <button class="btn btn-ghost btn-full" onclick="toast('🔗 Google coming soon')">Continue with Google</button>
+        <div class="modal-switch" style="margin-top:20px;">Already have an account? <a onclick="switchPanel('signin')">Sign in</a></div>
+        <div class="modal-switch" style="margin-top:8px;"><a href="index.html" style="color:var(--slate);">← Back to Home</a></div>
+      </div>
+
+      <div id="panel-signin" style="display:none;">
+        <div style="font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:12px;background:rgba(255,170,0,.1);display:inline-block;padding:4px 12px;border-radius:20px;border:1px solid rgba(255,170,0,.2);">🚨 Enforcement Company</div>
+        <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Officer sign in</div>
+        <div style="font-size:13px;color:var(--slate);margin-bottom:28px;">Access your enforcement console</div>
+        <div class="err-msg" id="si-err"></div>
+        <div class="form-group"><label class="form-label">Work Email</label><input class="form-input" id="si-email" type="email" placeholder="officer@securepark.com"></div>
+        <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="si-pass" type="password" placeholder="••••••••"></div>
+        <button class="btn btn-amber btn-full" id="si-btn" onclick="handleSignIn()">Sign In →</button>
+        <div class="divider">or</div>
+        <button class="btn btn-ghost btn-full" onclick="toast('🔗 Google coming soon')">Continue with Google</button>
+        <div class="modal-switch" style="margin-top:20px;">New company? <a onclick="switchPanel('signup')">Register</a></div>
+        <div class="modal-switch" style="margin-top:8px;"><a href="index.html" style="color:var(--slate);">← Back to Home</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="dashboard">
+  <nav class="nav">
+    <a class="nav-logo" href="index.html"><div class="logo-mark">M</div><span class="logo-text">My Spot Parking</span></a>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div id="patrol-status" style="display:flex;align-items:center;gap:8px;background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.2);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--amber);cursor:pointer;" onclick="togglePatrol()">
+        <span id="patrol-dot" style="width:8px;height:8px;border-radius:50%;background:var(--amber);"></span>
+        <span id="patrol-label">Off Patrol</span>
+      </div>
+    </div>
+    <div class="nav-right">
+      <span class="nav-badge">Enforcement</span>
+      <div class="nav-user"><div class="avatar" id="nav-avatar">OJ</div><span id="nav-name">Loading...</span></div>
+      <button class="btn-signout" onclick="signOut()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-label">Patrol</div>
+      <div class="sidebar-item active" onclick="setTab('console',this)"><span class="sidebar-icon">🔍</span>Lookup Console</div>
+      <div class="sidebar-item" onclick="setTab('violations',this)"><span class="sidebar-icon">🚨</span>Violations Log</div>
+      <div class="sidebar-label">Reports</div>
+      <div class="sidebar-item" onclick="setTab('summary',this)"><span class="sidebar-icon">📊</span>Patrol Summary</div>
+      <div class="sidebar-label">Account</div>
+      <div class="sidebar-item" onclick="setTab('account',this)"><span class="sidebar-icon">⚙️</span>Account</div>
+    </aside>
+
+    <main class="main">
+      <!-- CONSOLE -->
+      <div id="tab-console" class="tab-panel active">
+        <div style="margin-bottom:24px;">
+          <h1 style="font-size:24px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">🔍 Permit Lookup Console</h1>
+          <p style="font-size:14px;color:var(--slate);">Enter a license plate to verify permit status in real-time from the database.</p>
+        </div>
+        <div class="scan-box">
+          <label style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--slate);display:block;margin-bottom:12px;">License Plate</label>
+          <div style="display:flex;gap:12px;align-items:center;">
+            <input class="plate-input" id="plate-input" type="text" placeholder="ENTER PLATE" maxlength="12" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')lookupPlate()">
+            <button class="btn btn-amber" style="padding:14px 28px;font-size:16px;" onclick="lookupPlate()">Verify →</button>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:var(--slate);">Enter any plate from your My Spot Parking database to check real-time permit status.</div>
+        </div>
+        <div id="lookup-result" style="margin-bottom:24px;"></div>
+        <div class="stat-grid">
+          <div class="stat-card green"><div class="stat-label">Verified Valid</div><div class="stat-val" id="s-valid" style="color:var(--green)">0</div><div class="stat-sub">Today</div></div>
+          <div class="stat-card red"><div class="stat-label">Violations</div><div class="stat-val" id="s-viol" style="color:var(--red)">0</div><div class="stat-sub">Today</div></div>
+          <div class="stat-card amber"><div class="stat-label">Lookups</div><div class="stat-val" id="s-checked" style="color:var(--amber)">0</div><div class="stat-sub">Today</div></div>
+          <div class="stat-card blue"><div class="stat-label">Compliance</div><div class="stat-val" id="s-rate" style="color:var(--blue)">—</div><div class="stat-sub">Rate today</div></div>
+        </div>
+      </div>
+
+      <!-- VIOLATIONS LOG -->
+      <div id="tab-violations" class="tab-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div><h2 style="font-size:20px;font-weight:800;letter-spacing:-.03em;">Violations Log</h2><p style="font-size:13px;color:var(--slate);margin-top:2px;">All recorded violations from patrol</p></div>
+          <div style="display:flex;gap:10px;"><button class="btn btn-ghost btn-sm" onclick="exportViolations()">Export CSV</button></div>
+        </div>
+        <div id="violations-log"></div>
+      </div>
+
+      <!-- SUMMARY -->
+      <div id="tab-summary" class="tab-panel">
+        <h2 style="font-size:20px;font-weight:800;letter-spacing:-.03em;margin-bottom:20px;">Patrol Summary</h2>
+        <div class="stat-grid">
+          <div class="stat-card green"><div class="stat-label">Valid Permits</div><div class="stat-val" id="sum-valid" style="color:var(--green)">0</div></div>
+          <div class="stat-card red"><div class="stat-label">Violations</div><div class="stat-val" id="sum-viol" style="color:var(--red)">0</div></div>
+          <div class="stat-card amber"><div class="stat-label">Total Lookups</div><div class="stat-val" id="sum-checked" style="color:var(--amber)">0</div></div>
+          <div class="stat-card blue"><div class="stat-label">Compliance</div><div class="stat-val" id="sum-rate" style="color:var(--blue)">—</div></div>
+        </div>
+        <div style="background:#ffffff;border:1px solid var(--border);border-radius:14px;padding:24px;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px;">Patrol History</div>
+          <table class="tbl"><thead><tr><th>Plate</th><th>Result</th><th>Time</th></tr></thead><tbody id="summary-body"></tbody></table>
+        </div>
+      </div>
+
+      <!-- ACCOUNT -->
+      <div id="tab-account" class="tab-panel">
+        <h2 style="font-size:20px;font-weight:800;letter-spacing:-.03em;margin-bottom:20px;">Account Settings</h2>
+        <div style="background:#ffffff;border:1px solid var(--border);border-radius:14px;padding:28px;max-width:480px;">
+          <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="acc-name" type="text"></div>
+          <div class="form-group"><label class="form-label">Company</label><input class="form-input" id="acc-company" type="text"></div>
+          <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="acc-email" type="email"></div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Badge ID</label><input class="form-input" id="acc-badge" type="text"></div>
+            <div class="form-group"><label class="form-label">Region</label><input class="form-input" id="acc-region" type="text"></div>
+          </div>
+          <button class="btn btn-amber" onclick="toast('✅ Account updated')">Save Changes</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SUPABASE_URL='https://ajadbfojccztiauxyxos.supabase.co';
+const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYWRiZm9qY2N6dGlhdXh5eG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTU1NDcsImV4cCI6MjA5MjM3MTU0N30.dHMc-kGb0YFHnTfxnwGYfikmKZBLPzS5lfe6SyRsguU';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
+
+let currentUser=null;
+let onPatrol=false;
+let sessionViolations=[];
+let patrolLog=[];
+let stats={valid:0,violations:0,checked:0};
+
+function switchPanel(p){
+  document.getElementById('panel-signup').style.display=p==='signup'?'block':'none';
+  document.getElementById('panel-signin').style.display=p==='signin'?'block':'none';
+}
+
+async function handleSignUp(){
+  const fname=document.getElementById('su-fname').value.trim();
+  const lname=document.getElementById('su-lname').value.trim();
+  const company=document.getElementById('su-company').value.trim();
+  const email=document.getElementById('su-email').value.trim().toLowerCase();
+  const badge=document.getElementById('su-badge').value.trim();
+  const region=document.getElementById('su-region').value;
+  const pass=document.getElementById('su-pass').value;
+  const pass2=document.getElementById('su-pass2').value;
+  const err=document.getElementById('su-err');
+  const btn=document.getElementById('su-btn');
+  err.classList.remove('show');
+  if(!fname||!company||!email||!pass){err.textContent='Please fill in all required fields.';err.classList.add('show');return;}
+  if(pass!==pass2){err.textContent='Passwords do not match.';err.classList.add('show');return;}
+  if(pass.length<6){err.textContent='Password must be at least 6 characters.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Creating account...';
+
+  const {data,error}=await sb.auth.signUp({email,password:pass});
+
+  // If user already exists in auth, try to just create/update their profile
+  if(error&&(error.message.includes('already registered')||error.message.includes('already exists'))){
+    // Sign them in to get their ID, then upsert profile
+    const {data:signInData,error:signInError}=await sb.auth.signInWithPassword({email,password:pass});
+    if(signInError){
+      err.textContent='An account with this email already exists. Try signing in instead, or use a different email.';
+      err.classList.add('show');
+      btn.disabled=false;btn.textContent='Create Enforcement Account →';
+      return;
+    }
+    const userId=signInData?.user?.id;
+    if(userId){
+      await sb.from('users').upsert({
+        id:userId,email,
+        full_name:(fname+' '+lname).trim(),
+        company,badge_id:badge||null,region:region||null,role:'enforcer'
+      },{onConflict:'id'});
+      await sb.auth.signOut();
+    }
+    btn.disabled=false;btn.textContent='Create Enforcement Account →';
+    toast('✅ Account ready! You can now sign in.');
+    switchPanel('signin');
+    document.getElementById('si-email').value=email;
+    return;
+  }
+
+  if(error){
+    err.textContent=error.message;err.classList.add('show');
+    btn.disabled=false;btn.textContent='Create Enforcement Account →';
+    return;
+  }
+
+  const userId=data?.user?.id;
+  if(userId){
+    const {error:profileError}=await sb.from('users').upsert({
+      id:userId,
+      email,
+      full_name:(fname+' '+lname).trim(),
+      company,
+      badge_id:badge||null,
+      region:region||null,
+      role:'enforcer'
+    },{onConflict:'id'});
+
+    if(profileError){
+      console.error('Profile insert error:',profileError);
+      err.textContent='Account created but profile failed: '+profileError.message+'. Please contact support.';
+      err.classList.add('show');
+      btn.disabled=false;btn.textContent='Create Enforcement Account →';
+      return;
+    }
+  }
+
+  btn.disabled=false;btn.textContent='Create Enforcement Account →';
+  toast('✅ Account created! You can now sign in.');
+  switchPanel('signin');
+  document.getElementById('si-email').value=email;
+}
+
+async function handleSignIn(){
+  const email=document.getElementById('si-email').value.trim();
+  const pass=document.getElementById('si-pass').value;
+  const err=document.getElementById('si-err');
+  const btn=document.getElementById('si-btn');
+  err.classList.remove('show');
+  if(!email||!pass){err.textContent='Enter your email and password.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Signing in...';
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){err.textContent=error.message;err.classList.add('show');btn.disabled=false;btn.textContent='Sign In →';return;}
+  const {data:profile}=await sb.from('users').select('*').eq('id',data.user.id).single();
+  if(!profile||profile.role!=='enforcer'){
+    err.textContent='This account is not an Enforcement account.';err.classList.add('show');
+    await sb.auth.signOut();btn.disabled=false;btn.textContent='Sign In →';return;
+  }
+  enterDashboard(profile);
+}
+
+async function checkExistingSession(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){
+    const {data:profile}=await sb.from('users').select('*').eq('id',session.user.id).single();
+    if(profile&&profile.role==='enforcer') enterDashboard(profile);
+  }
+}
+
+function enterDashboard(profile){
+  currentUser=profile;
+  document.getElementById('gate').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  const initials=(profile.full_name||'?').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('nav-avatar').textContent=initials;
+  document.getElementById('nav-name').textContent=profile.full_name||profile.email;
+  document.getElementById('acc-name').value=profile.full_name||'';
+  document.getElementById('acc-company').value=profile.company||'';
+  document.getElementById('acc-email').value=profile.email||'';
+  document.getElementById('acc-badge').value=profile.badge_id||'';
+  document.getElementById('acc-region').value=profile.region||'';
+  renderViolationsLog();
+  renderSummary();
+  restoreFromHash();
+  setTimeout(()=>document.getElementById('plate-input').focus(),300);
+}
+
+async function signOut(){
+  await sb.auth.signOut();
+  document.getElementById('gate').style.display='flex';
+  document.getElementById('dashboard').style.display='none';
+}
+
+function togglePatrol(){
+  onPatrol=!onPatrol;
+  const dot=document.getElementById('patrol-dot');
+  const label=document.getElementById('patrol-label');
+  const status=document.getElementById('patrol-status');
+  if(onPatrol){
+    label.textContent='On Patrol';dot.style.background='var(--green)';dot.style.animation='pulse 1.5s infinite';
+    status.style.background='rgba(0,200,122,.1)';status.style.borderColor='rgba(0,200,122,.2)';status.style.color='var(--green)';
+    toast('🚔 Patrol started');
+  } else {
+    label.textContent='Off Patrol';dot.style.background='var(--amber)';dot.style.animation='none';
+    status.style.background='rgba(255,170,0,.1)';status.style.borderColor='rgba(255,170,0,.2)';status.style.color='var(--amber)';
+    toast('🔴 Patrol ended');
+  }
+}
+
+async function lookupPlate(){
+  const raw=document.getElementById('plate-input').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(!raw){toast('⚠️ Enter a plate number');return;}
+  stats.checked++;
+  updateStats();
+  const resultEl=document.getElementById('lookup-result');
+  resultEl.innerHTML=`<div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:24px;text-align:center;color:var(--slate);">🔍 Looking up <strong style="font-family:'JetBrains Mono',monospace">${raw}</strong> in database...</div>`;
+  // Query live database
+  const {data:permits}=await sb.from('permits').select('*').eq('plate',raw).eq('status','active');
+  const time=new Date().toLocaleTimeString();
+  document.getElementById('plate-input').value='';
+  if(permits&&permits.length>0){
+    const permit=permits[0];
+    stats.valid++;
+    updateStats();
+    patrolLog.unshift({plate:raw,result:'Valid',time});
+    renderSummary();
+    resultEl.innerHTML=`
+      <div class="result-valid">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div style="width:40px;height:40px;background:rgba(0,200,122,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;">✅</div>
+          <div><div style="font-size:18px;font-weight:800;color:var(--green);">VALID PERMIT</div><div style="font-size:12px;color:var(--slate2);">Verified at ${time}</div></div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:500;letter-spacing:.14em;margin-bottom:16px;">${formatPlate(raw)}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+          <div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:4px;">Vehicle</div><div style="font-size:13px;font-weight:600;">${permit.vehicle||'—'}</div></div>
+          <div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:4px;">Permit Type</div><div style="font-size:13px;font-weight:600;">${permit.permit_type||'—'}</div></div>
+          <div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:4px;">Expires</div><div style="font-size:13px;font-weight:600;">${permit.end_date||'—'}</div></div>
+        </div>
+      </div>`;
+  } else {
+    stats.violations++;
+    updateStats();
+    const vid='C-'+Date.now().toString().slice(-6);
+    // Log violation to database
+    await sb.from('violations').insert({officer_id:currentUser.id,plate:raw,reason:'No valid permit found in system',status:'Open'});
+    sessionViolations.unshift({id:vid,plate:raw,reason:'No valid permit found',time,status:'Open'});
+    patrolLog.unshift({plate:raw,result:'Violation',time});
+    renderViolationsLog();
+    renderSummary();
+    resultEl.innerHTML=`
+      <div class="result-violation">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div style="width:40px;height:40px;background:rgba(255,77,77,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;">🚨</div>
+          <div><div style="font-size:18px;font-weight:800;color:var(--red);">VIOLATION — NO VALID PERMIT</div><div style="font-size:12px;color:var(--slate2);">Logged at ${time} · Citation ${vid}</div></div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:500;letter-spacing:.14em;margin-bottom:16px;">${formatPlate(raw)}</div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button class="btn btn-sm" style="background:rgba(255,77,77,.1);color:var(--red);border:1px solid rgba(255,77,77,.2);" onclick="toast('🖨 Printing citation ${vid}')">Print Citation</button>
+          <button class="btn btn-ghost btn-sm" onclick="toast('📷 Photo logged')">Log Photo</button>
+        </div>
+      </div>`;
+  }
+  document.getElementById('plate-input').focus();
+}
+
+function formatPlate(p){return p.length>=6?p.slice(0,-3)+' · '+p.slice(-3):p;}
+
+function renderViolationsLog(){
+  const log=document.getElementById('violations-log');
+  if(!sessionViolations.length){
+    log.innerHTML=`<div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:50px;text-align:center;color:var(--slate);"><div style="font-size:32px;margin-bottom:12px;">✅</div><div style="font-size:15px;font-weight:600;color:var(--white);margin-bottom:6px;">No violations logged this session</div></div>`;
+    return;
+  }
+  log.innerHTML=sessionViolations.map(v=>`
+    <div class="v-card">
+      <div style="flex:1;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:500;letter-spacing:.1em;margin-bottom:4px;">${formatPlate(v.plate)}</div>
+        <div style="font-size:12px;color:var(--slate2);margin-bottom:2px;">${v.reason}</div>
+        <div style="font-size:11px;color:var(--slate);">${v.time}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+        <span class="pill ${v.status==='Open'?'pill-open':'pill-resolved'}">${v.status}</span>
+        <button class="btn btn-ghost btn-sm" onclick="toast('🖨 Printing ${v.id}')">Print</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderSummary(){
+  document.getElementById('sum-valid').textContent=stats.valid;
+  document.getElementById('sum-viol').textContent=stats.violations;
+  document.getElementById('sum-checked').textContent=stats.checked;
+  const r=stats.checked?Math.round(stats.valid/stats.checked*100)+'%':'—';
+  document.getElementById('sum-rate').textContent=r;
+  document.getElementById('summary-body').innerHTML=patrolLog.map(l=>`
+    <tr>
+      <td><strong style="font-family:'JetBrains Mono',monospace">${formatPlate(l.plate)}</strong></td>
+      <td><span class="pill ${l.result==='Valid'?'pill-valid':'pill-violation'}">${l.result}</span></td>
+      <td style="font-size:12px;color:var(--slate)">${l.time}</td>
+    </tr>`).join('')||`<tr><td colspan="3" style="text-align:center;padding:30px;color:var(--slate)">No lookups yet</td></tr>`;
+}
+
+function updateStats(){
+  const r=stats.checked?Math.round(stats.valid/stats.checked*100)+'%':'—';
+  document.getElementById('s-valid').textContent=stats.valid;
+  document.getElementById('s-viol').textContent=stats.violations;
+  document.getElementById('s-checked').textContent=stats.checked;
+  document.getElementById('s-rate').textContent=r;
+}
+
+function exportViolations(){
+  if(!sessionViolations.length){toast('No violations to export');return;}
+  const csv=['ID,Plate,Reason,Time,Status',...sessionViolations.map(v=>`${v.id},${v.plate},"${v.reason}",${v.time},${v.status}`)].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='violations-'+new Date().toISOString().split('T')[0]+'.csv';a.click();
+  toast('📁 Violations exported');
+}
+
+const tabNames=['console','violations','summary','account'];
+function setTab(name,el){
+  tabNames.forEach(t=>document.getElementById('tab-'+t)?.classList.remove('active'));
+  document.getElementById('tab-'+name)?.classList.add('active');
+  document.querySelectorAll('.sidebar-item').forEach(s=>s.classList.remove('active'));
+  if(el)el.classList.add('active');
+  history.replaceState(null,'','#'+name);
+}
+
+function restoreFromHash(){
+  const hash=window.location.hash.replace('#','');
+  if(!hash||!tabNames.includes(hash)) return;
+  const sbEl=document.querySelector(`.sidebar-item[onclick*="'${hash}'"]`);
+  setTab(hash,sbEl);
+}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+let toastTimer;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3200);}
+
+checkExistingSession();
+</script>
+</body>
+</html>
