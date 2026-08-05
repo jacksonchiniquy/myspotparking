@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Spot Parking — Parking Permit Management Software</title>
+<meta name="description" content="Digital parking permit management for property managers. Visual lot mapping, resident portals, and real-time enforcement — built for the way parking actually works.">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0B1220;
+  --ink2: #1E2A3B;
+  --slate: #4A5568;
+  --slate2: #718096;
+  --blue: #1B6FFF;
+  --blue-dark: #0D5AE5;
+  --blue-light: rgba(27,111,255,0.08);
+  --green: #00C87A;
+  --amber: #F59E0B;
+  --white: #FFFFFF;
+  --bg: #F5F6F8;
+  --bg2: #EBEDF0;
+  --border: rgba(11,18,32,0.10);
+  --border2: rgba(11,18,32,0.06);
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { background: var(--white); color: var(--ink); font-family: 'Inter', sans-serif; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
+/* ── TYPOGRAPHY ── */
+.display { font-family: 'Sora', sans-serif; }
+h1, h2, h3 { font-family: 'Sora', sans-serif; }
+
+/* ── NAV ── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 60px; height: 64px;
+  background: rgba(255,255,255,0.95); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+.nav-mark {
+  width: 32px; height: 32px; background: var(--blue); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-mark svg { width: 16px; height: 16px; fill: none; stroke: white; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.nav-name { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+.nav-links { display: flex; align-items: center; gap: 2px; }
+.nav-link { padding: 7px 14px; font-size: 14px; font-weight: 500; color: var(--slate); text-decoration: none; border-radius: 7px; transition: all .18s; }
+.nav-link:hover { color: var(--blue); background: var(--blue-light); }
+.nav-right { display: flex; align-items: center; gap: 10px; }
+.nav-signin { padding: 7px 16px; font-size: 14px; font-weight: 500; color: var(--slate); background: none; border: 1px solid var(--border); border-radius: 7px; cursor: pointer; text-decoration: none; font-family: 'Inter', sans-serif; transition: all .18s; display: inline-flex; align-items: center; }
+.nav-signin:hover { border-color: var(--blue); color: var(--blue); }
+.nav-cta { padding: 8px 20px; font-size: 14px; font-weight: 600; color: white; background: var(--blue); border: none; border-radius: 7px; cursor: pointer; text-decoration: none; font-family: 'Inter', sans-serif; transition: all .18s; display: inline-flex; align-items: center; letter-spacing: -0.01em; }
+.nav-cta:hover { background: var(--blue-dark); transform: translateY(-1px); }
+
+/* ── HERO ── */
+.hero {
+  padding: 160px 60px 100px;
+  max-width: 1200px; margin: 0 auto;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
+}
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--blue); margin-bottom: 24px;
+}
+.hero-eyebrow-line { width: 24px; height: 1.5px; background: var(--blue); }
+.hero-h1 {
+  font-size: clamp(38px, 4.5vw, 58px); font-weight: 800;
+  letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 24px; color: var(--ink);
+}
+.hero-sub {
+  font-size: 17px; color: var(--slate); line-height: 1.7; margin-bottom: 40px;
+  font-weight: 400; max-width: 460px;
+}
+.hero-cta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.btn-primary {
+  padding: 14px 28px; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600;
+  color: white; background: var(--blue); border: none; border-radius: 9px;
+  cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+  transition: all .2s; letter-spacing: -0.01em;
+  box-shadow: 0 4px 16px rgba(27,111,255,0.35);
+}
+.btn-primary:hover { background: var(--blue-dark); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(27,111,255,0.4); }
+.btn-ghost {
+  padding: 14px 24px; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500;
+  color: var(--slate); background: none; border: 1.5px solid var(--border); border-radius: 9px;
+  cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+  transition: all .2s;
+}
+.btn-ghost:hover { color: var(--blue); border-color: var(--blue); }
+.hero-social { margin-top: 40px; display: flex; align-items: center; gap: 12px; }
+.hero-social-label { font-size: 13px; color: var(--slate2); }
+.hero-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+/* ── HERO MAP MOCKUP ── */
+.hero-visual {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(11,18,32,0.10), 0 4px 16px rgba(11,18,32,0.06);
+}
+.hv-topbar {
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  padding: 10px 14px; display: flex; align-items: center; gap: 8px;
+}
+.hv-dot { width: 10px; height: 10px; border-radius: 50%; }
+.hv-title { font-size: 12px; font-weight: 600; color: var(--slate); margin-left: 6px; font-family: 'Sora', sans-serif; }
+.hv-badge { margin-left: auto; background: rgba(0,200,122,0.12); border: 1px solid rgba(0,200,122,0.25); color: var(--green); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+.hv-toolbar {
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  display: flex; gap: 6px; background: white;
+}
+.hv-btn { padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; font-family: 'Inter', sans-serif; border: 1px solid var(--border); background: white; color: var(--slate); cursor: default; }
+.hv-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+.hv-body { padding: 12px; background: white; }
+.lot-property { font-size: 11px; font-weight: 700; color: var(--slate2); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; font-family: 'Sora', sans-serif; }
+.lot-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; margin-bottom: 8px; }
+.ls { border-radius: 4px; aspect-ratio: 2/3; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 700; font-family: 'Inter', sans-serif; }
+.ls-a { background: #EEF4FF; border: 1px solid #C3D8FF; color: #1B6FFF; }
+.ls-ok { background: #E6FAF2; border: 1.5px solid #00C87A; color: #00875A; }
+.ls-r { background: #FEF9E7; border: 1px solid #F5C842; color: #92720E; }
+.ls-ev { background: #F3EEFF; border: 1px solid #B197FC; color: #6741D9; }
+.ls-h { background: #FFF0F0; border: 1px solid #FFA8A8; color: #C92A2A; }
+.lot-legend { display: flex; gap: 12px; flex-wrap: wrap; }
+.ll { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--slate2); font-family: 'Inter', sans-serif; }
+.ll-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.hv-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px solid var(--border); }
+.hv-stat { padding: 10px 14px; text-align: center; border-right: 1px solid var(--border); }
+.hv-stat:last-child { border-right: none; }
+.hv-stat-n { font-size: 20px; font-weight: 800; font-family: 'Sora', sans-serif; letter-spacing: -0.04em; line-height: 1; }
+.hv-stat-l { font-size: 10px; color: var(--slate2); margin-top: 2px; }
+
+/* ── SECTION BASE ── */
+.section { padding: 96px 60px; }
+.section-inner { max-width: 1100px; margin: 0 auto; }
+.eyebrow {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--blue); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+}
+.eyebrow::before { content: ''; width: 20px; height: 1.5px; background: var(--blue); }
+.section-h2 { font-size: clamp(28px, 3.5vw, 42px); font-weight: 800; letter-spacing: -0.04em; line-height: 1.1; margin-bottom: 16px; }
+.section-sub { font-size: 17px; color: var(--slate); line-height: 1.65; max-width: 500px; font-weight: 400; }
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--border); max-width: 1100px; margin: 0 auto; }
+
+/* ── WHO IT'S FOR ── */
+.for-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border2); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-top: 56px; }
+.for-card { background: white; padding: 40px 32px; transition: background .2s; text-decoration: none; color: var(--ink); display: block; }
+.for-card:hover { background: var(--bg); }
+.for-icon {
+  width: 44px; height: 44px; border-radius: 10px; margin-bottom: 24px;
+  display: flex; align-items: center; justify-content: center;
+}
+.for-icon svg { width: 22px; height: 22px; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.for-icon.blue { background: rgba(27,111,255,0.1); }
+.for-icon.blue svg { stroke: var(--blue); }
+.for-icon.green { background: rgba(0,200,122,0.1); }
+.for-icon.green svg { stroke: var(--green); }
+.for-icon.amber { background: rgba(245,158,11,0.1); }
+.for-icon.amber svg { stroke: var(--amber); }
+.for-tag { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+.for-tag.blue { color: var(--blue); }
+.for-tag.green { color: var(--green); }
+.for-tag.amber { color: #B45309; }
+.for-h3 { font-size: 19px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 12px; line-height: 1.2; }
+.for-desc { font-size: 14px; color: var(--slate); line-height: 1.65; margin-bottom: 24px; }
+.for-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px; }
+.for-list li { font-size: 13px; color: var(--slate); display: flex; align-items: flex-start; gap: 8px; line-height: 1.4; }
+.for-list li::before { content: ''; width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; margin-top: 1px; }
+.for-card.blue-card .for-list li::before { background: rgba(27,111,255,0.15); background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 14 14' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 7l2.5 2.5L11 4' stroke='%231B6FFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E"); }
+.for-card.green-card .for-list li::before { background: rgba(0,200,122,0.12); background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 14 14' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 7l2.5 2.5L11 4' stroke='%2300C87A' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E"); }
+.for-card.amber-card .for-list li::before { background: rgba(245,158,11,0.12); background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 14 14' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 7l2.5 2.5L11 4' stroke='%23B45309' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E"); }
+.for-link { font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; transition: gap .18s; }
+.blue-card .for-link { color: var(--blue); }
+.green-card .for-link { color: var(--green); }
+.amber-card .for-link { color: #B45309; }
+.for-card:hover .for-link { gap: 10px; }
+
+/* ── FEATURES DARK ── */
+.features-section { background: var(--ink); }
+.features-section .eyebrow { color: rgba(255,255,255,0.4); }
+.features-section .eyebrow::before { background: rgba(255,255,255,0.3); }
+.features-section .section-h2 { color: white; }
+.features-section .section-sub { color: rgba(255,255,255,0.5); }
+.feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; overflow: hidden; margin-top: 52px; }
+.feat-cell { padding: 36px 30px; background: var(--ink); transition: background .2s; }
+.feat-cell:hover { background: var(--ink2); }
+.feat-icon-wrap {
+  width: 40px; height: 40px; border-radius: 9px; margin-bottom: 20px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(27,111,255,0.15);
+}
+.feat-icon-wrap svg { width: 20px; height: 20px; stroke: var(--blue); fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.feat-title { font-size: 15px; font-weight: 700; color: white; margin-bottom: 8px; letter-spacing: -0.02em; font-family: 'Sora', sans-serif; }
+.feat-desc { font-size: 13px; color: rgba(255,255,255,0.45); line-height: 1.65; }
+
+/* ── HOW IT WORKS ── */
+.how-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: 56px; }
+.how-card { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 32px; position: relative; }
+.how-num { font-family: 'Sora', sans-serif; font-size: 48px; font-weight: 800; color: var(--border2); letter-spacing: -0.05em; line-height: 1; margin-bottom: 20px; }
+.how-icon { width: 36px; height: 36px; margin-bottom: 14px; }
+.how-icon svg { width: 36px; height: 36px; fill: none; stroke: var(--blue); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.how-h3 { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 10px; }
+.how-desc { font-size: 14px; color: var(--slate); line-height: 1.65; }
+
+/* ── FINAL CTA ── */
+.final-section {
+  background: var(--ink); padding: 120px 60px; text-align: center;
+}
+.final-h2 { font-size: clamp(32px, 5vw, 52px); font-weight: 800; letter-spacing: -0.05em; line-height: 1.05; color: white; margin-bottom: 20px; }
+.final-sub { font-size: 18px; color: rgba(255,255,255,0.55); line-height: 1.65; max-width: 460px; margin: 0 auto 48px; }
+.btn-white { padding: 16px 36px; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; color: var(--blue); background: white; border: none; border-radius: 10px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all .2s; box-shadow: 0 4px 20px rgba(0,0,0,0.2); letter-spacing: -0.01em; }
+.btn-white:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.28); }
+.final-contact { margin-top: 28px; display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; }
+.final-contact a { font-size: 14px; color: rgba(255,255,255,0.4); text-decoration: none; transition: color .18s; }
+.final-contact a:hover { color: white; }
+
+/* ── FOOTER ── */
+footer { background: #080E19; padding: 48px 60px 36px; }
+.footer-inner { max-width: 1100px; margin: 0 auto; }
+.footer-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; padding-bottom: 32px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 24px; }
+.footer-brand-name { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; color: white; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.footer-brand-desc { font-size: 13px; color: rgba(255,255,255,0.35); line-height: 1.6; max-width: 220px; }
+.footer-cols { display: flex; gap: 48px; }
+.footer-col-title { font-size: 11px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(255,255,255,0.25); margin-bottom: 14px; }
+.footer-links { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+.footer-links a { font-size: 13px; color: rgba(255,255,255,0.45); text-decoration: none; transition: color .18s; }
+.footer-links a:hover { color: white; }
+.footer-bottom { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: rgba(255,255,255,0.25); }
+
+/* ── MODALS ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.2); backdrop-filter: blur(8px); z-index: 800; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .25s; }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal { background: white; border: 1px solid var(--border); border-radius: 20px; padding: 40px; box-shadow: 0 32px 80px rgba(11,18,32,0.16); width: 460px; max-width: 96vw; max-height: 90vh; overflow-y: auto; transform: scale(.97) translateY(10px); transition: transform .25s; position: relative; }
+.modal-overlay.open .modal { transform: scale(1) translateY(0); }
+.modal-close { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; background: var(--bg); border: 1px solid var(--border); border-radius: 7px; color: var(--slate); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.modal-title { font-family: 'Sora', sans-serif; font-size: 21px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 4px; }
+.modal-sub { font-size: 14px; color: var(--slate); margin-bottom: 28px; line-height: 1.5; }
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate2); margin-bottom: 7px; }
+.form-input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--ink); padding: 11px 14px; border-radius: 9px; font-family: 'Inter', sans-serif; font-size: 14px; outline: none; transition: border-color .2s, box-shadow .2s; }
+.form-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(27,111,255,0.1); }
+.form-input::placeholder { color: #A0AEC0; }
+.portal-btn { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 11px; text-decoration: none; color: var(--ink); border: 1.5px solid var(--border); transition: all .18s; margin-bottom: 10px; }
+.portal-btn:hover { border-color: var(--blue); background: var(--blue-light); }
+.portal-btn-icon { width: 38px; height: 38px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.portal-btn-icon svg { width: 20px; height: 20px; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.pb-blue { background: rgba(27,111,255,0.1); }
+.pb-blue svg { stroke: var(--blue); }
+.pb-green { background: rgba(0,200,122,0.1); }
+.pb-green svg { stroke: var(--green); }
+.pb-amber { background: rgba(245,158,11,0.1); }
+.pb-amber svg { stroke: var(--amber); }
+.portal-btn-title { font-size: 14px; font-weight: 600; }
+.portal-btn-sub { font-size: 12px; color: var(--slate2); }
+.err-msg { background: rgba(255,77,77,0.07); border: 1px solid rgba(255,77,77,0.2); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #E53E3E; margin-bottom: 14px; display: none; }
+.err-msg.show { display: block; }
+.modal-switch { text-align: center; margin-top: 18px; font-size: 13px; color: var(--slate2); }
+.modal-switch a { color: var(--blue); cursor: pointer; }
+#toast { position: fixed; bottom: 24px; right: 24px; background: white; border: 1px solid var(--border); border-radius: 10px; padding: 13px 18px; font-size: 13px; z-index: 9999; transform: translateY(12px); opacity: 0; transition: all .3s; max-width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,.08); }
+#toast.show { opacity: 1; transform: translateY(0); }
+
+@media(max-width:960px){
+  .nav { padding: 0 20px; }
+  .nav-links { display: none; }
+  .hero { grid-template-columns: 1fr; padding: 120px 20px 60px; gap: 40px; }
+  .section { padding: 64px 20px; }
+  .for-grid, .feat-grid, .how-grid { grid-template-columns: 1fr; }
+  .footer-row { flex-direction: column; }
+  .footer-cols { flex-wrap: wrap; gap: 28px; }
+  .footer-bottom { flex-direction: column; gap: 10px; text-align: center; }
+  .final-section { padding: 80px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a class="nav-logo" href="index.html">
+    <div class="nav-mark">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="4"/><path d="M12 2C7.6 2 4 5.6 4 10c0 5.5 8 14 8 14s8-8.5 8-14c0-4.4-3.6-8-8-8z"/></svg>
+    </div>
+    <span class="nav-name">My Spot Parking</span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="#for-who">Solutions</a>
+    <a class="nav-link" href="#features">Features</a>
+    <a class="nav-link" href="#how">How It Works</a>
+    <a class="nav-link" href="get-started.html">Contact</a>
+  </div>
+  <div class="nav-right">
+    <a class="nav-signin" href="portals.html">Sign In</a>
+    <a class="nav-cta" href="get-started.html">Talk to Our Team</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div style="max-width:1280px;margin:0 auto;">
+<div class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">
+      <span class="hero-eyebrow-line"></span>
+      Parking Management Software
+    </div>
+    <h1 class="hero-h1">Parking management<br>without the<br>paperwork.</h1>
+    <p class="hero-sub">Digital permits, visual lot mapping, and real-time enforcement — connected in one platform. Built for property managers who are done managing parking with spreadsheets and sticker permits.</p>
+    <div class="hero-cta">
+      <a class="btn-primary" href="get-started.html">
+        Talk to Our Team
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <a class="btn-ghost" href="portals.html">Sign In</a>
+    </div>
+    <div class="hero-social">
+      <span class="hero-dot"></span>
+      <span class="hero-social-label">Property managers across Utah and beyond</span>
+    </div>
+  </div>
+
+  <!-- LOT MAP MOCKUP -->
+  <div class="hero-visual">
+    <div class="hv-topbar">
+      <div class="hv-dot" style="background:#FF6B6B;"></div>
+      <div class="hv-dot" style="background:#FFD93D;margin-left:4px;"></div>
+      <div class="hv-dot" style="background:#6BCB77;margin-left:4px;"></div>
+      <span class="hv-title">Lot Map — Timp Industrial</span>
+      <span class="hv-badge">Saved</span>
+    </div>
+    <div class="hv-toolbar">
+      <span class="hv-btn active">Edit</span>
+      <span class="hv-btn">View</span>
+      <span class="hv-btn">75%</span>
+      <span class="hv-btn" style="margin-left:auto;">Sync Residents</span>
+      <span class="hv-btn" style="background:var(--blue);color:white;border-color:var(--blue);">Save Layout</span>
+    </div>
+    <div class="hv-body">
+      <div class="lot-property">Row A — North Side</div>
+      <div class="lot-grid">
+        <div class="ls ls-ok">1</div><div class="ls ls-ok">2</div><div class="ls ls-a">3</div><div class="ls ls-ok">4</div><div class="ls ls-ok">5</div><div class="ls ls-a">6</div><div class="ls ls-ok">7</div><div class="ls ls-ev">EV</div><div class="ls ls-ok">9</div><div class="ls ls-a">10</div>
+        <div class="ls ls-a">11</div><div class="ls ls-ok">12</div><div class="ls ls-ok">13</div><div class="ls ls-r">R</div><div class="ls ls-ok">15</div><div class="ls ls-ok">16</div><div class="ls ls-a">17</div><div class="ls ls-ok">18</div><div class="ls ls-ev">EV</div><div class="ls ls-ok">20</div>
+        <div class="ls ls-ok">21</div><div class="ls ls-ok">22</div><div class="ls ls-a">23</div><div class="ls ls-ok">24</div><div class="ls ls-ok">25</div><div class="ls ls-r">R</div><div class="ls ls-ok">27</div><div class="ls ls-ok">28</div><div class="ls ls-a">29</div><div class="ls ls-h">HC</div>
+      </div>
+      <div class="lot-legend">
+        <span class="ll"><span class="ll-dot" style="background:#E6FAF2;border:1px solid #00C87A;"></span>Assigned</span>
+        <span class="ll"><span class="ll-dot" style="background:#EEF4FF;border:1px solid #C3D8FF;"></span>Available</span>
+        <span class="ll"><span class="ll-dot" style="background:#FEF9E7;border:1px solid #F5C842;"></span>Reserved</span>
+        <span class="ll"><span class="ll-dot" style="background:#F3EEFF;border:1px solid #B197FC;"></span>EV</span>
+      </div>
+    </div>
+    <div class="hv-stats">
+      <div class="hv-stat">
+        <div class="hv-stat-n" style="color:var(--blue);">214</div>
+        <div class="hv-stat-l">Total Stalls</div>
+      </div>
+      <div class="hv-stat">
+        <div class="hv-stat-n" style="color:var(--green);">189</div>
+        <div class="hv-stat-l">Assigned</div>
+      </div>
+      <div class="hv-stat">
+        <div class="hv-stat-n" style="color:var(--slate2);">25</div>
+        <div class="hv-stat-l">Available</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- WHO IT'S FOR -->
+<section class="section" id="for-who">
+  <div class="section-inner">
+    <div class="eyebrow">Solutions</div>
+    <h2 class="section-h2">One platform.<br>Three focused portals.</h2>
+    <p class="section-sub">Each role gets their own purpose-built experience. No shared interfaces, no compromises.</p>
+
+    <div class="for-grid">
+      <!-- Manager -->
+      <div class="for-card blue-card">
+        <div class="for-icon blue">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        </div>
+        <div class="for-tag blue">Property Manager</div>
+        <div class="for-h3">Complete control over every property</div>
+        <p class="for-desc">Issue permits, manage residents, build lot maps, track violations, and monitor revenue — from one dashboard.</p>
+        <ul class="for-list">
+          <li>Visual drag-and-drop lot map editor</li>
+          <li>Resident management with stall assignment</li>
+          <li>Permit issuance and revocation</li>
+          <li>Violation logging and reporting</li>
+          <li>Multi-property support</li>
+        </ul>
+        <a class="for-link" href="manager.html">
+          Manager Portal
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
+      <!-- Resident -->
+      <div class="for-card green-card">
+        <div class="for-icon green">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+        <div class="for-tag green">Resident</div>
+        <div class="for-h3">Permits on your phone, not your windshield</div>
+        <p class="for-desc">Residents view their active permits, register vehicles, and request guest passes — no paper, no stickers.</p>
+        <ul class="for-list">
+          <li>Digital permit accessible anytime</li>
+          <li>Register and manage multiple vehicles</li>
+          <li>Guest pass requests</li>
+          <li>Account and subscription self-management</li>
+          <li>Invite-based access from your manager</li>
+        </ul>
+        <a class="for-link" href="holder.html">
+          Resident Portal
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
+      <!-- Enforcement -->
+      <div class="for-card amber-card">
+        <div class="for-icon amber">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </div>
+        <div class="for-tag amber">Enforcement</div>
+        <div class="for-h3">Plate lookup and violation logging in the field</div>
+        <p class="for-desc">Enforcement officers verify permits in seconds and log violations with full details — directly tied to the manager's dashboard.</p>
+        <ul class="for-list">
+          <li>Instant plate-to-permit verification</li>
+          <li>One-tap violation logging</li>
+          <li>Patrol activity tracking</li>
+          <li>Violation history per plate</li>
+          <li>Property-level access control</li>
+        </ul>
+        <a class="for-link" href="enforcer.html">
+          Enforcement Portal
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- FEATURES -->
+<section class="section features-section" id="features">
+  <div class="section-inner">
+    <div class="eyebrow">Features</div>
+    <h2 class="section-h2">The tools that actually<br>matter for parking.</h2>
+    <p class="section-sub">No feature bloat. No hardware required. Just the software that makes your operation run.</p>
+
+    <div class="feat-grid">
+      <div class="feat-cell">
+        <div class="feat-icon-wrap">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </div>
+        <div class="feat-title">Visual Lot Map Editor</div>
+        <p class="feat-desc">Drag-and-drop canvas with snap-to-grid, zoom levels, satellite photo backgrounds, and multi-stall selection.</p>
+      </div>
+      <div class="feat-cell">
+        <div class="feat-icon-wrap">
+          <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        </div>
+        <div class="feat-title">AI Layout Generation</div>
+        <p class="feat-desc">Upload a satellite photo or describe your lot — AI generates a starting layout in seconds for you to edit.</p>
+      </div>
+      <div class="feat-cell">
+        <div class="feat-icon-wrap">
+          <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+        </div>
+        <div class="feat-title">Digital Permit Issuance</div>
+        <p class="feat-desc">Issue permits instantly to residents by email or internal roster. No stickers, no printing, no mailing.</p>
+      </div>
+      <div class="feat-cell">
+        <div class="feat-icon-wrap">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="feat-title">Resident Management</div>
+        <p class="feat-desc">Full resident roster with unit numbers, stall assignments, vehicle info, permit history, and active/inactive status.</p>
+      </div>
+      <div class="feat-cell">
+        <div class="feat-icon-wrap">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div class="feat-title">Violation Logging</div>
+        <p class="feat-desc">Enforcement logs violations by plate with reason, timestamp, and property. Searchable and exportable by managers.</p>
+      </div>
+      <div class="feat-cell">
+        <div class="feat-icon-wrap">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <div class="feat-title">Dashboard & Reporting</div>
+        <p class="feat-desc">Occupancy rates, active permits, monthly revenue, and violation trends — all at a glance per property.</p>
+      </div>
+      <div class="feat-cell">
+        <div class="feat-icon-wrap">
+          <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </div>
+        <div class="feat-title">Stripe Payments</div>
+        <p class="feat-desc">Monthly, quarterly, and annual permit subscriptions. Automatic renewals and revenue tracking built in.</p>
+      </div>
+      <div class="feat-cell">
+        <div class="feat-icon-wrap">
+          <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div class="feat-title">Multi-Property Support</div>
+        <p class="feat-desc">Manage unlimited properties under one account. Each property has its own permits, map, residents, and reports.</p>
+      </div>
+      <div class="feat-cell">
+        <div class="feat-icon-wrap">
+          <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        </div>
+        <div class="feat-title">Works on Any Device</div>
+        <p class="feat-desc">Every portal is mobile-ready. Residents on their phones. Enforcement in the field. Managers at their desk.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="how" style="background:var(--bg);">
+  <div class="section-inner">
+    <div class="eyebrow">How It Works</div>
+    <h2 class="section-h2">Your team sets you up.<br>You run from there.</h2>
+    <p class="section-sub">We handle the initial setup so your operation is ready to go from day one.</p>
+
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="how-num">01</div>
+        <div class="how-icon">
+          <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div class="how-h3">Talk to our team</div>
+        <p class="how-desc">We learn about your properties, stall counts, and how your operation works. We configure your account and get everything set up the right way.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">02</div>
+        <div class="how-icon">
+          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <div class="how-h3">Your properties go live</div>
+        <p class="how-desc">Your lot maps are built, residents are loaded, and permits are issued. Your manager dashboard is live and residents get access to their portal.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">03</div>
+        <div class="how-icon">
+          <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div class="how-h3">Enforcement runs itself</div>
+        <p class="how-desc">Enforcement officers verify plates in seconds and log violations on the spot. Everything flows back to your dashboard in real time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final-section">
+  <h2 class="final-h2">Ready to replace<br>the spreadsheet?</h2>
+  <p class="final-sub">Our team handles setup. You get a platform that runs your parking operation from day one.</p>
+  <a class="btn-white" href="get-started.html">
+    Talk to Our Team
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </a>
+  <div class="final-contact">
+    <a href="tel:+18013748487">(801) 374-8487</a>
+    <a href="mailto:sales@myspotparking.com">sales@myspotparking.com</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-row">
+      <div>
+        <div class="footer-brand-name">
+          <div class="nav-mark" style="width:26px;height:26px;">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke:white;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;"><circle cx="12" cy="10" r="4"/><path d="M12 2C7.6 2 4 5.6 4 10c0 5.5 8 14 8 14s8-8.5 8-14c0-4.4-3.6-8-8-8z"/></svg>
+          </div>
+          My Spot Parking
+        </div>
+        <p class="footer-brand-desc">Digital parking permit management for property managers, residents, and enforcement teams.</p>
+      </div>
+      <div class="footer-cols">
+        <div>
+          <div class="footer-col-title">Portals</div>
+          <ul class="footer-links">
+            <li><a href="manager.html">Property Manager</a></li>
+            <li><a href="holder.html">Resident</a></li>
+            <li><a href="enforcer.html">Enforcement</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Company</div>
+          <ul class="footer-links">
+            <li><a href="get-started.html">Get Started</a></li>
+            <li><a href="get-started.html">Contact Sales</a></li>
+            <li><a href="mailto:support@myspotparking.com">Support</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Legal</div>
+          <ul class="footer-links">
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Use</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 My Spot Parking Inc. All rights reserved.</span>
+      <span>Payments secured by Stripe · Built in Utah</span>
+    </div>
+  </div>
+</footer>
+
+<!-- Sign In Modal -->
+<div class="modal-overlay" id="modal-signin">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-signin')">✕</button>
+    <div class="modal-title">Welcome back</div>
+    <p class="modal-sub">Sign in to your My Spot Parking account</p>
+    <div class="err-msg" id="signin-err"></div>
+    <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" id="si-email" type="email" placeholder="you@example.com"></div>
+    <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="si-pass" type="password" placeholder="••••••••"></div>
+    <button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:8px;" id="si-btn" onclick="handleSignIn()">Sign In</button>
+    <div class="modal-switch">Need access? <a href="get-started.html">Contact our team</a></div>
+  </div>
+</div>
+
+<!-- Portal Selector Modal -->
+<div class="modal-overlay" id="modal-portals">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-portals')">✕</button>
+    <div class="modal-title">Choose your portal</div>
+    <p class="modal-sub" style="margin-bottom:24px;">Select the portal that matches your role</p>
+    <a href="manager.html" class="portal-btn">
+      <div class="portal-btn-icon pb-blue">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      </div>
+      <div><div class="portal-btn-title">Property Manager</div><div class="portal-btn-sub">Manage properties and permits</div></div>
+    </a>
+    <a href="holder.html" class="portal-btn">
+      <div class="portal-btn-icon pb-green">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </div>
+      <div><div class="portal-btn-title">Resident</div><div class="portal-btn-sub">View permits and manage vehicles</div></div>
+    </a>
+    <a href="enforcer.html" class="portal-btn">
+      <div class="portal-btn-icon pb-amber">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </div>
+      <div><div class="portal-btn-title">Enforcement</div><div class="portal-btn-sub">Verify plates and log violations</div></div>
+    </a>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+  const d=new Date(); d.setDate(d.getDate()+1);
+  // no permit expiry element needed in new design
+})();
+
+const SUPABASE_URL='https://ajadbfojccztiauxyxos.supabase.co';
+const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYWRiZm9qY2N6dGlhdXh5eG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTU1NDcsImV4cCI6MjA5MjM3MTU0N30.dHMc-kGb0YFHnTfxnwGYfikmKZBLPzS5lfe6SyRsguU';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+let toastTimer;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3200);}
+
+async function handleSignIn(){
+  const email=document.getElementById('si-email').value.trim();
+  const pass=document.getElementById('si-pass').value;
+  const err=document.getElementById('signin-err');
+  const btn=document.getElementById('si-btn');
+  err.classList.remove('show');
+  if(!email||!pass){err.textContent='Enter your email and password.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Signing in...';
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){err.textContent=error.message;err.classList.add('show');btn.disabled=false;btn.textContent='Sign In';return;}
+  const {data:profile}=await sb.from('users').select('role').eq('id',data.user.id).single();
+  btn.disabled=false;btn.textContent='Sign In';
+  if(!profile){err.textContent='Account not found.';err.classList.add('show');return;}
+  const routes={manager:'manager.html',holder:'holder.html',enforcer:'enforcer.html',admin:'admin.html'};
+  if(routes[profile.role]) window.location.href=routes[profile.role];
+  else{err.textContent='Unknown account type.';err.classList.add('show');}
+}
+
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    const t=document.querySelector(a.getAttribute('href'));
+    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}
+  });
+});
+</script>
+</body>
+</html>
