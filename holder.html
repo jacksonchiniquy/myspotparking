@@ -29,6 +29,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .tn-sub-status{display:flex;align-items:center;gap:6px;font-size:12px;font-family:'JetBrains Mono',monospace;padding:4px 12px;border-radius:20px;}
 .tn-sub-status.active{background:rgba(0,200,122,.1);color:var(--green);border:1px solid rgba(0,200,122,.2);}
 .tn-sub-status.inactive{background:rgba(239,68,68,.08);color:var(--red);border:1px solid rgba(239,68,68,.18);}
+.tn-sub-status.past_due{background:rgba(255,170,0,.1);color:var(--amber);border:1px solid rgba(255,170,0,.25);}
+.tn-sub-status.suspended{background:rgba(239,68,68,.08);color:var(--red);border:1px solid rgba(239,68,68,.18);}
 .tn-sub-dot{width:6px;height:6px;border-radius:50%;}
 .tn-avatar{width:32px;height:32px;background:linear-gradient(135deg,var(--green),#00a063);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;}
 .tn-name{font-size:13px;color:var(--text2);}
@@ -68,6 +70,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .sub-banner{border-radius:14px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:24px;flex-wrap:wrap;}
 .sub-banner.active-sub{background:linear-gradient(135deg,rgba(0,200,122,.07),rgba(0,200,122,.02));border:1px solid rgba(0,200,122,.22);}
 .sub-banner.no-sub{background:linear-gradient(135deg,rgba(239,68,68,.05),#fff8f8);border:1px solid rgba(239,68,68,.2);}
+.sub-banner.past-due{background:linear-gradient(135deg,rgba(255,170,0,.07),#fffbf0);border:1px solid rgba(255,170,0,.25);}
+.sub-banner.suspended{background:linear-gradient(135deg,rgba(239,68,68,.05),#fff8f8);border:1px solid rgba(239,68,68,.2);}
 .sub-banner.mgr-sub{background:linear-gradient(135deg,rgba(26,111,255,.05),#f0f6ff);border:1px solid rgba(26,111,255,.18);}
 .permit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;}
 .pcard{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s;position:relative;}
@@ -86,9 +90,14 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .pcard-qr-inner{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;width:30px;}
 .pcard-qr-cell{height:9px;border-radius:1px;background:rgba(15,23,42,.5);}
 .pcard-accent{height:3px;}
+/* Vehicle cards */
 .vehicle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
 .vcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);transition:transform .2s;}
 .vcard:hover{transform:translateY(-2px);}
+.vcard.is-active{border-color:rgba(0,200,122,.4);box-shadow:var(--shadow),0 0 0 2px rgba(0,200,122,.12);}
+.vcard-active-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(0,200,122,.12);border:1px solid rgba(0,200,122,.25);color:#007a4a;padding:3px 9px;border-radius:20px;font-size:10px;font-family:'JetBrains Mono',monospace;margin-bottom:10px;}
+.vcard-active-badge::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--green);}
+/* Guest passes */
 .gcard{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:14px;padding:18px;box-shadow:var(--shadow);}
 .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
 .section-title{font-size:15px;font-weight:700;letter-spacing:-.02em;}
@@ -106,6 +115,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .btn-ghost:hover{color:var(--text);border-color:rgba(15,23,42,.25);}
 .btn-danger{background:rgba(239,68,68,.08);color:var(--red);border:1px solid rgba(239,68,68,.2);}
 .btn-danger:hover{background:rgba(239,68,68,.15);}
+.btn-amber{background:rgba(255,170,0,.1);color:#b07800;border:1px solid rgba(255,170,0,.3);}
+.btn-amber:hover{background:rgba(255,170,0,.18);}
 .btn-sm{padding:5px 12px;font-size:12px;border-radius:7px;}
 .btn-full{width:100%;}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
@@ -117,6 +128,10 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .pill-revoked::before{background:var(--red);}
 .pill-expired{background:rgba(148,163,184,.1);color:#64748b;border:1px solid rgba(148,163,184,.2);}
 .pill-expired::before{background:#94a3b8;}
+.pill-past-due{background:rgba(255,170,0,.1);color:#b07800;border:1px solid rgba(255,170,0,.25);}
+.pill-past-due::before{background:var(--amber);}
+.pill-suspended{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+.pill-suspended::before{background:var(--red);}
 .pill-mgr{background:rgba(26,111,255,.1);color:var(--blue);border:1px solid rgba(26,111,255,.2);}
 .pill-mgr::before{background:var(--blue);}
 .form-group{margin-bottom:16px;}
@@ -147,6 +162,12 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .plan-price{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1;}
 .plan-per{font-size:11px;color:var(--text3);margin-top:3px;}
 .plan-save{font-size:10px;color:var(--green);font-weight:600;margin-top:4px;min-height:14px;}
+/* Billing status card */
+.billing-status-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;box-shadow:var(--shadow);margin-bottom:24px;}
+.billing-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.billing-info{}
+.billing-label{font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:5px;}
+.billing-value{font-size:16px;font-weight:700;}
 #toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 18px;font-size:13px;z-index:9999;transform:translateY(12px);opacity:0;transition:all .3s;max-width:320px;box-shadow:0 8px 28px rgba(15,23,42,.1);}
 #toast.show{opacity:1;transform:translateY(0);}
 @media(max-width:820px){.sidebar{display:none;}.panel{padding:20px 16px 60px;}.stat-row{grid-template-columns:1fr 1fr;}.form-row{grid-template-columns:1fr;}.plan-grid{grid-template-columns:1fr;}}
@@ -271,18 +292,34 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <div class="permit-grid" id="mgr-permits-grid" style="margin-bottom:36px;"></div>
         <div class="section-head" style="margin-bottom:14px;">
           <div><div class="section-title">🚗 Self-Registered Vehicles</div><div class="section-sub">Permits you registered directly</div></div>
-          <button class="btn btn-green btn-sm" id="btn-add-veh-permits" onclick="openAddVehicle()">+ Register Vehicle</button>
+          <button class="btn btn-green btn-sm" id="btn-add-veh-permits" onclick="openAddVehicleModal()">+ Register Vehicle</button>
         </div>
         <div class="permit-grid" id="self-permits-grid"></div>
       </div>
 
-      <!-- VEHICLES -->
+      <!-- VEHICLES — multi-vehicle per permit -->
       <div id="panel-vehicles" class="panel">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:28px;">
-          <div><div class="panel-title">My Vehicles</div><div class="panel-sub" style="margin-bottom:0;">Manage all vehicles registered to your account</div></div>
-          <button class="btn btn-green" id="btn-add-veh-vehicles" onclick="openAddVehicle()">+ Add Vehicle</button>
+          <div>
+            <div class="panel-title">My Vehicles</div>
+            <div class="panel-sub" style="margin-bottom:0;">Manage all vehicles on your unit permit — only one is active at a time</div>
+          </div>
+          <button class="btn btn-green" id="btn-add-veh-vehicles" onclick="openAddVehicleModal()">+ Add Vehicle</button>
         </div>
-        <div class="vehicle-grid" id="vehicles-grid"></div>
+        <!-- Unit permit vehicles section (from vehicles table) -->
+        <div id="unit-vehicles-section" style="display:none;margin-bottom:36px;">
+          <div class="section-head" style="margin-bottom:14px;">
+            <div><div class="section-title">🏠 Unit Permit Vehicles</div><div class="section-sub">Swap the active vehicle anytime without contacting your manager</div></div>
+          </div>
+          <div class="vehicle-grid" id="unit-vehicles-grid"></div>
+        </div>
+        <!-- Legacy self-permit vehicles -->
+        <div id="self-vehicles-section">
+          <div class="section-head" style="margin-bottom:14px;">
+            <div><div class="section-title">🚗 Self-Registered Permits</div><div class="section-sub">Permits you created directly</div></div>
+          </div>
+          <div class="vehicle-grid" id="vehicles-grid"></div>
+        </div>
       </div>
 
       <!-- GUEST PASSES -->
@@ -298,6 +335,35 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
       <div id="panel-subscription" class="panel">
         <div class="panel-title">Subscription</div>
         <div class="panel-sub">Manage your My Spot Parking billing plan</div>
+
+        <!-- Billing status card (shown when has a unit permit with billing) -->
+        <div id="billing-status-card" class="billing-status-card" style="display:none;">
+          <div class="billing-row" style="margin-bottom:18px;">
+            <div>
+              <div class="billing-label">Billing Status</div>
+              <div class="billing-value" id="billing-status-val">—</div>
+            </div>
+            <span id="billing-status-pill"></span>
+          </div>
+          <div class="billing-row" style="margin-bottom:18px;">
+            <div>
+              <div class="billing-label">Plan</div>
+              <div class="billing-value" id="billing-interval-val">—</div>
+            </div>
+            <div>
+              <div class="billing-label">Next Renewal</div>
+              <div class="billing-value" id="billing-renew-val">—</div>
+            </div>
+          </div>
+          <div id="billing-warning" style="display:none;background:rgba(255,170,0,.08);border:1px solid rgba(255,170,0,.25);border-radius:9px;padding:12px 16px;font-size:13px;color:#b07800;margin-bottom:16px;"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-green" id="btn-manage-billing" onclick="manageBilling()">Manage Billing →</button>
+            <button class="btn btn-ghost btn-sm" onclick="loadBillingStatus()">↺ Refresh</button>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:12px;">Billing is managed securely through Stripe. Click "Manage Billing" to update your payment method, download invoices, or cancel your subscription.</div>
+        </div>
+
+        <!-- No subscription state -->
         <div id="sub-status-card" style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:24px;box-shadow:var(--shadow);"></div>
         <div id="sub-plan-picker" style="display:none;">
           <div class="section-title" style="margin-bottom:14px;">Choose a Plan</div>
@@ -342,25 +408,35 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
 <!-- ══ MODALS ══ -->
 
-<!-- Add / Edit Vehicle -->
+<!-- Add Vehicle (to unit permit vehicles table) -->
 <div class="modal-overlay" id="modal-add-vehicle">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-add-vehicle')">✕</button>
-    <div class="modal-title" id="av-modal-title">🚗 Register Vehicle</div>
-    <div class="modal-sub" id="av-modal-sub">Add a vehicle to get a digital parking permit</div>
+    <div class="modal-title" id="av-modal-title">🚗 Add Vehicle</div>
+    <div class="modal-sub" id="av-modal-sub">Add a vehicle to your unit parking permit</div>
     <div class="err-msg" id="av-err"></div>
     <input type="hidden" id="av-edit-id">
+    <input type="hidden" id="av-permit-id">
     <div class="form-row">
       <div class="form-group"><label class="form-label">License Plate *</label><input class="form-input" id="av-plate" type="text" placeholder="TXK-4821" style="font-family:'JetBrains Mono',monospace;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
-      <div class="form-group"><label class="form-label">State</label><input class="form-input" id="av-state" type="text" placeholder="TX" maxlength="2" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+      <div class="form-group"><label class="form-label">State</label><input class="form-input" id="av-state" type="text" placeholder="UT" maxlength="2" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
     </div>
-    <div class="form-group"><label class="form-label">Year / Make / Model *</label><input class="form-input" id="av-vehicle" type="text" placeholder="2023 Tesla Model 3"></div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="av-color" type="text" placeholder="Pearl White"></div>
-      <div class="form-group"><label class="form-label">Unit / Apt #</label><input class="form-input" id="av-unit" type="text" placeholder="A-102"></div>
+      <div class="form-group"><label class="form-label">Make *</label><input class="form-input" id="av-make" type="text" placeholder="Tesla"></div>
+      <div class="form-group"><label class="form-label">Model *</label><input class="form-input" id="av-model" type="text" placeholder="Model 3"></div>
     </div>
-    <div id="av-sub-warning" style="display:none;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:12px;">⚠️ You need an active subscription to register a vehicle. <span style="text-decoration:underline;cursor:pointer;" onclick="closeModal('modal-add-vehicle');showPanel('subscription',document.getElementById('sb-subscription'))">Subscribe first →</span></div>
-    <button class="btn btn-green btn-full" id="av-btn" onclick="saveVehicle()">Register Vehicle</button>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Year</label><input class="form-input" id="av-year" type="text" placeholder="2023" maxlength="4"></div>
+      <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="av-color" type="text" placeholder="Pearl White"></div>
+    </div>
+    <div id="av-set-active-wrap" style="margin-bottom:16px;">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+        <input type="checkbox" id="av-set-active" style="width:16px;height:16px;accent-color:var(--green);">
+        <span style="font-size:13px;color:var(--text2);">Set as active vehicle (makes this the enforced plate)</span>
+      </label>
+    </div>
+    <div id="av-sub-warning" style="display:none;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:12px;">⚠️ You need an active permit to add a vehicle. Contact your manager.</div>
+    <button class="btn btn-green btn-full" id="av-btn" onclick="saveUnitVehicle()">Add Vehicle</button>
     <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="closeModal('modal-add-vehicle')">Cancel</button>
   </div>
 </div>
@@ -391,23 +467,61 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 <script>
 const SUPABASE_URL='https://ajadbfojccztiauxyxos.supabase.co';
 const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYWRiZm9qY2N6dGlhdXh5eG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTU1NDcsImV4cCI6MjA5MjM3MTU0N30.dHMc-kGb0YFHnTfxnwGYfikmKZBLPzS5lfe6SyRsguU';
-const STRIPE_KEY='pk_test_51TOk85GdAFYH72S6df2gszF5M7QX00ahLjEPipDuRqGLKZC8kIov5zXYz7qRgkI8dQysJyYfnlKRnaRU3tGAzICE00d3Fyf3EG';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
-const stripe=Stripe(STRIPE_KEY);
 
 let cu=null;
-let mgrPermits=[];   // Permits where source='manager' (or issued by manager with holder_id)
-let selfPermits=[];  // Permits where source='self' (holder registered their own vehicle)
+let mgrPermits=[];
+let selfPermits=[];
+let unitPermits=[];   // permits from unit signup flow (billing_interval set)
+let unitVehicles=[];  // rows from vehicles table
 let guestPasses=[];
 let hasSubscription=false;
+let activeBillingPermit=null; // the unit permit with stripe billing info
 let selectedPlan={name:'monthly',amount:12};
 
-// ── AUTH ──────────────────────────────────────────────────────────────
+// ── UTILS ──────────────────────────────────────────────────────
+function g(id){return(document.getElementById(id)||{}).value?.trim()||'';}
+function today(){return new Date().toISOString().split('T')[0];}
+function daysBetween(a,b){return Math.ceil((b-a)/(1000*60*60*24));}
+
+function toast(msg,dur=3500){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+function showPanel(name,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+  const panel=document.getElementById('panel-'+name);
+  if(panel) panel.classList.add('active');
+  if(btn) btn.classList.add('active');
+  // Lazy-load billing status when switching to subscription panel
+  if(name==='subscription') loadBillingStatus();
+}
 
 function switchPanel(p){
   document.getElementById('panel-signup').style.display=p==='signup'?'block':'none';
   document.getElementById('panel-signin').style.display=p==='signin'?'block':'none';
 }
+
+function restoreFromHash(){
+  const h=window.location.hash.replace('#','');
+  const map={overview:'sb-overview',permits:'sb-permits',vehicles:'sb-vehicles',guests:'sb-guests',subscription:'sb-subscription',account:'sb-account'};
+  if(h&&map[h]) showPanel(h,document.getElementById(map[h]));
+  // Handle signup=success redirect from Stripe
+  const params=new URLSearchParams(window.location.search);
+  if(params.get('signup')==='success'){
+    toast('🎉 Payment confirmed! Your permit is now active. Check your email for login credentials.');
+    history.replaceState(null,'',window.location.pathname);
+    showPanel('subscription',document.getElementById('sb-subscription'));
+  }
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────
 
 async function handleSignUp(){
   const fname=g('su-fname'),lname=g('su-lname'),email=g('su-email'),phone=g('su-phone');
@@ -421,7 +535,6 @@ async function handleSignUp(){
   const {data,error}=await sb.auth.signUp({email,password:pass});
   if(error){err.textContent=error.message;err.classList.add('show');btn.disabled=false;btn.textContent='Create Account →';return;}
   await sb.from('users').insert({id:data.user.id,email,full_name:(fname+' '+lname).trim(),phone,role:'holder'});
-  // Auto-link any manager-issued permits waiting for this email
   await sb.from('permits').update({holder_id:data.user.id}).eq('holder_email',email).is('holder_id',null);
   toast('✅ Account created! Check your email to confirm, then sign in.');
   btn.disabled=false;btn.textContent='Create Account →';
@@ -441,7 +554,6 @@ async function handleSignIn(){
     err.textContent='This account is not a Permit Holder account.';err.classList.add('show');
     await sb.auth.signOut();btn.disabled=false;btn.textContent='Sign In →';return;
   }
-  // Link any unlinked manager-issued permits
   await sb.from('permits').update({holder_id:data.user.id}).eq('holder_email',email).is('holder_id',null);
   enterApp(profile);
 }
@@ -493,18 +605,39 @@ async function loadAll(){
 }
 
 async function loadPermits(){
+  // Load permits
   const {data}=await sb.from('permits').select('*').eq('holder_id',cu.id).order('created_at',{ascending:false});
   const all=data||[];
-  // Manager-issued = source is 'manager', OR no source but has a property_id
-  mgrPermits=all.filter(p=>p.source==='manager'||(p.source!=='self'&&p.property_id));
-  // Self-registered = source is 'self'
+  mgrPermits=all.filter(p=>p.source==='manager'||(p.source!=='self'&&p.property_id&&!p.billing_interval));
   selfPermits=all.filter(p=>p.source==='self');
-  hasSubscription=all.some(p=>p.status==='active'&&['monthly','quarterly','annual'].includes(p.plan));
+  unitPermits=all.filter(p=>p.billing_interval);
+
+  // Find billing permit (unit permit with stripe info)
+  activeBillingPermit=unitPermits.find(p=>p.stripe_subscription_id)||null;
+
+  hasSubscription=all.some(p=>p.status==='active'&&(p.billing_interval||['monthly','quarterly','annual'].includes(p.plan)));
+
+  // Load vehicles from vehicles table (for unit permits)
+  if(unitPermits.length>0){
+    const permitIds=unitPermits.map(p=>p.id);
+    const {data:vdata}=await sb.from('vehicles').select('*').in('permit_id',permitIds).order('created_at',{ascending:true});
+    unitVehicles=vdata||[];
+  } else {
+    unitVehicles=[];
+  }
 }
 
 async function loadGuests(){
   const {data}=await sb.from('guest_passes').select('*').eq('host_id',cu.id).order('created_at',{ascending:false});
   guestPasses=data||[];
+}
+
+async function loadBillingStatus(){
+  // Reload just the permit to get fresh billing status
+  if(!activeBillingPermit) return;
+  const {data}=await sb.from('permits').select('*').eq('id',activeBillingPermit.id).single();
+  if(data) activeBillingPermit=data;
+  renderSubPanel();
 }
 
 // ── RENDER ──────────────────────────────────────────────────────────────
@@ -519,57 +652,110 @@ function renderAll(){
   renderSubPanel();
 }
 
+function billingStatusLabel(status){
+  const map={
+    active:{label:'Active',cls:'pill-active',dotColor:'var(--green)'},
+    past_due:{label:'Payment Past Due',cls:'pill-past-due',dotColor:'var(--amber)'},
+    suspended:{label:'Suspended',cls:'pill-suspended',dotColor:'var(--red)'},
+  };
+  return map[status]||{label:status||'Unknown',cls:'pill-expired',dotColor:'#94a3b8'};
+}
+
 function updateNav(){
-  const el=document.getElementById('sub-nav-status'),dot=document.getElementById('sub-nav-dot'),lbl=document.getElementById('sub-nav-label');
-  if(hasSubscription){el.className='tn-sub-status active';dot.style.background='var(--green)';lbl.textContent='Subscription Active';}
-  else{el.className='tn-sub-status inactive';dot.style.background='var(--red)';lbl.textContent='No Subscription';}
+  const el=document.getElementById('sub-nav-status');
+  const dot=document.getElementById('sub-nav-dot');
+  const lbl=document.getElementById('sub-nav-label');
+  const bs=activeBillingPermit?.billing_status;
+  if(bs==='active'||hasSubscription){
+    el.className='tn-sub-status active';dot.style.background='var(--green)';lbl.textContent='Subscription Active';
+  } else if(bs==='past_due'){
+    el.className='tn-sub-status past_due';dot.style.background='var(--amber)';lbl.textContent='Payment Past Due';
+  } else if(bs==='suspended'){
+    el.className='tn-sub-status suspended';dot.style.background='var(--red)';lbl.textContent='Permit Suspended';
+  } else {
+    el.className='tn-sub-status inactive';dot.style.background='var(--red)';lbl.textContent='No Subscription';
+  }
 }
 
 function updateCounts(){
-  document.getElementById('sb-count-permits').textContent=mgrPermits.length+selfPermits.length;
-  document.getElementById('sb-count-vehicles').textContent=selfPermits.length;
+  const allP=[...mgrPermits,...selfPermits,...unitPermits];
+  document.getElementById('sb-count-permits').textContent=allP.length;
+  document.getElementById('sb-count-vehicles').textContent=unitVehicles.length+selfPermits.length;
   document.getElementById('sb-count-guests').textContent=guestPasses.length;
 }
 
 function renderOverview(){
-  const allP=[...mgrPermits,...selfPermits];
+  const allP=[...mgrPermits,...selfPermits,...unitPermits];
   const active=allP.filter(p=>p.status==='active').length;
   const expiring=allP.filter(p=>p.status==='active'&&p.end_date&&daysBetween(new Date(),new Date(p.end_date))<=30).length;
   document.getElementById('ov-active').textContent=active;
-  document.getElementById('ov-vehicles').textContent=selfPermits.length;
+  document.getElementById('ov-vehicles').textContent=unitVehicles.length+selfPermits.length;
   document.getElementById('ov-guests').textContent=guestPasses.length;
   document.getElementById('ov-expiring').textContent=expiring;
+
   const banner=document.getElementById('ov-sub-banner');
-  if(hasSubscription){
-    const plan=allP.find(p=>p.plan&&p.plan!=='none')?.plan||'active';
+  const bs=activeBillingPermit?.billing_status;
+  if(bs==='active'){
+    const interval=activeBillingPermit.billing_interval||'monthly';
+    banner.className='sub-banner active-sub';
+    banner.innerHTML=`<div><div style="font-size:15px;font-weight:700;color:var(--green);margin-bottom:3px;">✓ Subscription Active</div><div style="font-size:13px;color:var(--text2);">Plan: <strong>${interval.charAt(0).toUpperCase()+interval.slice(1)}</strong> · Auto-renews via Stripe</div></div><button class="btn btn-ghost btn-sm" onclick="showPanel('subscription',document.getElementById('sb-subscription'))">Manage →</button>`;
+  } else if(bs==='past_due'){
+    banner.className='sub-banner past-due';
+    banner.innerHTML=`<div><div style="font-size:15px;font-weight:700;color:var(--amber);margin-bottom:3px;">⚠️ Payment Past Due</div><div style="font-size:13px;color:var(--text2);">Your last payment failed — update your payment method to keep your permit active.</div></div><button class="btn btn-amber btn-sm" onclick="manageBilling()">Update Payment →</button>`;
+  } else if(bs==='suspended'){
+    banner.className='sub-banner suspended';
+    banner.innerHTML=`<div><div style="font-size:15px;font-weight:700;color:var(--red);margin-bottom:3px;">🚫 Permit Suspended</div><div style="font-size:13px;color:var(--text2);">Your parking permit has been suspended due to non-payment.</div></div><button class="btn btn-danger btn-sm" onclick="manageBilling()">Reactivate →</button>`;
+  } else if(hasSubscription){
+    const plan=[...mgrPermits,...selfPermits].find(p=>p.plan&&p.plan!=='none')?.plan||'active';
     banner.className='sub-banner active-sub';
     banner.innerHTML=`<div><div style="font-size:15px;font-weight:700;color:var(--green);margin-bottom:3px;">✓ Subscription Active</div><div style="font-size:13px;color:var(--text2);">Plan: <strong>${plan.charAt(0).toUpperCase()+plan.slice(1)}</strong> · Auto-renews via Stripe</div></div><button class="btn btn-ghost btn-sm" onclick="showPanel('subscription',document.getElementById('sb-subscription'))">Manage →</button>`;
   } else {
     banner.className='sub-banner no-sub';
     banner.innerHTML=`<div><div style="font-size:15px;font-weight:700;margin-bottom:3px;">No active subscription</div><div style="font-size:13px;color:var(--text2);">Subscribe to activate your resident permit</div></div><button class="btn btn-primary btn-sm" onclick="showPanel('subscription',document.getElementById('sb-subscription'))">Subscribe Now →</button>`;
   }
+
   const grid=document.getElementById('ov-permits-grid');
-  const activePmts=allP.filter(p=>p.status==='active').slice(0,4);
-  grid.innerHTML=activePmts.length
-    ? activePmts.map(p=>pcardHTML(p)).join('')
-    : `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🎫</div><div class="empty-title">No active permits yet</div><div class="empty-sub">Your manager will issue a permit to your email, or you can register your own vehicle below.</div><button class="btn btn-green btn-sm" onclick="showPanel('vehicles',document.getElementById('sb-vehicles'))">Add Vehicle</button></div>`;
+  const allActive=[...allP].filter(p=>p.status==='active').slice(0,4);
+  grid.innerHTML=allActive.length
+    ? allActive.map(p=>pcardHTML(p)).join('')
+    : `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🎫</div><div class="empty-title">No active permits yet</div><div class="empty-sub">Your manager will issue a permit, or sign up via an invite code to get one.</div><button class="btn btn-green btn-sm" onclick="showPanel('vehicles',document.getElementById('sb-vehicles'))">Add Vehicle</button></div>`;
 }
 
 function renderPermitsPanel(){
   const mGrid=document.getElementById('mgr-permits-grid');
   const sGrid=document.getElementById('self-permits-grid');
-  mGrid.innerHTML=mgrPermits.length
-    ? mgrPermits.map(p=>pcardHTML(p,true)).join('')
+  // Show unit permits in manager section
+  const combined=[...mgrPermits,...unitPermits];
+  mGrid.innerHTML=combined.length
+    ? combined.map(p=>pcardHTML(p,true)).join('')
     : `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏢</div><div class="empty-title">No manager-issued permits yet</div><div class="empty-sub">Your property manager hasn't issued a permit to your email yet.<br>Make sure they have <strong>${cu?.email||'your email'}</strong> on file.</div></div>`;
   sGrid.innerHTML=selfPermits.length
     ? selfPermits.map(p=>pcardHTML(p,false,true)).join('')
-    : `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚗</div><div class="empty-title">No self-registered vehicles</div><div class="empty-sub">Register your own vehicle to get a permit</div><button class="btn btn-green btn-sm" onclick="openAddVehicle()">Register Vehicle</button></div>`;
+    : `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚗</div><div class="empty-title">No self-registered vehicles</div><div class="empty-sub">Register your own vehicle to get a permit</div><button class="btn btn-green btn-sm" onclick="openAddVehicleModal()">Register Vehicle</button></div>`;
 }
 
 function renderVehiclesPanel(){
-  const grid=document.getElementById('vehicles-grid');
-  if(!selfPermits.length){grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚗</div><div class="empty-title">No vehicles registered</div><div class="empty-sub">Add your vehicle to get a digital parking permit</div><button class="btn btn-green btn-sm" onclick="openAddVehicle()">+ Add Vehicle</button></div>`;return;}
-  grid.innerHTML=selfPermits.map(p=>`
+  // Unit permit vehicles (from vehicles table)
+  const uvSection=document.getElementById('unit-vehicles-section');
+  const uvGrid=document.getElementById('unit-vehicles-grid');
+
+  if(unitVehicles.length>0||unitPermits.length>0){
+    uvSection.style.display='block';
+    if(unitVehicles.length===0){
+      uvGrid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚗</div><div class="empty-title">No vehicles added yet</div><div class="empty-sub">Add your first vehicle to your unit permit</div><button class="btn btn-green btn-sm" onclick="openAddVehicleModal()">+ Add Vehicle</button></div>`;
+    } else {
+      uvGrid.innerHTML=unitVehicles.map(v=>unitVehicleCardHTML(v)).join('');
+    }
+  } else {
+    uvSection.style.display='none';
+  }
+
+  // Legacy self-registered vehicles
+  const svGrid=document.getElementById('vehicles-grid');
+  if(!selfPermits.length){
+    svGrid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚗</div><div class="empty-title">No self-registered vehicles</div><div class="empty-sub">Register a vehicle to get a parking permit</div><button class="btn btn-green btn-sm" onclick="openAddVehicleModal()">+ Register Vehicle</button></div>`;
+  } else {
+    svGrid.innerHTML=selfPermits.map(p=>`
     <div class="vcard">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
         <div style="width:44px;height:44px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;">🚗</div>
@@ -583,10 +769,29 @@ function renderVehiclesPanel(){
         <span>Exp: <strong style="color:var(--text2)">${p.end_date||'—'}</strong></span>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost btn-sm" onclick="editVehicle('${p.id}')">✏️ Edit</button>
-        <button class="btn btn-danger btn-sm" onclick="removeVehicle('${p.id}')">Remove</button>
+        <button class="btn btn-danger btn-sm" onclick="removeSelfPermit('${p.id}')">Remove</button>
       </div>
     </div>`).join('');
+  }
+}
+
+function unitVehicleCardHTML(v){
+  const isActive=v.is_active;
+  return `<div class="vcard${isActive?' is-active':''}">
+    ${isActive?`<div class="vcard-active-badge">Active — Enforced Plate</div>`:''}
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+      <div style="width:44px;height:44px;background:${isActive?'rgba(0,200,122,.1)':'var(--surface2)'};border:1px solid ${isActive?'rgba(0,200,122,.3)':'var(--border)'};border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;">🚗</div>
+      ${isActive?`<span class="pill pill-active">active</span>`:`<span class="pill pill-expired">standby</span>`}
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;letter-spacing:.12em;margin-bottom:3px;">${v.plate}</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">${[v.year,v.make,v.model].filter(Boolean).join(' ')||'—'}</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;">${v.color||''}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${!isActive?`<button class="btn btn-green btn-sm" onclick="setActiveVehicle('${v.id}','${v.permit_id}')">Set Active</button>`:'<button class="btn btn-ghost btn-sm" style="opacity:.5;cursor:default;" disabled>✓ Active</button>'}
+      <button class="btn btn-ghost btn-sm" onclick="openEditVehicle('${v.id}')">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="removeUnitVehicle('${v.id}')">Remove</button>
+    </div>
+  </div>`;
 }
 
 function renderGuestsPanel(){
@@ -610,14 +815,50 @@ function renderGuestsPanel(){
 }
 
 function renderSubPanel(){
-  const card=document.getElementById('sub-status-card'),picker=document.getElementById('sub-plan-picker');
-  if(hasSubscription){
-    const plan=[...mgrPermits,...selfPermits].find(p=>p.plan&&p.plan!=='none')?.plan||'monthly';
-    card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;"><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--green);"></div><div style="font-size:16px;font-weight:700;color:var(--green);">Subscription Active</div></div><div style="font-size:13px;color:var(--text2);">Plan: <strong>${plan.charAt(0).toUpperCase()+plan.slice(1)}</strong> · Auto-renews · Powered by Stripe</div></div><div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm" onclick="toast('🔗 Opening Stripe billing portal...')">Manage Billing</button><button class="btn btn-danger btn-sm" onclick="cancelSub()">Cancel Plan</button></div></div>`;
+  const billingCard=document.getElementById('billing-status-card');
+  const subCard=document.getElementById('sub-status-card');
+  const picker=document.getElementById('sub-plan-picker');
+
+  if(activeBillingPermit){
+    // Show Stripe billing card
+    billingCard.style.display='block';
+    subCard.style.display='none';
     picker.style.display='none';
+
+    const bs=activeBillingPermit.billing_status||'active';
+    const {label,cls}=billingStatusLabel(bs);
+    document.getElementById('billing-status-val').textContent=label;
+    document.getElementById('billing-status-pill').innerHTML=`<span class="pill ${cls}">${label}</span>`;
+
+    const interval=activeBillingPermit.billing_interval||'monthly';
+    document.getElementById('billing-interval-val').textContent=interval.charAt(0).toUpperCase()+interval.slice(1);
+
+    const periodEnd=activeBillingPermit.current_period_end;
+    document.getElementById('billing-renew-val').textContent=periodEnd
+      ? new Date(periodEnd).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+      : '—';
+
+    const warn=document.getElementById('billing-warning');
+    if(bs==='past_due'){
+      warn.style.display='block';
+      warn.textContent='⚠️ Your last payment failed. Please update your payment method to avoid permit suspension.';
+    } else if(bs==='suspended'){
+      warn.style.display='block';
+      warn.innerHTML='🚫 Your permit is currently suspended. Reactivate your subscription to restore parking access.';
+    } else {
+      warn.style.display='none';
+    }
+  } else if(hasSubscription){
+    billingCard.style.display='none';
+    subCard.style.display='block';
+    picker.style.display='none';
+    const plan=[...mgrPermits,...selfPermits].find(p=>p.plan&&p.plan!=='none')?.plan||'monthly';
+    subCard.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;"><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--green);"></div><div style="font-size:16px;font-weight:700;color:var(--green);">Subscription Active</div></div><div style="font-size:13px;color:var(--text2);">Plan: <strong>${plan.charAt(0).toUpperCase()+plan.slice(1)}</strong> · Auto-renews · Powered by Stripe</div></div><div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm" onclick="toast('Contact your manager to manage this subscription.')">Manage Billing</button></div></div>`;
   } else {
-    card.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--red);"></div><div style="font-size:15px;font-weight:700;color:var(--red);">No Active Subscription</div></div><div style="font-size:13px;color:var(--text2);">Choose a plan below to activate your parking permit.</div>`;
+    billingCard.style.display='none';
+    subCard.style.display='block';
     picker.style.display='block';
+    subCard.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--red);"></div><div style="font-size:15px;font-weight:700;color:var(--red);">No Active Subscription</div></div><div style="font-size:13px;color:var(--text2);">Choose a plan below to activate your parking permit.</div>`;
   }
 }
 
@@ -625,194 +866,244 @@ function renderSubPanel(){
 
 function pcardHTML(p,isMgr=false,isEditable=false){
   const sc=p.status==='active'?'pill-active':p.status==='revoked'?'pill-revoked':'pill-expired';
-  const accent=p.status==='active'?'linear-gradient(90deg,var(--green),#00a063)':p.status==='revoked'?'var(--red)':'#94a3b8';
+  const bsClass=p.billing_status==='past_due'?'pill-past-due':p.billing_status==='suspended'?'pill-suspended':'';
   const sourceTag=isMgr
     ?`<span class="pill pill-mgr" style="font-size:10px;">🏢 Manager</span>`
     :`<span class="pill" style="background:rgba(0,200,122,.1);color:#007a4a;border:1px solid rgba(0,200,122,.2);font-size:10px;">Self</span>`;
   const cells=Array(9).fill(0).map(()=>`<div class="pcard-qr-cell" style="opacity:${Math.random()>.4?1:.2}"></div>`).join('');
+  // Active vehicle plate for unit permits
+  const activeVeh=p.billing_interval?unitVehicles.find(v=>v.permit_id===p.id&&v.is_active):null;
+  const displayPlate=activeVeh?activeVeh.plate:(p.plate||'NO PLATE');
+  const displayVeh=activeVeh?[activeVeh.year,activeVeh.make,activeVeh.model].filter(Boolean).join(' '):(p.vehicle||'—');
   return `<div class="pcard">
     <div class="pcard-watermark">MY SPOT PARKING</div>
     <div class="pcard-top">
       <div class="pcard-meta">
         <div>
-          <div class="pcard-source">Parking Permit</div>
-          <div class="pcard-plate">${p.plate}</div>
-          <div class="pcard-vehicle">${p.vehicle||'—'}</div>
+          <div class="pcard-source">Parking Permit${p.unit_number?' · Unit '+p.unit_number:''}</div>
+          <div class="pcard-plate">${displayPlate}</div>
+          <div class="pcard-vehicle">${displayVeh}</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
           <span class="pill ${sc}">${p.status}</span>
+          ${bsClass&&p.billing_status!=='active'?`<span class="pill ${bsClass}">${p.billing_status.replace('_',' ')}</span>`:''}
           ${sourceTag}
         </div>
       </div>
     </div>
     <div class="pcard-fields">
-      <div><div class="pf-label">Type</div><div class="pf-val">${p.permit_type||'—'}</div></div>
+      <div><div class="pf-label">Type</div><div class="pf-val">${p.permit_type||p.billing_interval||'—'}</div></div>
       <div><div class="pf-label">Zone</div><div class="pf-val">${p.zone||'—'}</div></div>
-      <div><div class="pf-label">Expires</div><div class="pf-val">${p.end_date||'—'}</div></div>
+      <div><div class="pf-label">Expires</div><div class="pf-val">${p.end_date||p.current_period_end?new Date(p.end_date||p.current_period_end).toLocaleDateString():'—'}</div></div>
     </div>
     <div class="pcard-bottom">
-      <div style="flex:1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-        ${p.status==='active'?`<button class="btn btn-ghost btn-sm" onclick="toast('🖨 Printing permit card...')">Print Card</button>`:''}
-        ${isEditable&&p.status!=='revoked'?`<button class="btn btn-ghost btn-sm" onclick="editVehicle('${p.id}')">Edit</button><button class="btn btn-danger btn-sm" onclick="removeVehicle('${p.id}')">Remove</button>`:''}
-        ${isMgr&&p.status==='revoked'?`<span style="font-size:12px;color:var(--red);">⛔ Revoked by manager</span>`:''}
-      </div>
       <div class="pcard-qr"><div class="pcard-qr-inner">${cells}</div></div>
+      ${p.billing_interval?`<button class="btn btn-ghost btn-sm" onclick="showPanel('vehicles',document.getElementById('sb-vehicles'))">Swap Vehicle →</button>`:''}
     </div>
-    <div class="pcard-accent" style="background:${accent}"></div>
+    <div class="pcard-accent" style="background:${p.status==='active'?'var(--green)':'#94a3b8'};"></div>
   </div>`;
 }
 
-// ── VEHICLE ACTIONS ──────────────────────────────────────────────────────────────
+// ── UNIT VEHICLES ──────────────────────────────────────────────────────────────
 
-function openAddVehicle(){
+function openAddVehicleModal(){
+  // Find which permit to add to (first unit permit, or null for self-registration)
+  const targetPermit=unitPermits.find(p=>p.status==='active')||unitPermits[0]||null;
   document.getElementById('av-edit-id').value='';
-  document.getElementById('av-modal-title').textContent='🚗 Register Vehicle';
-  document.getElementById('av-modal-sub').textContent='Add a vehicle to get a digital parking permit';
-  document.getElementById('av-btn').textContent='Register Vehicle';
-  ['av-plate','av-vehicle','av-color','av-state','av-unit'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('av-permit-id').value=targetPermit?.id||'';
+  document.getElementById('av-plate').value='';
+  document.getElementById('av-state').value='';
+  document.getElementById('av-make').value='';
+  document.getElementById('av-model').value='';
+  document.getElementById('av-year').value='';
+  document.getElementById('av-color').value='';
+  document.getElementById('av-set-active').checked=unitVehicles.length===0; // auto-set active if first vehicle
+  document.getElementById('av-modal-title').textContent='🚗 Add Vehicle';
+  document.getElementById('av-modal-sub').textContent=targetPermit
+    ?`Add a vehicle to Unit ${targetPermit.unit_number||''} permit`
+    :'Add a vehicle to your parking permit';
+  document.getElementById('av-btn').textContent='Add Vehicle';
   document.getElementById('av-err').classList.remove('show');
-  document.getElementById('av-sub-warning').style.display='none';
+  const warn=document.getElementById('av-sub-warning');
+  warn.style.display=(!targetPermit&&!hasSubscription)?'block':'none';
   openModal('modal-add-vehicle');
 }
 
-function editVehicle(id){
-  const p=selfPermits.find(x=>x.id===id);if(!p)return;
-  document.getElementById('av-edit-id').value=id;
+function openEditVehicle(vehicleId){
+  const v=unitVehicles.find(x=>x.id===vehicleId);
+  if(!v) return;
+  document.getElementById('av-edit-id').value=v.id;
+  document.getElementById('av-permit-id').value=v.permit_id;
+  document.getElementById('av-plate').value=v.plate||'';
+  document.getElementById('av-state').value=v.state||'';
+  document.getElementById('av-make').value=v.make||'';
+  document.getElementById('av-model').value=v.model||'';
+  document.getElementById('av-year').value=v.year||'';
+  document.getElementById('av-color').value=v.color||'';
+  document.getElementById('av-set-active').checked=v.is_active;
   document.getElementById('av-modal-title').textContent='✏️ Edit Vehicle';
-  document.getElementById('av-modal-sub').textContent='Update your vehicle details';
+  document.getElementById('av-modal-sub').textContent='Update vehicle details';
   document.getElementById('av-btn').textContent='Save Changes';
-  document.getElementById('av-plate').value=p.plate||'';
-  document.getElementById('av-vehicle').value=p.vehicle||'';
-  document.getElementById('av-color').value=p.color||'';
-  document.getElementById('av-unit').value=p.unit_number||'';
   document.getElementById('av-err').classList.remove('show');
   document.getElementById('av-sub-warning').style.display='none';
   openModal('modal-add-vehicle');
 }
 
-async function saveVehicle(){
-  const plate=g('av-plate'),vehicle=g('av-vehicle'),color=g('av-color'),unit=g('av-unit'),editId=g('av-edit-id');
-  const err=document.getElementById('av-err'),btn=document.getElementById('av-btn'),warn=document.getElementById('av-sub-warning');
-  err.classList.remove('show');warn.style.display='none';
+async function saveUnitVehicle(){
+  const editId=g('av-edit-id');
+  const permitId=g('av-permit-id');
+  const plate=g('av-plate');
+  const make=g('av-make');
+  const model=g('av-model');
+  const year=g('av-year');
+  const color=g('av-color');
+  const state=g('av-state');
+  const setActive=document.getElementById('av-set-active').checked;
+  const err=document.getElementById('av-err');
+  const btn=document.getElementById('av-btn');
+
   if(!plate){err.textContent='License plate is required.';err.classList.add('show');return;}
-  if(!editId&&!hasSubscription){warn.style.display='block';return;}
-  btn.disabled=true;btn.textContent=editId?'Saving...':'Registering...';
-  let error;
-  if(editId){
-    ({error}=await sb.from('permits').update({plate,vehicle:vehicle||plate,color,unit_number:unit}).eq('id',editId).eq('holder_id',cu.id));
-  } else {
-    ({error}=await sb.from('permits').insert({holder_id:cu.id,holder_email:cu.email,plate,vehicle:vehicle||plate,color,unit_number:unit,permit_type:'Monthly Resident',plan:selectedPlan.name,start_date:today(),end_date:futureDate(30),status:'active',source:'self'}));
+
+  btn.disabled=true;btn.textContent='Saving...';err.classList.remove('show');
+
+  try {
+    if(editId){
+      // Update existing
+      const updates={plate,make,model,year,color,state,updated_at:new Date().toISOString()};
+      if(setActive){
+        // Clear other active vehicles first
+        await sb.from('vehicles').update({is_active:false}).eq('permit_id',permitId).neq('id',editId);
+        updates.is_active=true;
+      }
+      const {error}=await sb.from('vehicles').update(updates).eq('id',editId);
+      if(error) throw error;
+      toast('✅ Vehicle updated');
+    } else {
+      // Insert new
+      if(!permitId){err.textContent='No active permit found. Contact your manager.';err.classList.add('show');btn.disabled=false;btn.textContent='Add Vehicle';return;}
+      if(setActive){
+        await sb.from('vehicles').update({is_active:false}).eq('permit_id',permitId);
+      }
+      const {error}=await sb.from('vehicles').insert({
+        permit_id:permitId,plate,make,model,year,color,state,
+        is_active:setActive,created_at:new Date().toISOString(),updated_at:new Date().toISOString()
+      });
+      if(error) throw error;
+      toast('✅ Vehicle added');
+    }
+    closeModal('modal-add-vehicle');
+    await loadPermits();
+    renderAll();
+  } catch(e){
+    err.textContent=e.message||'Error saving vehicle.';err.classList.add('show');
   }
-  btn.disabled=false;btn.textContent=editId?'Save Changes':'Register Vehicle';
-  if(error){err.textContent=error.message;err.classList.add('show');return;}
-  closeModal('modal-add-vehicle');
-  await loadAll();
-  toast(editId?'✅ Vehicle updated!':'✅ Vehicle registered!');
+  btn.disabled=false;btn.textContent=editId?'Save Changes':'Add Vehicle';
 }
 
-async function removeVehicle(id){
-  if(!confirm('Remove this vehicle and its permit?'))return;
-  await sb.from('permits').delete().eq('id',id).eq('holder_id',cu.id);
-  await loadAll();
+async function setActiveVehicle(vehicleId,permitId){
+  // Clear is_active on all vehicles for this permit, then set this one
+  const {error:e1}=await sb.from('vehicles').update({is_active:false}).eq('permit_id',permitId);
+  if(e1){toast('❌ Error: '+e1.message);return;}
+  const {error:e2}=await sb.from('vehicles').update({is_active:true,updated_at:new Date().toISOString()}).eq('id',vehicleId);
+  if(e2){toast('❌ Error: '+e2.message);return;}
+  toast('✅ Active vehicle updated — this plate is now enforced');
+  await loadPermits();
+  renderAll();
+}
+
+async function removeUnitVehicle(vehicleId){
+  const v=unitVehicles.find(x=>x.id===vehicleId);
+  if(!v) return;
+  if(v.is_active&&unitVehicles.filter(x=>x.permit_id===v.permit_id).length>1){
+    if(!confirm('This is your active vehicle. Removing it means no vehicle is enforced. Continue?')) return;
+  } else if(!confirm('Remove this vehicle from your permit?')) return;
+  const {error}=await sb.from('vehicles').delete().eq('id',vehicleId);
+  if(error){toast('❌ Error: '+error.message);return;}
   toast('🗑 Vehicle removed');
+  await loadPermits();
+  renderAll();
 }
 
-// ── GUEST PASSES ──────────────────────────────────────────────────────────────
-
-async function addGuestPass(){
-  const name=g('gp-name'),plate=g('gp-plate'),date=g('gp-date'),notes=g('gp-notes');
-  const dur=document.getElementById('gp-duration').value;
-  const err=document.getElementById('gp-err'),btn=document.getElementById('gp-btn');
-  err.classList.remove('show');
-  if(!name||!plate){err.textContent='Guest name and plate are required.';err.classList.add('show');return;}
-  btn.disabled=true;btn.textContent='Issuing...';
-  const {error}=await sb.from('guest_passes').insert({host_id:cu.id,guest_name:name,guest_plate:plate,duration:dur,visit_date:date||today(),notes,status:'active'});
-  btn.disabled=false;btn.textContent='Issue Guest Pass';
-  if(error){err.textContent=error.message;err.classList.add('show');return;}
-  closeModal('modal-guest-pass');
-  ['gp-name','gp-plate','gp-notes'].forEach(id=>document.getElementById(id).value='');
-  await loadAll();
-  toast('🎟 Guest pass issued for '+plate);
+async function removeSelfPermit(id){
+  if(!confirm('Remove this vehicle and its permit?')) return;
+  await sb.from('permits').delete().eq('id',id);
+  toast('🗑 Vehicle removed');
+  await loadPermits();
+  renderAll();
 }
 
-async function removeGuest(id){
-  if(!confirm('Cancel this guest pass?'))return;
-  await sb.from('guest_passes').delete().eq('id',id).eq('host_id',cu.id);
-  await loadAll();
-  toast('🗑 Guest pass cancelled');
-}
+// ── BILLING / STRIPE ──────────────────────────────────────────────────────────────
 
-// ── SUBSCRIPTION ──────────────────────────────────────────────────────────────
+async function manageBilling(){
+  const customerId=activeBillingPermit?.stripe_customer_id;
+  if(!customerId){toast('⚠️ No billing info found. Contact your manager.');return;}
+  const btn=document.getElementById('btn-manage-billing');
+  if(btn){btn.disabled=true;btn.textContent='Opening...';}
+  try{
+    const res=await fetch('/.netlify/functions/billing-portal',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({customerId}),
+    });
+    const data=await res.json();
+    if(data.url) window.location.href=data.url;
+    else toast('❌ Could not open billing portal: '+(data.error||'Unknown error'));
+  }catch(e){
+    toast('❌ Error: '+e.message);
+  }
+  if(btn){btn.disabled=false;btn.textContent='Manage Billing →';}
+}
 
 function selectPlan(el,name,amount){
   document.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected');selectedPlan={name,amount};
+  el.classList.add('selected');
+  selectedPlan={name,amount};
   document.getElementById('sub-pay-amount').textContent=amount;
 }
 
 async function processPayment(){
-  const btn=document.getElementById('sub-pay-btn');
-  btn.disabled=true;btn.textContent='Processing...';
-  // Production: POST to backend → Stripe Checkout Session → redirect to session.url
-  await sleep(1600);
-  hasSubscription=true;renderAll();
-  btn.disabled=false;
-  toast('🎉 Subscription activated — '+selectedPlan.name+' plan!');
+  toast('ℹ️ To subscribe, use your invite code at the signup page.');
 }
 
-async function cancelSub(){
-  if(!confirm('Cancel your subscription? Permits remain active until expiry.'))return;
-  hasSubscription=false;renderAll();
-  toast('Subscription cancelled. Permits stay active until their end date.');
+// ── GUESTS ──────────────────────────────────────────────────────────────
+
+async function addGuestPass(){
+  const name=g('gp-name'),plate=g('gp-plate'),date=g('gp-date'),dur=g('gp-duration'),notes=g('gp-notes');
+  const err=document.getElementById('gp-err'),btn=document.getElementById('gp-btn');
+  if(!name||!plate||!date){err.textContent='Name, plate and date are required.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Issuing...';
+  const {error}=await sb.from('guest_passes').insert({host_id:cu.id,guest_name:name,guest_plate:plate,visit_date:date,duration:dur,notes,status:'active'});
+  if(error){err.textContent=error.message;err.classList.add('show');btn.disabled=false;btn.textContent='Issue Guest Pass';return;}
+  closeModal('modal-guest-pass');
+  toast('✅ Guest pass issued');
+  await loadGuests();
+  renderGuestsPanel();
+  updateCounts();
+  btn.disabled=false;btn.textContent='Issue Guest Pass';
+}
+
+async function removeGuest(id){
+  if(!confirm('Cancel this guest pass?')) return;
+  await sb.from('guest_passes').delete().eq('id',id);
+  toast('🗑 Guest pass cancelled');
+  await loadGuests();
+  renderGuestsPanel();
+  updateCounts();
 }
 
 // ── ACCOUNT ──────────────────────────────────────────────────────────────
 
 async function saveAccount(){
+  const fname=g('acc-fname'),lname=g('acc-lname'),phone=g('acc-phone'),unit=g('acc-unit');
   const btn=document.getElementById('acc-save-btn');
   btn.disabled=true;btn.textContent='Saving...';
-  const full_name=(g('acc-fname')+' '+g('acc-lname')).trim();
-  const phone=g('acc-phone');
-  const {error}=await sb.from('users').update({full_name,phone}).eq('id',cu.id);
+  const {error}=await sb.from('users').update({full_name:(fname+' '+lname).trim(),phone,unit_number:unit}).eq('id',cu.id);
   btn.disabled=false;btn.textContent='Save Changes';
-  if(error){toast('Error: '+error.message);return;}
-  cu.full_name=full_name;cu.phone=phone;
-  document.getElementById('sb-name').textContent=full_name||'Permit Holder';
-  document.getElementById('tn-name').textContent=full_name||cu.email;
-  toast('✅ Account updated!');
+  if(error) toast('❌ Error: '+error.message);
+  else toast('✅ Settings saved');
 }
 
-// ── NAV ──────────────────────────────────────────────────────────────
-
-const PANELS=['overview','permits','vehicles','guests','subscription','account'];
-function showPanel(name,sbEl){
-  PANELS.forEach(p=>document.getElementById('panel-'+p)?.classList.remove('active'));
-  document.getElementById('panel-'+name)?.classList.add('active');
-  document.querySelectorAll('.sb-item').forEach(el=>el.classList.remove('active'));
-  if(sbEl)sbEl.classList.add('active');
-  history.replaceState(null,'','#'+name);
-}
-
-function restoreFromHash(){
-  const hash=window.location.hash.replace('#','');
-  if(!hash) return;
-  const sbEl=document.getElementById('sb-'+hash);
-  if(sbEl) showPanel(hash,sbEl);
-}
-
-// ── HELPERS ──────────────────────────────────────────────────────────────
-
-function openModal(id){document.getElementById(id).classList.add('open');}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
-document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
-let toastTimer;
-function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3200);}
-function g(id){return(document.getElementById(id)?.value||'').trim();}
-function today(){return new Date().toISOString().split('T')[0];}
-function futureDate(d){const dt=new Date();dt.setDate(dt.getDate()+d);return dt.toISOString().split('T')[0];}
-function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
-function daysBetween(a,b){return Math.round((b-a)/(1000*60*60*24));}
-
+// ── BOOT ──────────────────────────────────────────────────────────────
 checkExistingSession();
 </script>
 </body>
