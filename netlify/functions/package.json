@@ -1,0 +1,9 @@
+{
+  "name": "msp-functions",
+  "version": "1.0.0",
+  "dependencies": {
+    "stripe": "^14.0.0",
+    "pdf-lib": "^1.17.1",
+    "@aws-sdk/client-ses": "^3.0.0"
+  }
+}
