@@ -19,17 +19,19 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;background:rgba(
 h1{font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-.04em;margin-bottom:12px;text-align:center;line-height:1.1;}
 h1 em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;color:var(--blue2);}
 .sub{font-size:16px;color:var(--text2);margin-bottom:52px;text-align:center;max-width:480px;line-height:1.6;}
-.portal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:860px;width:100%;}
+.portal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:1120px;width:100%;}
 .portal-card{background:#fff;border:1px solid var(--border);border-radius:20px;padding:36px 28px;text-align:center;text-decoration:none;color:var(--text);transition:all .25s;position:relative;overflow:hidden;box-shadow:0 2px 12px rgba(15,23,42,0.06);}
 .portal-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;}
 .portal-card.manager::before{background:linear-gradient(90deg,var(--blue),var(--blue2));}
 .portal-card.holder::before{background:linear-gradient(90deg,var(--green),#00a063);}
 .portal-card.enforcer::before{background:linear-gradient(90deg,var(--amber),#e09600);}
+.portal-card.unit::before{background:linear-gradient(90deg,#7c3aed,#a855f7);}
 .portal-card:hover{transform:translateY(-6px);box-shadow:0 20px 48px rgba(0,0,0,0.10);}
 .portal-icon{width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;}
 .portal-card.manager .portal-icon{background:rgba(26,111,255,.1);border:1px solid rgba(26,111,255,.2);}
 .portal-card.holder .portal-icon{background:rgba(0,200,122,.1);border:1px solid rgba(0,200,122,.2);}
 .portal-card.enforcer .portal-icon{background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.2);}
+.portal-card.unit .portal-icon{background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);}
 .portal-name{font-size:18px;font-weight:700;letter-spacing:-.03em;margin-bottom:8px;}
 .portal-desc{font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:24px;}
 .portal-btn{display:inline-flex;align-items:center;gap:7px;padding:10px 22px;border-radius:9px;font-size:13.5px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;border:none;cursor:pointer;transition:all .2s;text-decoration:none;}
@@ -39,10 +41,13 @@ h1 em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;col
 .portal-card.holder .portal-btn:hover{background:#00b06c;}
 .portal-card.enforcer .portal-btn{background:var(--amber);color:#000;box-shadow:0 4px 14px rgba(255,170,0,.3);}
 .portal-card.enforcer .portal-btn:hover{background:#e09600;}
+.portal-card.unit .portal-btn{background:#7c3aed;color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35);}
+.portal-card.unit .portal-btn:hover{background:#6d28d9;}
 .back-link{margin-top:36px;font-size:13px;color:var(--text3);}
 .back-link a{color:var(--blue);text-decoration:none;}
 footer{padding:24px 48px;text-align:center;font-size:12px;color:var(--text3);border-top:1px solid var(--border);background:rgba(255,255,255,.6);}
-@media(max-width:700px){.portal-grid{grid-template-columns:1fr;}.main{padding:80px 20px 40px;}}
+@media(max-width:900px){.portal-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:500px){.portal-grid{grid-template-columns:1fr;}.main{padding:80px 20px 40px;}}
 </style>
 </head>
 <body>
@@ -74,6 +79,12 @@ footer{padding:24px 48px;text-align:center;font-size:12px;color:var(--text3);bor
       <div class="portal-name">Enforcement</div>
       <div class="portal-desc">Verify permits in real time, log violations, and manage patrol sessions.</div>
       <span class="portal-btn">Sign In →</span>
+    </a>
+    <a class="portal-card unit" href="unit.html">
+      <div class="portal-icon">🏠</div>
+      <div class="portal-name">Unit Tenant</div>
+      <div class="portal-desc">View your assigned parking slot, register your vehicle, and swap plates without a manager login.</div>
+      <span class="portal-btn">Enter Unit →</span>
     </a>
   </div>
   <div class="back-link">Don't have an account? <a href="get-started.html">Get started here</a></div>
