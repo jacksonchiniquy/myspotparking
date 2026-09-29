@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parking Permit Signup — My Spot Parking</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f7ff;--surface:#ffffff;--blue:#1a6fff;--blue2:#4d8fff;--text:#0f172a;--text2:#475569;--text3:#94a3b8;--border:rgba(15,23,42,0.10);--radius:14px;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sans-serif;min-height:100vh;display:flex;flex-direction:column;}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;background:rgba(255,255,255,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 32px;gap:12px;}
+.logo-mark{width:32px;height:32px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;}
+.logo-text{font-size:17px;font-weight:700;letter-spacing:-.03em;}
+main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:96px 24px 60px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;width:100%;max-width:520px;box-shadow:0 4px 24px rgba(15,23,42,0.07);}
+.step{display:none;}
+.step.active{display:block;}
+
+/* Step indicators */
+.steps-row{display:flex;align-items:center;gap:0;margin-bottom:32px;}
+.step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;flex-shrink:0;transition:all .2s;}
+.step-dot.done{background:var(--blue);color:#fff;}
+.step-dot.active{background:var(--blue);color:#fff;box-shadow:0 0 0 4px rgba(26,111,255,.2);}
+.step-dot.pending{background:#e2e8f0;color:var(--text3);}
+.step-line{flex:1;height:2px;background:#e2e8f0;}
+.step-line.done{background:var(--blue);}
+
+.page-title{font-size:22px;font-weight:800;letter-spacing:-.03em;margin-bottom:6px;}
+.page-sub{font-size:13px;color:var(--text2);margin-bottom:28px;line-height:1.5;}
+
+/* Property info banner */
+.prop-banner{background:#f0f6ff;border:1px solid rgba(26,111,255,.15);border-radius:12px;padding:16px 20px;margin-bottom:24px;display:none;}
+.prop-banner.show{display:flex;align-items:center;gap:14px;}
+.prop-icon{width:40px;height:40px;background:var(--blue);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.prop-name{font-size:15px;font-weight:700;}
+.prop-unit{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+
+/* Form */
+.form-group{margin-bottom:18px;}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;letter-spacing:.03em;text-transform:uppercase;}
+.form-input,.form-select{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:'Bricolage Grotesque',sans-serif;color:var(--text);background:var(--surface);outline:none;transition:border-color .2s;}
+.form-input:focus,.form-select:focus{border-color:var(--blue);}
+.form-input.error{border-color:#ef4444;}
+.form-hint{font-size:11px;color:var(--text3);margin-top:5px;}
+
+/* Billing options */
+.billing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
+.billing-opt{border:1.5px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center;cursor:pointer;transition:all .2s;position:relative;}
+.billing-opt:hover{border-color:var(--blue);}
+.billing-opt.selected{border-color:var(--blue);background:#f0f6ff;}
+.billing-opt input{position:absolute;opacity:0;pointer-events:none;}
+.billing-interval{font-size:13px;font-weight:700;}
+.billing-price{font-size:18px;font-weight:800;color:var(--blue);margin:4px 0;}
+.billing-save{font-size:10px;color:#00a063;font-weight:600;}
+.billing-note{font-size:10px;color:var(--text3);}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;border:none;cursor:pointer;transition:all .2s;text-decoration:none;}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 4px 14px rgba(26,111,255,.3);width:100%;}
+.btn-primary:hover{background:#0d5de0;}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--text2);border:1.5px solid var(--border);}
+.btn-ghost:hover{border-color:var(--blue);color:var(--blue);}
+
+/* Invite code input */
+.code-wrap{display:flex;gap:10px;}
+.code-wrap .form-input{font-family:'JetBrains Mono',monospace;font-size:18px;letter-spacing:2px;text-transform:uppercase;text-align:center;}
+.code-wrap .btn{flex-shrink:0;padding:11px 20px;}
+
+/* Success */
+.success-icon{width:64px;height:64px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;}
+.success-title{font-size:20px;font-weight:800;text-align:center;margin-bottom:8px;}
+.success-sub{font-size:13px;color:var(--text2);text-align:center;line-height:1.6;margin-bottom:24px;}
+
+/* Error banner */
+.err-banner{background:#fef2f2;border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:12px 16px;font-size:13px;color:#b91c1c;margin-bottom:18px;display:none;}
+.err-banner.show{display:block;}
+
+footer{padding:20px;text-align:center;font-size:11px;color:var(--text3);}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo-mark">M</div>
+  <span class="logo-text">My Spot Parking</span>
+</nav>
+
+<main>
+  <div class="card">
+
+    <!-- Step indicators -->
+    <div class="steps-row" id="steps-row">
+      <div class="step-dot active" id="dot-1">1</div>
+      <div class="step-line" id="line-1"></div>
+      <div class="step-dot pending" id="dot-2">2</div>
+      <div class="step-line" id="line-2"></div>
+      <div class="step-dot pending" id="dot-3">3</div>
+    </div>
+
+    <!-- STEP 1: Invite code -->
+    <div class="step active" id="step-1">
+      <div class="page-title">Enter your invite code</div>
+      <div class="page-sub">Your property manager sent you a unique invite code. Enter it below to get started.</div>
+      <div class="err-banner" id="err-1"></div>
+      <div class="form-group">
+        <label class="form-label">Invite Code</label>
+        <div class="code-wrap">
+          <input class="form-input" id="invite-input" type="text" placeholder="XXXX-XXXX" maxlength="9" oninput="formatInviteCode(this)">
+          <button class="btn btn-primary" style="width:auto;" onclick="lookupInvite()">Continue →</button>
+        </div>
+        <div class="form-hint">Format: XXXX-XXXX (from your welcome flyer or email)</div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Your info + billing -->
+    <div class="step" id="step-2">
+      <div class="prop-banner show" id="prop-banner">
+        <div class="prop-icon">🏢</div>
+        <div>
+          <div class="prop-name" id="banner-prop-name">—</div>
+          <div class="prop-unit" id="banner-unit">Unit —</div>
+        </div>
+      </div>
+      <div class="page-title">Your information</div>
+      <div class="page-sub">Fill in your details and choose your billing cycle.</div>
+      <div class="err-banner" id="err-2"></div>
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input class="form-input" id="tenant-name" type="text" placeholder="Jane Smith">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address *</label>
+        <input class="form-input" id="tenant-email" type="email" placeholder="you@example.com">
+        <div class="form-hint">Your login credentials will be sent here</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Choose Billing Cycle</label>
+        <div class="billing-grid" id="billing-grid">
+          <!-- Populated by JS from property rate config -->
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-to-pay" onclick="goToPayment()">Continue to Payment →</button>
+    </div>
+
+    <!-- STEP 3: Success (redirected back from Stripe) -->
+    <div class="step" id="step-3">
+      <div class="success-icon">✅</div>
+      <div class="success-title">You're all set!</div>
+      <div class="success-sub">
+        Your payment was successful and your parking permit is now active.<br><br>
+        <strong>Check your email</strong> — we sent your login credentials to <span id="success-email" style="color:var(--blue);font-weight:600;"></span>
+      </div>
+      <a class="btn btn-primary" href="holder.html">Log In to Your Portal →</a>
+    </div>
+
+  </div>
+</main>
+
+<footer>© 2026 My Spot Parking Inc. · Payments secured by Stripe</footer>
+
+<script>
+const SUPABASE_URL = 'https://ajadbfojccztiauxyxos.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYWRiZm9qY2N6dGlhdXh5eG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTU1NDcsImV4cCI6MjA5MjM3MTU0N30.dHMc-kGb0YFHnTfxnwGYfikmKZBLPzS5lfe6SyRsguU';
+
+let _unit = null;
+let _property = null;
+let _selectedBilling = 'monthly';
+
+// ── URL params ───────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+const inviteParam = params.get('invite');
+const signupSuccess = params.get('signup') === 'success';
+const cancelled = params.get('cancelled') === 'true';
+
+if (signupSuccess) {
+  goToStep(3);
+  const stored = sessionStorage.getItem('msp_signup_email');
+  if (stored) document.getElementById('success-email').textContent = stored;
+} else if (inviteParam) {
+  document.getElementById('invite-input').value = inviteParam.toUpperCase();
+  lookupInvite();
+} else if (cancelled) {
+  showErr('err-1', 'Signup was cancelled. You can try again below.');
+}
+
+// ── Step navigation ──────────────────────────────────────────
+function goToStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+
+  // Update dots
+  for (let i = 1; i <= 3; i++) {
+    const dot = document.getElementById('dot-' + i);
+    if (i < n) { dot.className = 'step-dot done'; dot.textContent = '✓'; }
+    else if (i === n) { dot.className = 'step-dot active'; dot.textContent = i; }
+    else { dot.className = 'step-dot pending'; dot.textContent = i; }
+  }
+  for (let i = 1; i <= 2; i++) {
+    document.getElementById('line-' + i).className = 'step-line' + (i < n ? ' done' : '');
+  }
+
+  if (n === 3) document.getElementById('steps-row').style.display = 'none';
+}
+
+// ── Invite code formatting ───────────────────────────────────
+function formatInviteCode(input) {
+  let v = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (v.length > 4) v = v.slice(0, 4) + '-' + v.slice(4, 8);
+  input.value = v;
+}
+
+// ── Step 1: Look up invite code ──────────────────────────────
+async function lookupInvite() {
+  const code = document.getElementById('invite-input').value.trim().toUpperCase();
+  if (code.length < 9) { showErr('err-1', 'Please enter a complete invite code (XXXX-XXXX).'); return; }
+
+  hideErr('err-1');
+  const btn = document.querySelector('#step-1 .btn-primary');
+  btn.disabled = true; btn.textContent = 'Looking up…';
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/property_units?invite_code=eq.${encodeURIComponent(code)}&select=*,properties(*)`, {
+      headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` },
+    });
+    const rows = await res.json();
+
+    if (!rows?.length) {
+      showErr('err-1', 'Invite code not found. Check for typos or contact your property manager.');
+      btn.disabled = false; btn.textContent = 'Continue →';
+      return;
+    }
+
+    const unit = rows[0];
+    if (unit.invite_used) {
+      showErr('err-1', 'This invite code has already been used. Contact your property manager if you need a new one.');
+      btn.disabled = false; btn.textContent = 'Continue →';
+      return;
+    }
+
+    _unit = unit;
+    _property = unit.properties;
+
+    // Populate step 2
+    document.getElementById('banner-prop-name').textContent = _property?.name || 'Your Property';
+    document.getElementById('banner-unit').textContent = `Unit ${unit.unit_number}${unit.slot_label ? ' · ' + unit.slot_label : ''}`;
+
+    // Build billing options from property rate or defaults
+    buildBillingOptions(_property);
+
+    goToStep(2);
+
+  } catch (err) {
+    showErr('err-1', 'Error looking up invite code. Please try again.');
+    console.error(err);
+  }
+  btn.disabled = false; btn.textContent = 'Continue →';
+}
+
+// ── Billing options ──────────────────────────────────────────
+function buildBillingOptions(property) {
+  // Use property's configured rates or defaults
+  const monthly = property?.monthly_rate || 5000;   // cents
+  const quarterly = property?.quarterly_rate || (monthly * 3 * 0.95);
+  const yearly = property?.yearly_rate || (monthly * 12 * 0.85);
+
+  const opts = [
+    { id: 'monthly', label: 'Monthly', price: monthly, save: '', note: 'billed monthly' },
+    { id: 'quarterly', label: 'Quarterly', price: quarterly, save: 'Save 5%', note: 'billed every 3 mo' },
+    { id: 'yearly', label: 'Yearly', price: yearly, save: 'Save 15%', note: 'billed annually' },
+  ];
+
+  const grid = document.getElementById('billing-grid');
+  grid.innerHTML = opts.map(o => `
+    <label class="billing-opt${o.id === _selectedBilling ? ' selected' : ''}" onclick="selectBilling('${o.id}')">
+      <input type="radio" name="billing" value="${o.id}" ${o.id === _selectedBilling ? 'checked' : ''}>
+      <div class="billing-interval">${o.label}</div>
+      <div class="billing-price">$${(o.price / 100).toFixed(0)}</div>
+      ${o.save ? `<div class="billing-save">${o.save}</div>` : '<div style="height:14px;"></div>'}
+      <div class="billing-note">${o.note}</div>
+    </label>
+  `).join('');
+}
+
+function selectBilling(id) {
+  _selectedBilling = id;
+  document.querySelectorAll('.billing-opt').forEach(el => el.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+}
+
+// ── Step 2 → Payment ─────────────────────────────────────────
+async function goToPayment() {
+  const name = document.getElementById('tenant-name').value.trim();
+  const email = document.getElementById('tenant-email').value.trim();
+
+  if (!name) { showErr('err-2', 'Please enter your full name.'); return; }
+  if (!email || !email.includes('@')) { showErr('err-2', 'Please enter a valid email address.'); return; }
+  hideErr('err-2');
+
+  const btn = document.getElementById('btn-to-pay');
+  btn.disabled = true; btn.textContent = 'Redirecting to payment…';
+
+  // Get amount for selected billing
+  const property = _property || {};
+  const monthly = property.monthly_rate || 5000;
+  const quarterly = property.quarterly_rate || Math.round(monthly * 3 * 0.95);
+  const yearly = property.yearly_rate || Math.round(monthly * 12 * 0.85);
+  const amounts = { monthly, quarterly, yearly };
+  const amount = amounts[_selectedBilling];
+
+  try {
+    sessionStorage.setItem('msp_signup_email', email);
+
+    const res = await fetch('/.netlify/functions/create-permit-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        inviteCode: _unit.invite_code,
+        propertyId: _unit.property_id,
+        propertyName: _property?.name || 'Your Property',
+        unitNumber: _unit.unit_number,
+        tenantName: name,
+        tenantEmail: email,
+        billingInterval: _selectedBilling,
+        amount,
+      }),
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      showErr('err-2', data.error || 'Failed to start checkout. Please try again.');
+      btn.disabled = false; btn.textContent = 'Continue to Payment →';
+    }
+  } catch (err) {
+    showErr('err-2', 'Network error. Please try again.');
+    btn.disabled = false; btn.textContent = 'Continue to Payment →';
+    console.error(err);
+  }
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function hideErr(id) {
+  document.getElementById(id).classList.remove('show');
+}
+</script>
+</body>
+</html>
