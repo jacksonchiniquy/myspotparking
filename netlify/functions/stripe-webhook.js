@@ -138,6 +138,7 @@ async function handleCheckoutCompleted(session) {
     end_date: expiresAt,
     source: 'unit-self',
     plan: 'monthly',
+    plate: '',
   });
   if (!Array.isArray(permitResult)) {
     console.error('Permit insert failed:', JSON.stringify(permitResult));
