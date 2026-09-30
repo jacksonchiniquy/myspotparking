@@ -9,10 +9,9 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { send } = require('./send-email');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY; // service role key for server-side writes
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const SITE = process.env.SITE_URL || 'https://myspotparking.com';
 
-// ── Supabase helpers ─────────────────────────────────────────
 function sbHeaders() {
   return {
     'Content-Type': 'application/json',
@@ -47,7 +46,6 @@ async function sbUpdate(table, data, filters) {
   return res.json();
 }
 
-// ── Password generator ───────────────────────────────────────
 function generatePassword(length = 10) {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
   let pass = '';
@@ -57,7 +55,6 @@ function generatePassword(length = 10) {
   return pass;
 }
 
-// ── Stripe Customer Portal URL ───────────────────────────────
 async function getBillingPortalUrl(customerId) {
   try {
     const session = await stripe.billingPortal.sessions.create({
@@ -69,8 +66,6 @@ async function getBillingPortalUrl(customerId) {
     return `${SITE}/holder.html`;
   }
 }
-
-// ── Event handlers ───────────────────────────────────────────
 
 async function handleCheckoutCompleted(session) {
   const meta = session.metadata || {};
@@ -94,8 +89,7 @@ async function handleCheckoutCompleted(session) {
   // 2. Generate password
   const password = generatePassword();
 
-  // 3. Create or find Supabase auth user
-  // We use the admin API to create the user with a known password
+  // 3. Create Supabase auth user
   const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
     method: 'POST',
     headers: {
@@ -121,15 +115,15 @@ async function handleCheckoutCompleted(session) {
       name: tenant_name,
       role: 'holder',
       property_id,
-    }).catch(() => {}); // ignore if already exists
+    }).catch(() => {});
   }
 
   // 5. Create permit
   const expiresAt = session.subscription
-    ? null // subscription — no fixed expiry
+    ? null
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const permitResult = await sbInsert('permits', {
+  const permitResult = await sbInsert('permits', {
     property_id,
     holder_id: userId || null,
     holder_email: tenant_email,
@@ -188,11 +182,9 @@ async function handleCheckoutCompleted(session) {
 }
 
 async function handleInvoicePaid(invoice) {
-  const customerId = invoice.customer;
   const subscriptionId = invoice.subscription;
   if (!subscriptionId) return;
 
-  // Keep permit active + update period end
   const sub = await stripe.subscriptions.retrieve(subscriptionId);
   await sbUpdate(
     'permits',
@@ -211,10 +203,8 @@ async function handlePaymentFailed(invoice) {
   const customerId = invoice.customer;
   if (!subscriptionId) return;
 
-  // Mark permit past_due
   await sbUpdate('permits', { billing_status: 'past_due' }, `stripe_subscription_id=eq.${subscriptionId}`);
 
-  // Get permit + tenant info
   const permits = await sbSelect('permits', `stripe_subscription_id=eq.${subscriptionId}&select=*`);
   const permit = permits?.[0];
   if (!permit) return;
@@ -223,29 +213,27 @@ async function handlePaymentFailed(invoice) {
   const propertyName = property?.name || 'your property';
   const portalUrl = await getBillingPortalUrl(customerId);
 
-  // Email tenant
-  if (permit.email) {
+  if (permit.holder_email) {
     await send({
       type: 'payment_failed',
-      to: permit.email,
+      to: permit.holder_email,
       data: {
-        name: permit.name || 'Resident',
-        email: permit.email,
+        name: permit.holder_name || 'Resident',
+        email: permit.holder_email,
         propertyName,
         portalUrl,
       },
     });
   }
 
-  // Alert manager
   if (property?.manager_email) {
     await send({
       type: 'manager_alert',
       to: property.manager_email,
       data: {
         eventType: 'payment_failed',
-        tenantName: permit.name || permit.email,
-        tenantEmail: permit.email,
+        tenantName: permit.holder_name || permit.holder_email,
+        tenantEmail: permit.holder_email,
         propertyName,
         unitNumber: permit.unit_number || '—',
       },
@@ -256,7 +244,6 @@ async function handlePaymentFailed(invoice) {
 async function handleSubscriptionDeleted(subscription) {
   const subscriptionId = subscription.id;
 
-  // Suspend permit
   await sbUpdate('permits', { billing_status: 'suspended', status: 'revoked' }, `stripe_subscription_id=eq.${subscriptionId}`);
 
   const permits = await sbSelect('permits', `stripe_subscription_id=eq.${subscriptionId}&select=*`);
@@ -266,28 +253,26 @@ async function handleSubscriptionDeleted(subscription) {
   const [property] = await sbSelect('properties', `id=eq.${permit.property_id}&select=name,manager_email`);
   const propertyName = property?.name || 'your property';
 
-  // Email tenant
-  if (permit.email) {
+  if (permit.holder_email) {
     await send({
       type: 'suspended',
-      to: permit.email,
+      to: permit.holder_email,
       data: {
-        name: permit.name || 'Resident',
+        name: permit.holder_name || 'Resident',
         propertyName,
         unitNumber: permit.unit_number || '—',
       },
     });
   }
 
-  // Alert manager
   if (property?.manager_email) {
     await send({
       type: 'manager_alert',
       to: property.manager_email,
       data: {
         eventType: 'permit_suspended',
-        tenantName: permit.name || permit.email,
-        tenantEmail: permit.email,
+        tenantName: permit.holder_name || permit.holder_email,
+        tenantEmail: permit.holder_email,
         propertyName,
         unitNumber: permit.unit_number || '—',
       },
@@ -295,7 +280,6 @@ async function handleSubscriptionDeleted(subscription) {
   }
 }
 
-// ── Main handler ─────────────────────────────────────────────
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method not allowed' };
