@@ -153,17 +153,21 @@ const property = Array.isArray(propertyResult) ? propertyResult[0] : null;
   const managerEmail = property?.manager_email;
 
   // 7. Send welcome email to tenant
-  await send({
-    type: 'welcome',
-    to: tenant_email,
-    data: {
-      name: tenant_name,
-      email: tenant_email,
-      password,
-      propertyName,
-      unitNumber: unit_number,
-    },
-  });
+    try {
+    await send({
+      type: 'welcome',
+      to: tenant_email,
+      data: {
+        name: tenant_name,
+        email: tenant_email,
+        password,
+        propertyName,
+        unitNumber: unit_number,
+      },
+    });
+  } catch (emailErr) {
+    console.error('Welcome email failed (non-fatal):', emailErr.message);
+  }
 
   // 8. Alert manager
   if (managerEmail) {
