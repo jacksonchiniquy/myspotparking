@@ -147,7 +147,8 @@ async function handleCheckoutCompleted(session) {
   const permit = permitResult[0];
 
   // 6. Look up property name for email
-  const [property] = await sbSelect('properties', `id=eq.${property_id}&select=name,manager_email`);
+ const propertyResult = await sbSelect('properties', `id=eq.${property_id}&select=name,manager_email`);
+const property = Array.isArray(propertyResult) ? propertyResult[0] : null;
   const propertyName = property?.name || 'your property';
   const managerEmail = property?.manager_email;
 
