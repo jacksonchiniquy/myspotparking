@@ -216,6 +216,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="si-email" type="email" placeholder="jane@example.com"></div>
         <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="si-pass" type="password" placeholder="••••••••"></div>
         <button class="btn btn-green btn-full" style="font-size:15px;padding:12px;" id="si-btn" onclick="handleSignIn()">Sign In →</button>
+        <div style="text-align:center;margin-top:10px;"><a onclick="handleForgotPassword()" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline;">Forgot password?</a></div>
         <div class="divider">or</div>
         <button class="btn btn-ghost btn-full" onclick="toast('Google sign-in coming soon')">Continue with Google</button>
         <div class="modal-switch" style="margin-top:18px;">New to My Spot Parking? <a onclick="switchPanel('signup')">Create an account</a></div>
@@ -532,12 +533,37 @@ async function handleSignUp(){
   if(pass!==pass2){err.textContent='Passwords do not match.';err.classList.add('show');return;}
   if(pass.length<6){err.textContent='Password must be at least 6 characters.';err.classList.add('show');return;}
   btn.disabled=true;btn.textContent='Creating account...';
+
+  // Check if this email already has a permit (created via invite checkout)
+  // If so, guide them to sign in with the password from their welcome email
+  const {data:existingPermit}=await sb.from('permits').select('id,holder_email').eq('holder_email',email).limit(1);
+  if(existingPermit?.length){
+    err.innerHTML='An account for this email already exists — <a href="#" onclick="switchPanel(\'signin\');document.getElementById(\'si-email\').value=\''+email+'\';return false;" style="color:var(--green);text-decoration:underline;">sign in instead</a>. Use the password from your welcome email, or use "Forgot password" below.';
+    err.classList.add('show');
+    btn.disabled=false;btn.textContent='Create Account →';
+    return;
+  }
+
   const {data,error}=await sb.auth.signUp({email,password:pass});
-  if(error){err.textContent=error.message;err.classList.add('show');btn.disabled=false;btn.textContent='Create Account →';return;}
-  await sb.from('users').insert({id:data.user.id,email,full_name:(fname+' '+lname).trim(),phone,role:'holder'});
-  await sb.from('permits').update({holder_id:data.user.id}).eq('holder_email',email).is('holder_id',null);
+  if(error){
+    // "User already registered" means the webhook created their Supabase account
+    if(error.message?.toLowerCase().includes('already registered')||error.message?.toLowerCase().includes('already been registered')){
+      err.innerHTML='An account already exists for this email. <a href="#" onclick="switchPanel(\'signin\');document.getElementById(\'si-email\').value=\''+email+'\';return false;" style="color:var(--green);text-decoration:underline;">Sign in instead</a> — check your welcome email for the password, or use "Forgot password".';
+    } else {
+      err.textContent=error.message;
+    }
+    err.classList.add('show');btn.disabled=false;btn.textContent='Create Account →';return;
+  }
+
+  // New user — insert profile and link any permits by email
+  if(data?.user){
+    await sb.from('users').insert({id:data.user.id,email,full_name:(fname+' '+lname).trim(),phone,role:'holder'}).catch(()=>{});
+    await sb.from('permits').update({holder_id:data.user.id}).eq('holder_email',email).is('holder_id',null);
+  }
   toast('✅ Account created! Check your email to confirm, then sign in.');
   btn.disabled=false;btn.textContent='Create Account →';
+  // Pre-fill sign-in email
+  document.getElementById('si-email').value=email;
   switchPanel('signin');
 }
 
@@ -548,7 +574,14 @@ async function handleSignIn(){
   if(!email||!pass){err.textContent='Enter your email and password.';err.classList.add('show');return;}
   btn.disabled=true;btn.textContent='Signing in...';
   const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
-  if(error){err.textContent=error.message;err.classList.add('show');btn.disabled=false;btn.textContent='Sign In →';return;}
+  if(error){
+    if(error.message?.toLowerCase().includes('invalid login')||error.message?.toLowerCase().includes('invalid credentials')){
+      err.textContent='Incorrect email or password. If you signed up via an invite link, use the password from your welcome email.';
+    } else {
+      err.textContent=error.message;
+    }
+    err.classList.add('show');btn.disabled=false;btn.textContent='Sign In →';return;
+  }
   const {data:profile}=await sb.from('users').select('*').eq('id',data.user.id).single();
   if(!profile||profile.role!=='holder'){
     err.textContent='This account is not a Permit Holder account.';err.classList.add('show');
@@ -556,6 +589,19 @@ async function handleSignIn(){
   }
   await sb.from('permits').update({holder_id:data.user.id}).eq('holder_email',email).is('holder_id',null);
   enterApp(profile);
+}
+
+async function handleForgotPassword(){
+  const email=document.getElementById('si-email').value.trim();
+  const err=document.getElementById('si-err');
+  if(!email){
+    err.textContent='Enter your email address above, then click "Forgot password".';
+    err.classList.add('show');return;
+  }
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'/holder.html'});
+  if(error){err.textContent=error.message;err.classList.add('show');return;}
+  err.classList.remove('show');
+  toast('✉️ Password reset email sent to '+email);
 }
 
 async function checkExistingSession(){

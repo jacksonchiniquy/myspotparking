@@ -608,7 +608,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
           <div>
             <div style="font-size:15px;font-weight:700;">Unit Parking Slots</div>
-            <div style="font-size:12px;color:var(--text3);margin-top:2px;">Slots assigned to residential units. Tenants log in with unit number + password at the unit portal.</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px;">Slots assigned to residential units. Each unit has a unique invite link tenants use to sign up.</div>
           </div>
           <button class="btn btn-primary btn-sm" onclick="openAddUnitSlot()">+ Add Slot</button>
         </div>
@@ -799,18 +799,27 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-invite')">✕</button>
     <div class="modal-title">✉️ Invite Resident</div>
-    <div class="modal-sub">Send a My Spot Parking account invitation</div>
+    <div class="modal-sub">Share a signup link with your tenant</div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">First Name</label><input class="form-input" id="ir-fname" type="text" placeholder="John"></div>
-      <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="ir-lname" type="text" placeholder="Doe"></div>
+      <div class="form-group"><label class="form-label">Property</label><select class="form-select" id="ir-property" onchange="loadInviteUnits(this.value)"></select></div>
+      <div class="form-group"><label class="form-label">Unit</label><select class="form-select" id="ir-unit"><option value="">— select property first —</option></select></div>
     </div>
-    <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" id="ir-email" type="email" placeholder="john@example.com"></div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Unit #</label><input class="form-input" id="ir-unit" type="text" placeholder="B-205"></div>
-      <div class="form-group"><label class="form-label">Property</label><select class="form-select" id="ir-property"></select></div>
+    <div id="ir-link-row" style="display:none;margin-top:4px;">
+      <label class="form-label">Invite Link</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input class="form-input" id="ir-link" type="text" readonly style="font-family:'JetBrains Mono',monospace;font-size:12px;flex:1;background:var(--surface2);">
+        <button class="btn btn-primary btn-sm" onclick="copyInviteFromModal()">📋 Copy</button>
+      </div>
+      <div id="ir-status" style="font-size:11px;color:var(--text3);margin-top:6px;"></div>
     </div>
-    <button class="btn btn-primary btn-full" onclick="inviteResident()">Send Invitation →</button>
-    <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="closeModal('modal-invite')">Cancel</button>
+    <div id="ir-no-code" style="display:none;margin-top:8px;padding:12px;background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.25);border-radius:10px;font-size:13px;color:#b45309;">
+      ⚠️ This unit has no invite code yet.
+      <button class="btn btn-ghost btn-sm" style="margin-top:6px;width:100%;" onclick="generateInviteFromModal()">Generate Invite Code</button>
+    </div>
+    <div style="margin-top:16px;padding:12px;background:var(--surface2);border-radius:10px;font-size:12px;color:var(--text2);line-height:1.6;">
+      <strong>How it works:</strong> Your tenant uses this link to choose their parking plan and pay. Their permit is activated automatically after checkout.
+    </div>
+    <button class="btn btn-ghost btn-full" style="margin-top:16px;" onclick="closeModal('modal-invite')">Close</button>
   </div>
 </div>
 
@@ -1882,11 +1891,78 @@ async function doAssignPermit(){
   toast('✅ Permit assigned to '+email);
 }
 
-async function inviteResident(){
-  const email=document.getElementById('ir-email').value.trim();
-  if(!email){toast('⚠️ Enter an email address');return;}
-  toast('✉️ Invitation sent to '+email+' (email integration coming soon)');
-  closeModal('modal-invite');
+async function loadInviteUnits(propertyId){
+  const unitSel=document.getElementById('ir-unit');
+  document.getElementById('ir-link-row').style.display='none';
+  document.getElementById('ir-no-code').style.display='none';
+  if(!propertyId){unitSel.innerHTML='<option value="">— select property first —</option>';return;}
+  unitSel.innerHTML='<option value="">Loading…</option>';
+  const {data}=await sb.from('property_units').select('unit_number,invite_code,invite_used,tenant_email,tenant_name').eq('property_id',propertyId).order('unit_number');
+  if(!data?.length){unitSel.innerHTML='<option value="">No units configured</option>';return;}
+  // Deduplicate by unit_number
+  const seen=new Set();
+  const units=data.filter(u=>{if(seen.has(u.unit_number))return false;seen.add(u.unit_number);return true;});
+  unitSel.innerHTML='<option value="">— select unit —</option>'+units.map(u=>{
+    const status=u.invite_used?' ✓':' (open)';
+    return `<option value="${u.unit_number}" data-code="${u.invite_code||''}" data-used="${u.invite_used||false}" data-tenant="${u.tenant_email||''}" data-name="${u.tenant_name||''}">${u.unit_number}${status}</option>`;
+  }).join('');
+  unitSel.onchange=()=>showInviteForUnit(propertyId,unitSel);
+}
+
+function showInviteForUnit(propertyId,unitSel){
+  const opt=unitSel.options[unitSel.selectedIndex];
+  const linkRow=document.getElementById('ir-link-row');
+  const noCode=document.getElementById('ir-no-code');
+  linkRow.style.display='none';
+  noCode.style.display='none';
+  if(!opt?.value) return;
+  const code=opt.dataset.code;
+  if(!code){noCode.style.display='block';return;}
+  const used=opt.dataset.used==='true';
+  const tenantEmail=opt.dataset.tenant;
+  const link=`${window.location.origin}/signup.html?code=${encodeURIComponent(code)}`;
+  document.getElementById('ir-link').value=link;
+  const statusEl=document.getElementById('ir-status');
+  if(used&&tenantEmail){
+    statusEl.innerHTML=`<span style="color:#007a4a;">✓ Already used by ${opt.dataset.name||tenantEmail} — reset from the Units tab to invite a new tenant</span>`;
+  } else {
+    statusEl.innerHTML=`<span style="color:var(--blue);">Ready to share — send this link to your tenant</span>`;
+  }
+  linkRow.style.display='block';
+}
+
+async function generateInviteFromModal(){
+  const propertyId=document.getElementById('ir-property').value;
+  const unitNum=document.getElementById('ir-unit').value;
+  if(!propertyId||!unitNum){toast('Select a property and unit first');return;}
+  const code=makeInviteCode();
+  await sb.from('property_units').update({invite_code:code,invite_used:false}).eq('property_id',propertyId).eq('unit_number',unitNum);
+  toast('✅ Invite code generated');
+  loadInviteUnits(propertyId);
+}
+
+function copyInviteFromModal(){
+  const link=document.getElementById('ir-link').value;
+  if(!link) return;
+  navigator.clipboard.writeText(link).then(()=>toast('📋 Invite link copied!')).catch(()=>{
+    prompt('Copy this invite link:',link);
+  });
+}
+
+function inviteResident(propertyId){
+  // Reset state
+  document.getElementById('ir-link-row').style.display='none';
+  document.getElementById('ir-no-code').style.display='none';
+  document.getElementById('ir-unit').innerHTML='<option value="">— select property first —</option>';
+  openModal('modal-invite');
+  // Pre-select property if provided (e.g. when called from property detail page)
+  if(propertyId){
+    const sel=document.getElementById('ir-property');
+    if(sel) { sel.value=propertyId; loadInviteUnits(propertyId); }
+  } else if(currentPropertyId) {
+    const sel=document.getElementById('ir-property');
+    if(sel) { sel.value=currentPropertyId; loadInviteUnits(currentPropertyId); }
+  }
 }
 
 function exportViolations(){
@@ -3840,21 +3916,40 @@ function renderUnitsTab(){
   const groups={};
   _unitSlots.forEach(s=>{if(!groups[s.unit_number])groups[s.unit_number]=[];groups[s.unit_number].push(s);});
   wrap.innerHTML=Object.entries(groups).map(([unitNum,slots])=>{
-    const pass=slots[0].unit_password||'';
     const propId=slots[0].property_id;
+    // Use the first slot's invite_code (all slots for a unit share one invite code)
+    const inviteCode=slots[0].invite_code||'';
+    const inviteUsed=slots[0].invite_used||false;
+    const tenantEmail=slots[0].tenant_email||'';
+    const tenantName=slots[0].tenant_name||'';
+    const inviteLink=inviteCode?`${window.location.origin}/signup.html?code=${encodeURIComponent(inviteCode)}`:'';
+    const usedBadge=inviteUsed
+      ?`<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(0,200,122,0.12);color:#007a4a;font-family:'JetBrains Mono',monospace;">SIGNED UP</span>`
+      :`<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(255,170,0,0.12);color:#b45309;font-family:'JetBrains Mono',monospace;">PENDING</span>`;
+    const tenantInfo=inviteUsed&&tenantEmail
+      ?`<div style="font-size:11px;color:var(--text3);margin-top:2px;">Signed up: <strong>${tenantName||tenantEmail}</strong> · ${tenantEmail}</div>`
+      :`<div style="font-size:11px;color:var(--text3);margin-top:2px;">Share the invite link with your tenant to get them signed up</div>`;
     return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);background:#f8faff;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);background:#f8faff;gap:12px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:12px;">
           <div style="width:36px;height:36px;border-radius:10px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;">🏠</div>
-          <div><div style="font-weight:700;font-size:15px;">Unit ${unitNum}</div><div style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;">${slots.length} slot${slots.length!==1?'s':''}</div></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;">PASSWORD</span>
-            <input type="text" value="${pass}" placeholder="set password"
-              style="font-size:12px;padding:5px 9px;border:1px solid var(--border);border-radius:7px;width:130px;font-family:'JetBrains Mono',monospace;background:#fff;outline:none;"
-              onchange="setUnitPassword('${unitNum}','${propId}',this.value)" onfocus="this.select()">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-weight:700;font-size:15px;">Unit ${unitNum}</span>
+              ${usedBadge}
+            </div>
+            ${tenantInfo}
           </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          ${inviteCode?`
+            <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:5px 10px;">
+              <span style="font-size:11px;color:var(--text3);">CODE</span>
+              <span style="font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--blue);">${inviteCode}</span>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="copyInviteLink('${inviteLink}','${unitNum}')">📋 Copy Link</button>
+            ${inviteUsed?`<button class="btn btn-ghost btn-sm" title="Reset so a new tenant can sign up" onclick="resetInviteCode('${slots[0].id}','${unitNum}')">Reset Code</button>`:''}
+          `:`<button class="btn btn-ghost btn-sm" onclick="generateInviteCodeForUnit('${slots[0].id}','${unitNum}')">Generate Invite</button>`}
           <button class="btn btn-ghost btn-sm" onclick="openAddUnitSlot('${unitNum}')">+ Slot</button>
         </div>
       </div>
@@ -3890,12 +3985,33 @@ function renderUnitSlotCard(s){
   </div>`;
 }
 
-async function setUnitPassword(unitNumber,propertyId,password){
-  const slots=_unitSlots.filter(s=>s.unit_number===unitNumber&&s.property_id===propertyId);
-  if(!slots.length) return;
-  await sb.from('property_units').update({unit_password:password}).eq('property_id',propertyId).eq('unit_number',unitNumber);
-  _unitSlots.forEach(s=>{if(s.unit_number===unitNumber&&s.property_id===propertyId)s.unit_password=password;});
-  toast('Password saved');
+function makeInviteCode(){
+  const chars='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let code='';
+  for(let i=0;i<8;i++){if(i===4)code+='-';code+=chars[Math.floor(Math.random()*chars.length)];}
+  return code;
+}
+
+async function generateInviteCodeForUnit(slotId,unitNum){
+  const code=makeInviteCode();
+  // Update all slots for this unit_number in current property
+  await sb.from('property_units').update({invite_code:code,invite_used:false}).eq('property_id',currentPropertyId).eq('unit_number',unitNum);
+  toast('✅ Invite code generated for Unit '+unitNum);
+  loadUnitsTab(currentPropertyId);
+}
+
+async function resetInviteCode(slotId,unitNum){
+  if(!confirm('Reset the invite code? The old link will stop working. Use this when a tenant changes.')) return;
+  const code=makeInviteCode();
+  await sb.from('property_units').update({invite_code:code,invite_used:false,invite_used_at:null,tenant_email:null,tenant_name:null}).eq('property_id',currentPropertyId).eq('unit_number',unitNum);
+  toast('🔄 New invite code generated for Unit '+unitNum);
+  loadUnitsTab(currentPropertyId);
+}
+
+function copyInviteLink(link,unitNum){
+  navigator.clipboard.writeText(link).then(()=>toast('📋 Invite link for Unit '+unitNum+' copied!')).catch(()=>{
+    prompt('Copy this invite link:',link);
+  });
 }
 
 let _editingSlot=null;
@@ -3935,7 +4051,10 @@ async function saveUnitSlot(){
   };
   if(!data.unit_number){toast('Unit number is required');btn.disabled=false;btn.textContent='Save Slot';return;}
   const existing=_unitSlots.find(s=>s.unit_number===data.unit_number&&s.property_id===currentPropertyId);
-  if(existing?.unit_password&&!_editingSlot) data.unit_password=existing.unit_password;
+  // Carry over existing invite_code when adding a second slot to the same unit
+  if(existing?.invite_code&&!_editingSlot) data.invite_code=existing.invite_code;
+  // Auto-generate invite_code for brand new units
+  if(!existing&&!_editingSlot) data.invite_code=makeInviteCode();
   if(_editingSlot){
     await sb.from('property_units').update(data).eq('id',_editingSlot.id);
   } else {
