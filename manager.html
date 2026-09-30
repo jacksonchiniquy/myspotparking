@@ -110,7 +110,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 .prop-card:hover{transform:translateY(-2px);}
 .prop-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--blue2));}
 .inner-tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:20px;}
-.inner-tab{padding:9px 16px;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;}
+.inner-tab{padding:9px 16px;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;display:flex;align-items:center;gap:5px;}
 .inner-tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600;}
 .inner-panel{display:none;}
 .inner-panel.active{display:block;}
@@ -150,7 +150,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:36px;box-shadow:0 8px 40px rgba(15,23,42,0.10);">
 
       <div id="panel-signup" style="display:none;">
-        <div style="display:inline-flex;align-items:center;gap:7px;background:var(--bluelight);border:1px solid rgba(26,111,255,.2);border-radius:20px;padding:4px 12px;font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin-bottom:16px;">🏢 Property Manager</div>
+        <div style="display:inline-flex;align-items:center;gap:7px;background:var(--bluelight);border:1px solid rgba(26,111,255,.2);border-radius:20px;padding:4px 12px;font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin-bottom:16px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 21V9h6v12"/><path d="M3 9h18"/></svg> Property Manager</div>
         <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Create your account</div>
         <div style="font-size:13px;color:var(--text2);margin-bottom:24px;">Start managing your parking properties today</div>
         <div class="err-msg" id="su-err"></div>
@@ -173,13 +173,14 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       </div>
 
       <div id="panel-signin">
-        <div style="display:inline-flex;align-items:center;gap:7px;background:var(--bluelight);border:1px solid rgba(26,111,255,.2);border-radius:20px;padding:4px 12px;font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin-bottom:16px;">🏢 Property Manager</div>
+        <div style="display:inline-flex;align-items:center;gap:7px;background:var(--bluelight);border:1px solid rgba(26,111,255,.2);border-radius:20px;padding:4px 12px;font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin-bottom:16px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 21V9h6v12"/><path d="M3 9h18"/></svg> Property Manager</div>
         <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Welcome back</div>
         <div style="font-size:13px;color:var(--text2);margin-bottom:24px;">Sign in to your manager dashboard</div>
         <div class="err-msg" id="si-err"></div>
         <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="si-email" type="email" placeholder="jane@mapleparking.com"></div>
         <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="si-pass" type="password" placeholder="••••••••"></div>
         <button class="btn btn-primary btn-full" style="font-size:15px;padding:13px;" id="si-btn" onclick="handleSignIn()">Sign In →</button>
+        <div style="text-align:center;margin-top:10px;"><a onclick="handleForgotPassword()" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline;">Forgot password?</a></div>
         <div class="divider">or</div>
         <button class="btn btn-ghost btn-full" onclick="toast('🔗 Google coming soon')">Continue with Google</button>
         <div class="modal-switch" style="margin-top:16px;">New here? <a onclick="switchPanel('signup')">Create an account</a></div>
@@ -191,30 +192,30 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
 <div id="app">
   <nav class="topnav">
-    <a class="tn-logo" href="index.html"><div class="tn-logo-mark"><svg width="30" height="30" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 2C12.477 2 8 6.477 8 12c0 7.5 10 22 10 22s10-14.5 10-22c0-5.523-4.477-10-10-10z" fill="#1a6fff"/><circle cx="18" cy="12" r="5.5" fill="white"/><text x="18" y="16" text-anchor="middle" font-family="'Bricolage Grotesque',sans-serif" font-weight="800" font-size="7" fill="#1a6fff">P</text></svg></div><span class="tn-logo-text">My Spot Parking</span></a>
+    <a class="tn-logo" href="#" onclick="return false;"><div class="tn-logo-mark"><svg width="30" height="30" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 2C12.477 2 8 6.477 8 12c0 7.5 10 22 10 22s10-14.5 10-22c0-5.523-4.477-10-10-10z" fill="#1a6fff"/><circle cx="18" cy="12" r="5.5" fill="white"/><text x="18" y="16" text-anchor="middle" font-family="'Bricolage Grotesque',sans-serif" font-weight="800" font-size="7" fill="#1a6fff">P</text></svg></div><span class="tn-logo-text">My Spot Parking</span></a>
     <div class="tn-tabs">
-      <button class="tn-tab active" onclick="showPage('dashboard',this)">📊 Dashboard</button>
+      <button class="tn-tab active" onclick="showPage('dashboard',this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Dashboard</button>
       <button class="tn-tab" id="tab-prop" onclick="toggleDD('dd-prop','tab-prop')">
-        🏢 Properties
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 21V9h6v12"/><path d="M3 9h18"/></svg> Properties
         <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         <div class="tn-dropdown" id="dd-prop" onclick="event.stopPropagation()">
-          <div class="tn-dd-item" onclick="showPage('properties',document.getElementById('tab-prop'));closeAllDD()"><div class="tn-dd-icon">🏢</div><div><div class="tn-dd-label">All Properties</div><div class="tn-dd-sub">Manage locations &amp; zones</div></div></div>
+          <div class="tn-dd-item" onclick="showPage('properties',document.getElementById('tab-prop'));closeAllDD()"><div class="tn-dd-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 21V9h6v12"/><path d="M3 9h18"/></svg></div><div><div class="tn-dd-label">All Properties</div><div class="tn-dd-sub">Manage locations &amp; zones</div></div></div>
           <div class="tn-dd-item" onclick="openModal('modal-add-property');closeAllDD()"><div class="tn-dd-icon">➕</div><div><div class="tn-dd-label">Add Property</div><div class="tn-dd-sub">Register a new location</div></div></div>
         </div>
       </button>
       <button class="tn-tab" id="tab-res" onclick="toggleDD('dd-res','tab-res')">
-        👥 Residents
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M19 7v6M22 10h-6"/></svg> Residents
         <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         <div class="tn-dropdown" id="dd-res" onclick="event.stopPropagation()">
-          <div class="tn-dd-item" onclick="showPage('residents',document.getElementById('tab-res'));closeAllDD()"><div class="tn-dd-icon">👥</div><div><div class="tn-dd-label">All Residents</div><div class="tn-dd-sub">View all permit holders</div></div></div>
+          <div class="tn-dd-item" onclick="showPage('residents',document.getElementById('tab-res'));closeAllDD()"><div class="tn-dd-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg></div><div><div class="tn-dd-label">All Residents</div><div class="tn-dd-sub">View all permit holders</div></div></div>
           <div class="tn-dd-item" onclick="openModal('modal-invite');closeAllDD()"><div class="tn-dd-icon">✉️</div><div><div class="tn-dd-label">Invite Resident</div><div class="tn-dd-sub">Send account invitation</div></div></div>
         </div>
       </button>
       <button class="tn-tab" id="tab-pmt" onclick="toggleDD('dd-pmt','tab-pmt')">
-        🎫 Permits
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg> Permits
         <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         <div class="tn-dropdown" id="dd-pmt" onclick="event.stopPropagation()">
-          <div class="tn-dd-item" onclick="showPage('permits',document.getElementById('tab-pmt'));setIT('all');closeAllDD()"><div class="tn-dd-icon">🎫</div><div><div class="tn-dd-label">All Permits</div><div class="tn-dd-sub">Active, expired &amp; revoked</div></div></div>
+          <div class="tn-dd-item" onclick="showPage('permits',document.getElementById('tab-pmt'));setIT('all');closeAllDD()"><div class="tn-dd-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg></div><div><div class="tn-dd-label">All Permits</div><div class="tn-dd-sub">Active, expired &amp; revoked</div></div></div>
           <div class="tn-dd-item" onclick="openModal('modal-issue-permit');closeAllDD()"><div class="tn-dd-icon">➕</div><div><div class="tn-dd-label">Issue Permit</div><div class="tn-dd-sub">Create a new permit</div></div></div>
           <div class="tn-dd-item" onclick="showPage('permits',document.getElementById('tab-pmt'));setIT('violations');closeAllDD()"><div class="tn-dd-icon">🚨</div><div><div class="tn-dd-label">Violations</div><div class="tn-dd-sub">Enforcement reports</div></div></div>
         </div>
@@ -295,6 +296,12 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;">
         <input class="search-bar" type="text" id="res-search" placeholder="🔍 Search name, email, unit, stall..." oninput="applyResidentFilters()" style="flex:1;min-width:200px;">
         <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;white-space:nowrap;">PROPERTY</span>
+          <select class="form-select" id="res-filter-property" onchange="applyResidentFilters()" style="font-size:12px;padding:6px 10px;width:auto;">
+            <option value="">All Properties</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
           <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;white-space:nowrap;">FILTER BY</span>
           <select class="form-select" id="res-filter-field" onchange="applyResidentFilters()" style="font-size:12px;padding:6px 10px;width:auto;">
             <option value="">All Fields</option>
@@ -330,7 +337,52 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
   <!-- PERMITS -->
   <div id="page-permits" class="page">
-    <div class="page-head"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;"><div><div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:3px;">Permits</div><div style="font-size:13px;color:var(--text2);">Issue, manage and revoke parking permits</div></div><div style="display:flex;gap:10px;align-items:center;"><input class="search-bar" type="text" placeholder="🔍 Search plate, holder..." oninput="filterPermits(this.value)"><button class="btn btn-primary" onclick="openModal('modal-issue-permit')">+ Issue Permit</button></div></div></div>
+    <div class="page-head">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+        <div><div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:3px;">Permits</div><div style="font-size:13px;color:var(--text2);">Issue, manage and revoke parking permits</div></div>
+        <button class="btn btn-primary" onclick="openModal('modal-issue-permit')">+ Issue Permit</button>
+      </div>
+      <!-- Filter & Sort bar -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;">
+        <input class="search-bar" type="text" id="permit-search" placeholder="🔍 Search plate, holder name..." oninput="applyPermitFilters()" style="flex:1;min-width:180px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;white-space:nowrap;">PROPERTY</span>
+          <select class="form-select" id="permit-filter-property" onchange="applyPermitFilters()" style="font-size:12px;padding:6px 10px;width:auto;">
+            <option value="">All Properties</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;white-space:nowrap;">STATUS</span>
+          <select class="form-select" id="permit-filter-status" onchange="applyPermitFilters()" style="font-size:12px;padding:6px 10px;width:auto;">
+            <option value="">All</option>
+            <option value="active">Active</option>
+            <option value="expired">Expired</option>
+            <option value="revoked">Revoked</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;white-space:nowrap;">TYPE</span>
+          <select class="form-select" id="permit-filter-type" onchange="applyPermitFilters()" style="font-size:12px;padding:6px 10px;width:auto;">
+            <option value="">All Types</option>
+            <option value="monthly">Monthly</option>
+            <option value="annual">Annual</option>
+            <option value="guest">Guest</option>
+            <option value="visitor">Visitor</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;white-space:nowrap;">SORT</span>
+          <select class="form-select" id="permit-sort-field" onchange="applyPermitFilters()" style="font-size:12px;padding:6px 10px;width:auto;">
+            <option value="expires">Expiry Date</option>
+            <option value="plate">Plate</option>
+            <option value="holder">Holder</option>
+            <option value="property">Property</option>
+          </select>
+          <button id="permit-sort-dir" onclick="togglePermitSortDir()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;background:#f1f5fb;font-size:12px;cursor:pointer;font-family:'JetBrains Mono',monospace;">A→Z</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="clearPermitFilters()">✕ Clear</button>
+      </div>
+    </div>
     <div class="content">
       <div class="inner-tabs">
         <div class="inner-tab active" id="it-all" onclick="setIT('all')">All Permits</div>
@@ -384,9 +436,9 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         <div class="inner-tab active" id="pdit-all" onclick="setPDTab('all')">All Permits</div>
         <div class="inner-tab" id="pdit-active" onclick="setPDTab('active')">Active</div>
         <div class="inner-tab" id="pdit-expired" onclick="setPDTab('expired')">Expired / Revoked</div>
-        <div class="inner-tab" id="pdit-map" onclick="setPDTab('map')">🗺 Lot Map</div>
-        <div class="inner-tab" id="pdit-pay" onclick="setPDTab('pay')">💳 Pay to Park</div>
-        <div class="inner-tab" id="pdit-units" onclick="setPDTab('units')">🏠 Units</div>
+        <div class="inner-tab" id="pdit-map" onclick="setPDTab('map')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg> Lot Map</div>
+        <div class="inner-tab" id="pdit-pay" onclick="setPDTab('pay')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Pay to Park</div>
+        <div class="inner-tab" id="pdit-units" onclick="setPDTab('units')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Units</div>
       </div>
       <div id="pdip-all" class="inner-panel active">
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Holder</th><th>Vehicle</th><th>Type</th><th>Zone</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead><tbody id="pd-body-all"></tbody></table></div>
@@ -544,8 +596,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
             </div>
           </div>
         </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+        <div id="canvas-controls-bar" style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
           <div style="font-size:11px;color:var(--text3);">Click to select · Drag to move · Drag corners to resize · Scroll wheel to zoom · Drag canvas edge to resize</div>
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;">Canvas:</span>
@@ -765,7 +816,41 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">License Plate *</label><input class="form-input" id="ip-plate" type="text" placeholder="TXK-4821" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;" oninput="this.value=this.value.toUpperCase()"></div>
-      <div class="form-group"><label class="form-label">Vehicle</label><input class="form-input" id="ip-vehicle" type="text" placeholder="2023 Toyota Camry"></div>
+      <div class="form-group">
+        <label class="form-label">State / Region</label>
+        <select class="form-select" id="ip-state">
+          <option value="">— Select —</option>
+          <optgroup label="US States">
+            <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option><option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option><option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option><option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option><option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option><option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option><option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option><option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option><option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option><option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option><option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option><option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option><option>Wisconsin</option><option>Wyoming</option><option>Washington D.C.</option>
+          </optgroup>
+          <optgroup label="US Territories">
+            <option>Puerto Rico</option><option>Guam</option><option>U.S. Virgin Islands</option><option>American Samoa</option><option>Northern Mariana Islands</option>
+          </optgroup>
+          <optgroup label="Other">
+            <option>Canada</option><option>Mexico</option><option>Other</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="position:relative;">
+        <label class="form-label">Make</label>
+        <input class="form-input" id="ip-make" type="text" placeholder="Toyota" autocomplete="off" oninput="vehicleMakeSuggest(this.value)">
+        <div id="ip-make-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:200;max-height:180px;overflow-y:auto;"></div>
+      </div>
+      <div class="form-group" style="position:relative;">
+        <label class="form-label">Model</label>
+        <input class="form-input" id="ip-model" type="text" placeholder="Camry" autocomplete="off" oninput="vehicleModelSuggest(this.value)">
+        <div id="ip-model-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:200;max-height:180px;overflow-y:auto;"></div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Year</label><input class="form-input" id="ip-year" type="text" placeholder="2023" maxlength="4"></div>
+      <div class="form-group" style="position:relative;">
+        <label class="form-label">Color</label>
+        <input class="form-input" id="ip-color" type="text" placeholder="Silver" autocomplete="off" oninput="vehicleColorSuggest(this.value)">
+        <div id="ip-color-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:200;max-height:180px;overflow-y:auto;"></div>
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Property *</label><select class="form-select" id="ip-property" onchange="onPermitPropertyChange(this.value)"></select></div>
@@ -1093,6 +1178,15 @@ async function handleSignIn(){
   enterApp(profile);
 }
 
+async function handleForgotPassword(){
+  const email=document.getElementById('si-email').value.trim();
+  const err=document.getElementById('si-err');
+  if(!email){err.textContent='Enter your email address above, then click Forgot password.';err.classList.add('show');return;}
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'/manager.html'});
+  if(error){err.textContent=error.message;err.classList.add('show');}
+  else{err.style.cssText='color:#007a4a;background:rgba(0,200,122,.08);border-color:rgba(0,200,122,.25);';err.textContent='✓ Reset link sent — check your email.';err.classList.add('show');}
+}
+
 async function checkExistingSession(){
   const {data:{session}}=await sb.auth.getSession();
   if(session){
@@ -1304,6 +1398,7 @@ function clearResidentFilters(){
   const ff=document.getElementById('res-filter-field');if(ff)ff.value='';
   const sf=document.getElementById('res-sort-field');if(sf)sf.value='name';
   const dir=document.getElementById('res-sort-dir');if(dir)dir.textContent='A→Z';
+  const pf=document.getElementById('res-filter-property');if(pf)pf.value='';
   residentSortField='name';residentSortAsc=true;
   applyResidentFilters();
 }
@@ -1312,9 +1407,11 @@ function applyResidentFilters(){
   const q=(document.getElementById('res-search')?.value||'').toLowerCase().trim();
   const filterField=document.getElementById('res-filter-field')?.value||'';
   const sortField=document.getElementById('res-sort-field')?.value||residentSortField;
+  const propFilter=document.getElementById('res-filter-property')?.value||'';
   residentSortField=sortField;
 
   let data=[...allResidents].filter(r=>residentTab==='active'?(r.status||'active')==='active':(r.status||'active')!=='active');
+  if(propFilter) data=data.filter(r=>(r.property_id||'')=== propFilter);
 
   if(q){
     data=data.filter(r=>{
@@ -1565,6 +1662,42 @@ function filterResidents(q){
 }
 function filterPermits(q){renderPermitTables(allPermits.filter(p=>p.plate.includes(q.toUpperCase())||(p.vehicle||'').toLowerCase().includes(q.toLowerCase())));}
 
+let permitSortAsc=true;
+function togglePermitSortDir(){
+  permitSortAsc=!permitSortAsc;
+  const btn=document.getElementById('permit-sort-dir');
+  if(btn)btn.textContent=permitSortAsc?'A→Z':'Z→A';
+  applyPermitFilters();
+}
+function clearPermitFilters(){
+  ['permit-search','permit-filter-property','permit-filter-status','permit-filter-type'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const sf=document.getElementById('permit-sort-field');if(sf)sf.value='expires';
+  const dir=document.getElementById('permit-sort-dir');if(dir)dir.textContent='A→Z';
+  permitSortAsc=true;
+  applyPermitFilters();
+}
+function applyPermitFilters(){
+  const q=(document.getElementById('permit-search')?.value||'').toLowerCase().trim();
+  const propF=document.getElementById('permit-filter-property')?.value||'';
+  const statusF=document.getElementById('permit-filter-status')?.value||'';
+  const typeF=document.getElementById('permit-filter-type')?.value||'';
+  const sortF=document.getElementById('permit-sort-field')?.value||'expires';
+  let data=[...allPermits];
+  if(q) data=data.filter(p=>(p.plate||'').toLowerCase().includes(q)||(p.holder_name||p.holder_email||'').toLowerCase().includes(q));
+  if(propF) data=data.filter(p=>(p.property_id||'')===propF);
+  if(statusF) data=data.filter(p=>(p.status||'')=== statusF);
+  if(typeF) data=data.filter(p=>(p.plan||'').toLowerCase().includes(typeF));
+  data.sort((a,b)=>{
+    let va='',vb='';
+    if(sortF==='expires'){va=a.end_date||'';vb=b.end_date||'';}
+    else if(sortF==='plate'){va=a.plate||'';vb=b.plate||'';}
+    else if(sortF==='holder'){va=a.holder_name||a.holder_email||'';vb=b.holder_name||b.holder_email||'';}
+    else if(sortF==='property'){va=propName(a.property_id);vb=propName(b.property_id);}
+    return(permitSortAsc?1:-1)*va.localeCompare(vb,undefined,{numeric:true,sensitivity:'base'});
+  });
+  renderPermitTables(data);
+}
+
 // -- ACTIONS --
 
 function setPropType(type){
@@ -1668,10 +1801,21 @@ async function issuePermit(){
     }
   }
 
+  const make=document.getElementById('ip-make')?.value.trim()||'';
+  const model=document.getElementById('ip-model')?.value.trim()||'';
+  const year=document.getElementById('ip-year')?.value.trim()||'';
+  const color=document.getElementById('ip-color')?.value.trim()||'';
+  const state=document.getElementById('ip-state')?.value||'';
+  const vehicleStr=[year,make,model,color].filter(Boolean).join(' ');
   const {error}=await sb.from('permits').insert({
     property_id:propId,
     plate,
-    vehicle:document.getElementById('ip-vehicle').value,
+    plate_state:state||null,
+    vehicle:vehicleStr||null,
+    vehicle_make:make||null,
+    vehicle_model:model||null,
+    vehicle_year:year||null,
+    vehicle_color:color||null,
     permit_type:type,
     zone:document.getElementById('ip-zone').value,
     unit_number:document.getElementById('ip-unit').value,
@@ -1988,7 +2132,9 @@ function initCharts(){
   const expired=allPermits.filter(p=>p.status==='expired').length;
   const revoked=allPermits.filter(p=>p.status==='revoked').length;
   const dCtx=document.getElementById('chart-donut').getContext('2d');
-  new Chart(dCtx,{type:'doughnut',data:{labels:['Active','Expired','Revoked'],datasets:[{data:[active||1,expired,revoked],backgroundColor:['#1a6fff','#ef4444','#94a3b8'],borderWidth:0}]},options:{responsive:false,cutout:'74%',plugins:{legend:{display:false}}}});
+  const donutTotal=active+expired+revoked;
+  new Chart(dCtx,{type:'doughnut',data:{labels:['Active','Expired','Revoked'],datasets:[{data:donutTotal>0?[active,expired,revoked]:[1,0,0],backgroundColor:donutTotal>0?['#1a6fff','#ef4444','#94a3b8']:['#e2e8f0','#e2e8f0','#e2e8f0'],borderWidth:0}]},options:{responsive:false,cutout:'74%',plugins:{legend:{display:false},tooltip:{enabled:donutTotal>0}}}});
+  if(donutTotal===0){dCtx.save();dCtx.font='bold 11px Bricolage Grotesque,sans-serif';dCtx.fillStyle='#94a3b8';dCtx.textAlign='center';dCtx.textBaseline='middle';dCtx.fillText('No permits',80,80);dCtx.restore();}
   const cols=['#1a6fff','#ef4444','#94a3b8'],lbls=['Active','Expired','Revoked'],vals=[active,expired,revoked];
   document.getElementById('donut-legend').innerHTML=lbls.map((l,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;"><div style="display:flex;align-items:center;gap:7px;"><div style="width:9px;height:9px;border-radius:50%;background:${cols[i]}"></div>${l}</div><strong>${vals[i]}</strong></div>`).join('');
 }
@@ -2006,9 +2152,50 @@ function propName(id){return allProperties.find(p=>p.id===id)?.name||'—';}
 function populateSelects(){
   const opts=allProperties.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
   ['ip-property','ir-property','ar-property','er-property'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts||'<option>No properties yet</option>';});
+  // Populate property filter dropdowns in residents & permits tabs
+  const filterOpts='<option value="">All Properties</option>'+allProperties.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  ['res-filter-property','permit-filter-property'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=filterOpts;});
 }
 function today(){return new Date().toISOString().split('T')[0];}
 function futureDate(d){const dt=new Date();dt.setDate(dt.getDate()+d);return dt.toISOString().split('T')[0];}
+
+// -- VEHICLE TYPEAHEADS --
+const VEHICLE_MAKES=['Acura','Alfa Romeo','Audi','BMW','Buick','Cadillac','Chevrolet','Chrysler','Dodge','Ferrari','Fiat','Ford','Genesis','GMC','Honda','Hyundai','Infiniti','Jaguar','Jeep','Kia','Lamborghini','Land Rover','Lexus','Lincoln','Maserati','Mazda','Mercedes-Benz','Mini','Mitsubishi','Nissan','Porsche','Ram','Rivian','Rolls-Royce','Subaru','Tesla','Toyota','Volkswagen','Volvo'];
+const VEHICLE_MODELS={Toyota:['Camry','Corolla','RAV4','Highlander','Tacoma','Tundra','4Runner','Prius','Sienna','Venza'],Honda:['Civic','Accord','CR-V','Pilot','Odyssey','HR-V','Ridgeline','Passport'],Ford:['F-150','F-250','Mustang','Explorer','Escape','Edge','Bronco','Ranger','Expedition','Maverick'],Chevrolet:['Silverado','Equinox','Malibu','Tahoe','Suburban','Traverse','Colorado','Blazer','Trailblazer'],Tesla:['Model 3','Model Y','Model S','Model X','Cybertruck'],BMW:['3 Series','5 Series','7 Series','X3','X5','X7','M3','M5'],Mercedes-Benz:['C-Class','E-Class','S-Class','GLC','GLE','GLS','A-Class'],Audi:['A3','A4','A6','Q3','Q5','Q7','e-tron'],Nissan:['Altima','Sentra','Maxima','Rogue','Pathfinder','Murano','Titan','Frontier'],Hyundai:['Elantra','Sonata','Tucson','Santa Fe','Palisade','Ioniq 5','Ioniq 6'],Kia:['Forte','K5','Telluride','Sorento','Sportage','EV6','Soul'],Jeep:['Wrangler','Cherokee','Grand Cherokee','Compass','Renegade','Gladiator'],GMC:['Sierra','Terrain','Acadia','Yukon','Canyon'],Ram:['1500','2500','3500','ProMaster'],Subaru:['Outback','Forester','Crosstrek','Impreza','Legacy','Ascent','WRX'],Volkswagen:['Jetta','Passat','Tiguan','Atlas','Golf','ID.4'],Lexus:['RX','ES','NX','GX','IS','UX'],Dodge:['Challenger','Charger','Durango','Journey'],Buick:['Encore','Envision','Enclave'],Cadillac:['CT4','CT5','XT4','XT5','XT6','Escalade']};
+const VEHICLE_COLORS=['Black','White','Silver','Gray','Red','Blue','Navy','Green','Brown','Beige','Gold','Orange','Yellow','Purple','Pink','Maroon','Burgundy','Bronze','Champagne','Pearl White','Midnight Black','Space Gray','Dark Blue','Forest Green','Burnt Orange'];
+function showVehicleDropdown(inputId,ddId,items){
+  const dd=document.getElementById(ddId);
+  const input=document.getElementById(inputId);
+  if(!dd||!input||!items.length){if(dd)dd.style.display='none';return;}
+  dd.innerHTML=items.map(i=>`<div onclick="selectVehicleOption('${inputId}','${ddId}','${i.replace(/'/g,"\\'")}')" style="padding:9px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border2);" onmouseenter="this.style.background='#f0f4ff'" onmouseleave="this.style.background=''">${i}</div>`).join('');
+  dd.style.display='block';
+}
+function selectVehicleOption(inputId,ddId,val){
+  const input=document.getElementById(inputId);if(input)input.value=val;
+  const dd=document.getElementById(ddId);if(dd)dd.style.display='none';
+  if(inputId==='ip-make'){document.getElementById('ip-model').value='';vehicleModelSuggest('');}
+}
+function vehicleMakeSuggest(q){
+  const matches=q?VEHICLE_MAKES.filter(m=>m.toLowerCase().startsWith(q.toLowerCase())):VEHICLE_MAKES.slice(0,8);
+  showVehicleDropdown('ip-make','ip-make-dropdown',matches.slice(0,8));
+}
+function vehicleModelSuggest(q){
+  const make=document.getElementById('ip-make')?.value||'';
+  const pool=VEHICLE_MODELS[make]||[];
+  const matches=q?pool.filter(m=>m.toLowerCase().includes(q.toLowerCase())):pool.slice(0,8);
+  showVehicleDropdown('ip-model','ip-model-dropdown',matches.slice(0,8));
+}
+function vehicleColorSuggest(q){
+  const matches=q?VEHICLE_COLORS.filter(c=>c.toLowerCase().startsWith(q.toLowerCase())):VEHICLE_COLORS.slice(0,8);
+  showVehicleDropdown('ip-color','ip-color-dropdown',matches.slice(0,8));
+}
+document.addEventListener('click',e=>{
+  ['ip-make','ip-make-dropdown','ip-model','ip-model-dropdown','ip-color','ip-color-dropdown'].forEach(id=>{
+    const el=document.getElementById(id);if(el&&!el.contains(e.target)){
+      const ddId=id.replace('-dropdown','')+'-dropdown';const dd=document.getElementById(ddId);if(dd)dd.style.display='none';
+    }
+  });
+});
 
 // -- PROPERTY DETAIL --
 let currentPropertyId=null;
@@ -2028,11 +2215,13 @@ function openPropertyDetail(propId){
   document.getElementById('pd-name').textContent=p.name;
   document.getElementById('pd-address').textContent=p.address||'No address on file';
   // Info pills
+  const pillSvg=(path)=>`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">${path}</svg>`;
+  const pillStyle='display:inline-flex;align-items:center;gap:5px;background:var(--bluelight);border:1px solid rgba(26,111,255,.15);color:var(--blue);padding:4px 12px;border-radius:20px;font-size:12px;';
   document.getElementById('pd-pills').innerHTML=`
-    <span style="background:var(--bluelight);border:1px solid rgba(26,111,255,.15);color:var(--blue);padding:4px 12px;border-radius:20px;font-size:12px;">🅿️ ${p.total_spots||0} Spots</span>
-    <span style="background:var(--bluelight);border:1px solid rgba(26,111,255,.15);color:var(--blue);padding:4px 12px;border-radius:20px;font-size:12px;">🗺 Zones: ${p.zones||'—'}</span>
-    <span style="background:var(--bluelight);border:1px solid rgba(26,111,255,.15);color:var(--blue);padding:4px 12px;border-radius:20px;font-size:12px;">🏠 ${p.units||0} Units</span>
-    <span style="background:var(--bluelight);border:1px solid rgba(26,111,255,.15);color:var(--blue);padding:4px 12px;border-radius:20px;font-size:12px;">💰 Default: $${p.monthly_rate||0}/mo</span>
+    <span style="${pillStyle}">${pillSvg('<circle cx="12" cy="12" r="10"/><text x="12" y="16" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="10" fill="#1a6fff">P</text>')} ${p.total_spots||0} Spots</span>
+    <span style="${pillStyle}">${pillSvg('<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>')} Zones: ${p.zones||'—'}</span>
+    <span style="${pillStyle}">${pillSvg('<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>')} ${p.units||0} Units</span>
+    <span style="${pillStyle}">${pillSvg('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>')} Default: $${p.monthly_rate||0}/mo</span>
     ${buildRatePills(p.parking_rates)}`;
   renderPropertyDetail(propId);
   showPage('property-detail', null);
@@ -2114,13 +2303,15 @@ function renderPropertyDetail(propId){
 }
 
 function setPDTab(name){
-  ['all','active','expired','map'].forEach(n=>{
-    document.getElementById('pdit-'+n)?.classList.remove('active');
-    document.getElementById('pdip-'+n)?.classList.remove('active');
-  });
   ['all','active','expired','map','pay','units'].forEach(n=>{
     document.getElementById('pdit-'+n)?.classList.remove('active');
     document.getElementById('pdip-'+n)?.classList.remove('active');
+  });
+  // Explicitly show/hide map-only controls regardless of nesting
+  const mapOnlyIds=['canvas-controls-bar','lot-toolbar','lot-legend'];
+  mapOnlyIds.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=name==='map'?(id==='canvas-controls-bar'?'flex':''):'none';
   });
   document.getElementById('pdit-'+name)?.classList.add('active');
   document.getElementById('pdip-'+name)?.classList.add('active');
@@ -2293,11 +2484,22 @@ function generateQR(url){
       }
     }
   }
-  // Center logo
-  ctx.fillStyle='#fff';ctx.fillRect(65,65,30,30);
-  ctx.fillStyle='#1B6FFF';ctx.fillRect(68,68,24,24);
-  ctx.fillStyle='#fff';ctx.font='bold 14px Inter';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText('M',80,81);
+  // Center logo — map pin (white background, blue pin with P)
+  const cx=80,cy=80,pr=18;
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,pr+2,0,Math.PI*2);ctx.fill();
+  // Pin body (teardrop)
+  ctx.fillStyle='#1a6fff';
+  ctx.beginPath();
+  ctx.arc(cx,cy-6,10,0,Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(cx-5,cy-2);ctx.lineTo(cx,cy+11);ctx.lineTo(cx+5,cy-2);
+  ctx.closePath();ctx.fill();
+  // White circle inside pin
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy-6,4.5,0,Math.PI*2);ctx.fill();
+  // "P" letter
+  ctx.fillStyle='#1a6fff';ctx.font='bold 6px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('P',cx,cy-6);
 }
 
 function downloadQR(){
