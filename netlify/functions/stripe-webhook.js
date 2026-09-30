@@ -132,9 +132,10 @@ async function handleCheckoutCompleted(session) {
   const permitResult = await sbInsert('permits', {
     property_id,
     user_id: userId || null,
-    email: tenant_email,
-    name: tenant_name,
+    holder_email: tenant_email,
+    holder_name: tenant_name,
     unit_number,
+    source: 'unit-self',
     invite_code,
     status: 'active',
     billing_status: 'active',
