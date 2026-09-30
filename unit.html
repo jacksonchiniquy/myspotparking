@@ -20,7 +20,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 /* ── NAV ── */
 .topnav{position:fixed;top:0;left:0;right:0;z-index:600;height:60px;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:0;}
 .tn-logo{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--text);}
-.tn-logo-mark{width:30px;height:30px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;box-shadow:0 2px 10px rgba(26,111,255,.4);}
+.tn-logo-mark{width:30px;height:30px;display:flex;align-items:center;justify-content:center;}
 .tn-logo-text{font-size:17px;font-weight:700;letter-spacing:-.03em;}
 .tn-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
 .tn-badge{background:var(--bluelight);border:1px solid rgba(26,111,255,.2);color:var(--blue);padding:3px 10px;border-radius:20px;font-size:11px;font-family:'JetBrains Mono',monospace;}
@@ -129,7 +129,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <!-- NAV -->
 <nav class="topnav">
   <a class="tn-logo" href="index.html">
-    <div class="tn-logo-mark">M</div>
+    <div class="tn-logo-mark"><svg width="30" height="30" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 2C12.477 2 8 6.477 8 12c0 7.5 10 22 10 22s10-14.5 10-22c0-5.523-4.477-10-10-10z" fill="#1a6fff"/><circle cx="18" cy="12" r="5.5" fill="white"/><text x="18" y="16" text-anchor="middle" font-family="'Bricolage Grotesque',sans-serif" font-weight="800" font-size="7" fill="#1a6fff">P</text></svg></div>
     <span class="tn-logo-text">My Spot Parking</span>
   </a>
   <div class="tn-right">
@@ -141,7 +141,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <!-- GATE: unit login -->
 <div id="gate">
   <div class="gate-card">
-    <div class="gate-badge">🏠 Unit Login</div>
+    <div class="gate-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="4"/><path d="M12 8h8"/><path d="M16 8v4"/><path d="M20 8v4"/></svg> Unit Login</div>
     <div class="gate-title">Resident Parking</div>
     <div class="gate-sub">Sign in with your unit number and password to manage your parking spot.</div>
     <div class="err-msg" id="gate-err"></div>

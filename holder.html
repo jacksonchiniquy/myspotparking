@@ -22,7 +22,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.35;}
 .topnav{position:fixed;top:0;left:0;right:0;z-index:600;height:60px;background:rgba(255,255,255,0.97);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:16px;}
 .tn-logo{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--text);}
-.tn-logo-mark{width:30px;height:30px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#000;box-shadow:0 2px 12px rgba(0,200,122,.45);}
+.tn-logo-mark{width:30px;height:30px;display:flex;align-items:center;justify-content:center;}
 .tn-logo-text{font-size:17px;font-weight:700;letter-spacing:-.03em;}
 .tn-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
 .tn-badge{background:rgba(0,200,122,.12);border:1px solid rgba(0,200,122,.22);color:var(--green);padding:3px 10px;border-radius:20px;font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.06em;}
@@ -180,7 +180,9 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   <div style="max-width:440px;width:92%;padding:20px;">
     <div style="text-align:center;margin-bottom:28px;">
       <div style="display:inline-flex;align-items:center;gap:10px;">
-        <div class="tn-logo-mark" style="width:36px;height:36px;font-size:18px;">P</div>
+        <div class="tn-logo-mark" style="width:36px;height:36px;">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 2C12.477 2 8 6.477 8 12c0 7.5 10 22 10 22s10-14.5 10-22c0-5.523-4.477-10-10-10z" fill="#1a6fff"/><circle cx="18" cy="12" r="5.5" fill="white"/><text x="18" y="16" text-anchor="middle" font-family="'Bricolage Grotesque',sans-serif" font-weight="800" font-size="7" fill="#1a6fff">P</text></svg>
+        </div>
         <span style="font-size:21px;font-weight:700;letter-spacing:-.03em;">My Spot Parking</span>
       </div>
     </div>
@@ -229,7 +231,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 <!-- ══ APP ══ -->
 <div id="app">
   <nav class="topnav">
-    <a class="tn-logo" href="index.html"><div class="tn-logo-mark">M</div><span class="tn-logo-text">My Spot Parking</span></a>
+    <a class="tn-logo" href="index.html"><div class="tn-logo-mark"><svg width="30" height="30" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 2C12.477 2 8 6.477 8 12c0 7.5 10 22 10 22s10-14.5 10-22c0-5.523-4.477-10-10-10z" fill="#1a6fff"/><circle cx="18" cy="12" r="5.5" fill="white"/><text x="18" y="16" text-anchor="middle" font-family="'Bricolage Grotesque',sans-serif" font-weight="800" font-size="7" fill="#1a6fff">P</text></svg></div><span class="tn-logo-text">My Spot Parking</span></a>
     <div class="tn-right">
       <div class="tn-sub-status inactive" id="sub-nav-status"><div class="tn-sub-dot" id="sub-nav-dot" style="background:var(--red)"></div><span id="sub-nav-label">No Subscription</span></div>
       <span class="tn-badge">Permit Holder</span>
