@@ -129,20 +129,21 @@ async function handleCheckoutCompleted(session) {
     ? null // subscription — no fixed expiry
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  const permitResult = await sbInsert('permits', {
+    const permitResult = await sbInsert('permits', {
     property_id,
-    user_id: userId || null,
+    holder_id: userId || null,
     holder_email: tenant_email,
     holder_name: tenant_name,
     unit_number,
-    source: 'unit-self',
     invite_code,
     status: 'active',
     billing_status: 'active',
     billing_interval: billing_interval || 'monthly',
     stripe_customer_id: session.customer,
     stripe_subscription_id: session.subscription || null,
-    expires_at: expiresAt,
+    end_date: expiresAt,
+    source: 'unit-self',
+    plan: 'monthly',
   });
   if (!Array.isArray(permitResult)) {
     console.error('Permit insert failed:', JSON.stringify(permitResult));
