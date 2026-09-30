@@ -147,7 +147,7 @@ async function handleCheckoutCompleted(session) {
     console.error('Permit insert failed:', JSON.stringify(permitResult));
     throw new Error(`Permit insert failed: ${JSON.stringify(permitResult)}`);
   }
-  const permit = permitResult[0];});
+  const permit = permitResult[0];
 
   // 6. Look up property name for email
   const [property] = await sbSelect('properties', `id=eq.${property_id}&select=name,manager_email`);
