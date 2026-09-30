@@ -9,9 +9,10 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { send } = require('./send-email');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY; // service role key for server-side writes
 const SITE = process.env.SITE_URL || 'https://myspotparking.com';
 
+// ── Supabase helpers ─────────────────────────────────────────
 function sbHeaders() {
   return {
     'Content-Type': 'application/json',
@@ -46,6 +47,7 @@ async function sbUpdate(table, data, filters) {
   return res.json();
 }
 
+// ── Password generator ───────────────────────────────────────
 function generatePassword(length = 10) {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
   let pass = '';
@@ -55,6 +57,7 @@ function generatePassword(length = 10) {
   return pass;
 }
 
+// ── Stripe Customer Portal URL ───────────────────────────────
 async function getBillingPortalUrl(customerId) {
   try {
     const session = await stripe.billingPortal.sessions.create({
@@ -66,6 +69,8 @@ async function getBillingPortalUrl(customerId) {
     return `${SITE}/holder.html`;
   }
 }
+
+// ── Event handlers ───────────────────────────────────────────
 
 async function handleCheckoutCompleted(session) {
   const meta = session.metadata || {};
@@ -89,7 +94,7 @@ async function handleCheckoutCompleted(session) {
   // 2. Generate password
   const password = generatePassword();
 
-  // 3. Create Supabase auth user
+  // 3. Create or find Supabase auth user
   const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
     method: 'POST',
     headers: {
@@ -115,12 +120,12 @@ async function handleCheckoutCompleted(session) {
       name: tenant_name,
       role: 'holder',
       property_id,
-    }).catch(() => {});
+    }).catch(() => {}); // ignore if already exists
   }
 
   // 5. Create permit
   const expiresAt = session.subscription
-    ? null
+    ? null // subscription — no fixed expiry
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
   const permitResult = await sbInsert('permits', {
@@ -147,13 +152,13 @@ async function handleCheckoutCompleted(session) {
   const permit = permitResult[0];
 
   // 6. Look up property name for email
- const propertyResult = await sbSelect('properties', `id=eq.${property_id}&select=name,manager_email`);
-const property = Array.isArray(propertyResult) ? propertyResult[0] : null;
+  const propertyResult = await sbSelect('properties', `id=eq.${property_id}&select=name,manager_email`);
+  const property = Array.isArray(propertyResult) ? propertyResult[0] : null;
   const propertyName = property?.name || 'your property';
   const managerEmail = property?.manager_email;
 
-  // 7. Send welcome email to tenant
-    try {
+  // 7. Send welcome email to tenant (non-fatal)
+  try {
     await send({
       type: 'welcome',
       to: tenant_email,
@@ -169,25 +174,30 @@ const property = Array.isArray(propertyResult) ? propertyResult[0] : null;
     console.error('Welcome email failed (non-fatal):', emailErr.message);
   }
 
-  // 8. Alert manager
+  // 8. Alert manager (non-fatal)
   if (managerEmail) {
-    await send({
-      type: 'manager_alert',
-      to: managerEmail,
-      data: {
-        eventType: 'new_signup',
-        tenantName: tenant_name,
-        tenantEmail: tenant_email,
-        propertyName,
-        unitNumber: unit_number,
-      },
-    });
+    try {
+      await send({
+        type: 'manager_alert',
+        to: managerEmail,
+        data: {
+          eventType: 'new_signup',
+          tenantName: tenant_name,
+          tenantEmail: tenant_email,
+          propertyName,
+          unitNumber: unit_number,
+        },
+      });
+    } catch (emailErr) {
+      console.error('Manager alert email failed (non-fatal):', emailErr.message);
+    }
   }
 
   console.log(`Permit created for ${tenant_email} at ${propertyName} Unit ${unit_number}`);
 }
 
 async function handleInvoicePaid(invoice) {
+  const customerId = invoice.customer;
   const subscriptionId = invoice.subscription;
   if (!subscriptionId) return;
 
@@ -220,30 +230,38 @@ async function handlePaymentFailed(invoice) {
   const portalUrl = await getBillingPortalUrl(customerId);
 
   if (permit.holder_email) {
-    await send({
-      type: 'payment_failed',
-      to: permit.holder_email,
-      data: {
-        name: permit.holder_name || 'Resident',
-        email: permit.holder_email,
-        propertyName,
-        portalUrl,
-      },
-    });
+    try {
+      await send({
+        type: 'payment_failed',
+        to: permit.holder_email,
+        data: {
+          name: permit.holder_name || 'Resident',
+          email: permit.holder_email,
+          propertyName,
+          portalUrl,
+        },
+      });
+    } catch (emailErr) {
+      console.error('Payment failed email error (non-fatal):', emailErr.message);
+    }
   }
 
   if (property?.manager_email) {
-    await send({
-      type: 'manager_alert',
-      to: property.manager_email,
-      data: {
-        eventType: 'payment_failed',
-        tenantName: permit.holder_name || permit.holder_email,
-        tenantEmail: permit.holder_email,
-        propertyName,
-        unitNumber: permit.unit_number || '—',
-      },
-    });
+    try {
+      await send({
+        type: 'manager_alert',
+        to: property.manager_email,
+        data: {
+          eventType: 'payment_failed',
+          tenantName: permit.holder_name || permit.holder_email,
+          tenantEmail: permit.holder_email,
+          propertyName,
+          unitNumber: permit.unit_number || '—',
+        },
+      });
+    } catch (emailErr) {
+      console.error('Manager alert email error (non-fatal):', emailErr.message);
+    }
   }
 }
 
@@ -260,32 +278,41 @@ async function handleSubscriptionDeleted(subscription) {
   const propertyName = property?.name || 'your property';
 
   if (permit.holder_email) {
-    await send({
-      type: 'suspended',
-      to: permit.holder_email,
-      data: {
-        name: permit.holder_name || 'Resident',
-        propertyName,
-        unitNumber: permit.unit_number || '—',
-      },
-    });
+    try {
+      await send({
+        type: 'suspended',
+        to: permit.holder_email,
+        data: {
+          name: permit.holder_name || 'Resident',
+          propertyName,
+          unitNumber: permit.unit_number || '—',
+        },
+      });
+    } catch (emailErr) {
+      console.error('Suspension email error (non-fatal):', emailErr.message);
+    }
   }
 
   if (property?.manager_email) {
-    await send({
-      type: 'manager_alert',
-      to: property.manager_email,
-      data: {
-        eventType: 'permit_suspended',
-        tenantName: permit.holder_name || permit.holder_email,
-        tenantEmail: permit.holder_email,
-        propertyName,
-        unitNumber: permit.unit_number || '—',
-      },
-    });
+    try {
+      await send({
+        type: 'manager_alert',
+        to: property.manager_email,
+        data: {
+          eventType: 'permit_suspended',
+          tenantName: permit.holder_name || permit.holder_email,
+          tenantEmail: permit.holder_email,
+          propertyName,
+          unitNumber: permit.unit_number || '—',
+        },
+      });
+    } catch (emailErr) {
+      console.error('Manager alert email error (non-fatal):', emailErr.message);
+    }
   }
 }
 
+// ── Main handler ─────────────────────────────────────────────
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method not allowed' };
