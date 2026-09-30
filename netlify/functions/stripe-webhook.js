@@ -225,7 +225,8 @@ async function handlePaymentFailed(invoice) {
   const permit = permits?.[0];
   if (!permit) return;
 
-  const [property] = await sbSelect('properties', `id=eq.${permit.property_id}&select=name,manager_email`);
+  const propertyResult2 = await sbSelect('properties', `id=eq.${permit.property_id}&select=name,manager_email`);
+  const property = Array.isArray(propertyResult2) ? propertyResult2[0] : null;
   const propertyName = property?.name || 'your property';
   const portalUrl = await getBillingPortalUrl(customerId);
 
@@ -274,7 +275,8 @@ async function handleSubscriptionDeleted(subscription) {
   const permit = permits?.[0];
   if (!permit) return;
 
-  const [property] = await sbSelect('properties', `id=eq.${permit.property_id}&select=name,manager_email`);
+  const propertyResult3 = await sbSelect('properties', `id=eq.${permit.property_id}&select=name,manager_email`);
+  const property = Array.isArray(propertyResult3) ? propertyResult3[0] : null;
   const propertyName = property?.name || 'your property';
 
   if (permit.holder_email) {
