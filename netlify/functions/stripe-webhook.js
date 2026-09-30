@@ -129,7 +129,7 @@ async function handleCheckoutCompleted(session) {
     ? null // subscription — no fixed expiry
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [permit] = await sbInsert('permits', {
+  const permitResult = await sbInsert('permits', {
     property_id,
     user_id: userId || null,
     email: tenant_email,
@@ -143,6 +143,11 @@ async function handleCheckoutCompleted(session) {
     stripe_subscription_id: session.subscription || null,
     expires_at: expiresAt,
   });
+  if (!Array.isArray(permitResult)) {
+    console.error('Permit insert failed:', JSON.stringify(permitResult));
+    throw new Error(`Permit insert failed: ${JSON.stringify(permitResult)}`);
+  }
+  const permit = permitResult[0];});
 
   // 6. Look up property name for email
   const [property] = await sbSelect('properties', `id=eq.${property_id}&select=name,manager_email`);
