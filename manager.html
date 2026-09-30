@@ -852,6 +852,10 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         <div id="ip-color-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:200;max-height:180px;overflow-y:auto;"></div>
       </div>
     </div>
+    <div class="form-group">
+      <label class="form-label">Last 6 of VIN <span style="color:var(--text3);font-weight:400;">(optional — helps enforce when plate is misread)</span></label>
+      <input class="form-input" id="ip-vin" type="text" placeholder="A1B2C3" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+    </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Property *</label><select class="form-select" id="ip-property" onchange="onPermitPropertyChange(this.value)"></select></div>
       <div class="form-group"><label class="form-label">Zone</label><input class="form-input" id="ip-zone" type="text" placeholder="A"></div>
@@ -1806,6 +1810,7 @@ async function issuePermit(){
   const year=document.getElementById('ip-year')?.value.trim()||'';
   const color=document.getElementById('ip-color')?.value.trim()||'';
   const state=document.getElementById('ip-state')?.value||'';
+  const vinLast6=document.getElementById('ip-vin')?.value.trim()||'';
   const vehicleStr=[year,make,model,color].filter(Boolean).join(' ');
   const {error}=await sb.from('permits').insert({
     property_id:propId,
@@ -1816,6 +1821,7 @@ async function issuePermit(){
     vehicle_model:model||null,
     vehicle_year:year||null,
     vehicle_color:color||null,
+    vin_last6:vinLast6||null,
     permit_type:type,
     zone:document.getElementById('ip-zone').value,
     unit_number:document.getElementById('ip-unit').value,
@@ -1831,6 +1837,7 @@ async function issuePermit(){
   });
   btn.disabled=false;btn.textContent=isSelf?'Issue Internal Permit':'Issue & Assign Permit';
   if(error){err.textContent=error.message;err.classList.add('show');return;}
+  const vinEl=document.getElementById('ip-vin');if(vinEl)vinEl.value='';
   closeModal('modal-issue-permit');
   await loadPermits();
   const msg=isSelf

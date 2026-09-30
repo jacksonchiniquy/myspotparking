@@ -105,7 +105,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   <div style="max-width:440px;width:90%;padding:20px;">
     <div style="text-align:center;margin-bottom:36px;">
       <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;">
-        <div class="logo-mark" style="width:36px;height:36px;font-size:18px;">P</div>
+        <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 2C12.477 2 8 6.477 8 12c0 7.5 10 22 10 22s10-14.5 10-22c0-5.523-4.477-10-10-10z" fill="#1a6fff"/><circle cx="18" cy="12" r="5.5" fill="white"/><text x="18" y="16" text-anchor="middle" font-family="'Bricolage Grotesque',sans-serif" font-weight="800" font-size="7" fill="#1a6fff">P</text></svg></div>
         <span style="font-size:20px;font-weight:700;letter-spacing:-.03em;">My Spot Parking</span>
       </div>
     </div>
@@ -156,7 +156,10 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
 <div id="dashboard">
   <nav class="nav">
-    <a class="nav-logo" href="index.html"><div class="logo-mark">M</div><span class="logo-text">My Spot Parking</span></a>
+    <a class="nav-logo" href="index.html">
+    <div style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><svg width="30" height="30" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 2C12.477 2 8 6.477 8 12c0 7.5 10 22 10 22s10-14.5 10-22c0-5.523-4.477-10-10-10z" fill="#1a6fff"/><circle cx="18" cy="12" r="5.5" fill="white"/><text x="18" y="16" text-anchor="middle" font-family="'Bricolage Grotesque',sans-serif" font-weight="800" font-size="7" fill="#1a6fff">P</text></svg></div>
+    <span class="logo-text">My Spot Parking</span>
+  </a>
     <div style="display:flex;align-items:center;gap:12px;">
       <div id="patrol-status" style="display:flex;align-items:center;gap:8px;background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.2);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--amber);cursor:pointer;" onclick="togglePatrol()">
         <span id="patrol-dot" style="width:8px;height:8px;border-radius:50%;background:var(--amber);"></span>
@@ -446,6 +449,7 @@ async function lookupPlate(){
           <div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:4px;">Permit Type</div><div style="font-size:13px;font-weight:600;">${permit.permit_type||'Resident'}</div></div>
           <div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:4px;">Expires</div><div style="font-size:13px;font-weight:600;">${permit.end_date||'—'}</div></div>
         </div>
+        ${permit.vin_last6?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,200,122,.2);display:flex;align-items:center;gap:8px;"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);">VIN (last 6)</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;letter-spacing:.08em;">${permit.vin_last6}</span></div>`:''}
       </div>`;
 
   } else if(sessionsRes.data&&sessionsRes.data.length>0){

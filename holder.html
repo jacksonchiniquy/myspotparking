@@ -432,6 +432,11 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
       <div class="form-group"><label class="form-label">Year</label><input class="form-input" id="av-year" type="text" placeholder="2023" maxlength="4"></div>
       <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="av-color" type="text" placeholder="Pearl White"></div>
     </div>
+    <div class="form-group">
+      <label class="form-label">Last 6 of VIN <span style="color:var(--text3);font-weight:400;">(optional but recommended)</span></label>
+      <input class="form-input" id="av-vin" type="text" placeholder="A1B2C3" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;">Found on your dashboard, door frame, or registration. Helps verify your permit if your plate is misread.</div>
+    </div>
     <div id="av-set-active-wrap" style="margin-bottom:16px;">
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
         <input type="checkbox" id="av-set-active" style="width:16px;height:16px;accent-color:var(--green);">
@@ -966,6 +971,7 @@ function openAddVehicleModal(){
   document.getElementById('av-year').value='';
   document.getElementById('av-color').value='';
   document.getElementById('av-set-active').checked=unitVehicles.length===0; // auto-set active if first vehicle
+  const vinEl=document.getElementById('av-vin');if(vinEl)vinEl.value='';
   document.getElementById('av-modal-title').textContent='🚗 Add Vehicle';
   document.getElementById('av-modal-sub').textContent=targetPermit
     ?`Add a vehicle to Unit ${targetPermit.unit_number||''} permit`
@@ -988,6 +994,7 @@ function openEditVehicle(vehicleId){
   document.getElementById('av-model').value=v.model||'';
   document.getElementById('av-year').value=v.year||'';
   document.getElementById('av-color').value=v.color||'';
+  const vinEditEl=document.getElementById('av-vin');if(vinEditEl)vinEditEl.value=v.vin_last6||'';
   document.getElementById('av-set-active').checked=v.is_active;
   document.getElementById('av-modal-title').textContent='✏️ Edit Vehicle';
   document.getElementById('av-modal-sub').textContent='Update vehicle details';
@@ -1006,6 +1013,7 @@ async function saveUnitVehicle(){
   const year=g('av-year');
   const color=g('av-color');
   const state=g('av-state');
+  const vinLast6=document.getElementById('av-vin')?.value.trim()||'';
   const setActive=document.getElementById('av-set-active').checked;
   const err=document.getElementById('av-err');
   const btn=document.getElementById('av-btn');
@@ -1017,7 +1025,7 @@ async function saveUnitVehicle(){
   try {
     if(editId){
       // Update existing
-      const updates={plate,make,model,year,color,state,updated_at:new Date().toISOString()};
+      const updates={plate,make,model,year,color,state,vin_last6:vinLast6||null,updated_at:new Date().toISOString()};
       if(setActive){
         // Clear other active vehicles first
         await sb.from('vehicles').update({is_active:false}).eq('permit_id',permitId).neq('id',editId);
@@ -1033,7 +1041,7 @@ async function saveUnitVehicle(){
         await sb.from('vehicles').update({is_active:false}).eq('permit_id',permitId);
       }
       const {error}=await sb.from('vehicles').insert({
-        permit_id:permitId,plate,make,model,year,color,state,
+        permit_id:permitId,plate,make,model,year,color,state,vin_last6:vinLast6||null,
         is_active:setActive,created_at:new Date().toISOString(),updated_at:new Date().toISOString()
       });
       if(error) throw error;

@@ -352,7 +352,7 @@ async function startPayment(){
         rateName:selectedRate.name,
         amount:selectedRate.amount,
         durationMinutes:selectedRate.minutes,
-        successUrl:window.location.origin+window.location.pathname+'?lot='+propId+'&session_id={CHECKOUT_SESSION_ID}',
+        successUrl:window.location.origin+window.location.pathname+'?lot='+(currentProperty.id)+'&session_id={CHECKOUT_SESSION_ID}',
         cancelUrl:window.location.href
       })
     });
@@ -370,7 +370,11 @@ async function startPayment(){
     window.location.href=data.url;
 
   } catch(e){
-    err.textContent='Something went wrong. Please try again.';
+    console.error('Payment error:',e);
+    const isNetworkErr=e instanceof TypeError&&e.message.includes('fetch');
+    err.textContent=isNetworkErr
+      ? 'Payment service unavailable. Please contact the property manager.'
+      : 'Something went wrong. Please try again or contact support.';
     err.classList.add('show');
     btn.disabled=false;
     btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Pay & Park';

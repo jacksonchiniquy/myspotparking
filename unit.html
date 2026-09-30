@@ -38,6 +38,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 .form-input,.form-select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:9px;font-family:'Bricolage Grotesque',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;}
 .form-input:focus,.form-select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,111,255,.1);background:#fff;}
 .form-input::placeholder{color:var(--text3);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 18px;font-family:'Bricolage Grotesque',sans-serif;font-size:13.5px;font-weight:600;border-radius:9px;cursor:pointer;border:none;transition:all .2s;text-decoration:none;white-space:nowrap;}
 .btn-primary{background:var(--blue);color:#fff;box-shadow:0 3px 12px rgba(26,111,255,.35);}
 .btn-primary:hover{background:#0d5de0;transform:translateY(-1px);}
@@ -64,6 +65,32 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 .unit-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
 .upill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-family:'JetBrains Mono',monospace;background:var(--bluelight);border:1px solid rgba(26,111,255,.15);color:var(--blue);}
 
+/* ── MY VEHICLES ── */
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.section-title{font-size:15px;font-weight:700;letter-spacing:-.02em;}
+.mv-grid{display:grid;gap:10px;margin-bottom:24px;}
+.mv-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);position:relative;}
+.mv-card.active-on-slot{border-color:rgba(0,200,122,.4);background:rgba(0,200,122,.03);}
+.mv-icon{width:40px;height:40px;border-radius:10px;background:var(--bluelight);border:1px solid rgba(26,111,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mv-info{flex:1;min-width:0;}
+.mv-plate{font-size:15px;font-weight:800;letter-spacing:.08em;font-family:'JetBrains Mono',monospace;}
+.mv-desc{font-size:12px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mv-vin{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+.mv-active-badge{font-size:10px;font-family:'JetBrains Mono',monospace;background:rgba(0,200,122,.12);color:#007a4a;border:1px solid rgba(0,200,122,.25);border-radius:10px;padding:2px 7px;white-space:nowrap;}
+.mv-actions{display:flex;gap:6px;flex-shrink:0;}
+.mv-btn{background:none;border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:11px;font-family:'Bricolage Grotesque',sans-serif;font-weight:600;cursor:pointer;color:var(--text2);transition:all .2s;}
+.mv-btn:hover{border-color:var(--blue);color:var(--blue);}
+.mv-btn.del:hover{border-color:var(--red);color:var(--red);}
+.mv-empty{text-align:center;padding:32px;background:var(--surface);border:1px dashed var(--border);border-radius:12px;color:var(--text3);font-size:13px;margin-bottom:24px;}
+
+/* ── ADD VEHICLE FORM ── */
+.add-vehicle-form{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px;display:none;}
+.add-vehicle-form.open{display:block;}
+.add-vehicle-form .form-group{margin-bottom:12px;}
+.add-vehicle-form .form-input{font-size:13px;padding:9px 12px;}
+.add-vehicle-form .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.vin-hint{font-size:11px;color:var(--text3);margin-top:4px;}
+
 /* ── SLOT CARDS ── */
 .slots-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
 .slots-title{font-size:15px;font-weight:700;}
@@ -75,7 +102,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 .slot-card.type-reserved::before{background:linear-gradient(90deg,var(--amber),#fbbf24);}
 .slot-card.type-ev::before{background:linear-gradient(90deg,var(--green),#34d399);}
 .slot-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
-.slot-icon-wrap{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.slot-icon-wrap{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .slot-icon-wrap.type-garage{background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);}
 .slot-icon-wrap.type-open{background:var(--bluelight);border:1px solid rgba(26,111,255,.2);}
 .slot-icon-wrap.type-carport{background:rgba(8,145,178,.1);border:1px solid rgba(8,145,178,.2);}
@@ -93,17 +120,24 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 .vc-label{font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:8px;}
 .vc-plate{font-size:22px;font-weight:800;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;margin-bottom:4px;}
 .vc-desc{font-size:13px;color:var(--text2);}
+.vc-vin{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:3px;}
 .vc-expire{font-size:11px;color:var(--text3);margin-top:4px;}
 
 .vehicle-empty{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;text-align:center;}
-.ve-icon{font-size:28px;margin-bottom:6px;}
 .ve-text{font-size:13px;color:var(--text3);}
 
-/* ── SWAP FORM ── */
-.swap-form{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;display:none;}
-.swap-form.open{display:block;}
-.swap-form .form-group{margin-bottom:12px;}
-.swap-form .form-input{font-size:13px;padding:9px 12px;}
+/* ── VEHICLE PICKER ── */
+.vehicle-picker{display:none;}
+.vehicle-picker.open{display:block;}
+.picker-label{font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;}
+.picker-grid{display:grid;gap:8px;margin-bottom:12px;}
+.picker-card{background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px;}
+.picker-card:hover{border-color:var(--blue);background:var(--bluelight);}
+.picker-card.selected{border-color:var(--blue);background:var(--bluelight);}
+.picker-card-plate{font-size:14px;font-weight:800;letter-spacing:.08em;font-family:'JetBrains Mono',monospace;}
+.picker-card-desc{font-size:12px;color:var(--text2);margin-top:1px;}
+.picker-card-vin{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.picker-no-vehicles{text-align:center;padding:20px;color:var(--text3);font-size:13px;background:var(--surface2);border:1px dashed var(--border);border-radius:10px;margin-bottom:12px;}
 .disclaimer-box{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:12px 14px;margin-bottom:12px;}
 .disclaimer-text{font-size:12px;color:#92400e;line-height:1.5;margin-bottom:8px;}
 .disclaimer-check{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text2);cursor:pointer;}
@@ -121,6 +155,16 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,0.45);backdrop-filter:blur(4px);z-index:800;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;width:100%;max-width:460px;box-shadow:0 24px 80px rgba(15,23,42,0.18);}
+.modal-title{font-size:18px;font-weight:800;letter-spacing:-.03em;margin-bottom:4px;}
+.modal-sub{font-size:13px;color:var(--text2);margin-bottom:20px;}
+.modal-actions{display:flex;gap:8px;margin-top:20px;}
+.modal .form-group{margin-bottom:12px;}
+.modal .form-input{font-size:13px;padding:9px 12px;}
+
 @media(max-width:600px){.app-wrap{padding:20px 14px 60px;}.unit-header{padding:18px;}.slot-card{padding:16px;}.form-row{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -128,7 +172,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
 <!-- NAV -->
 <nav class="topnav">
-  <a class="tn-logo" href="index.html">
+  <a class="tn-logo" href="#" onclick="return false;">
     <div class="tn-logo-mark"><svg width="30" height="30" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 2C12.477 2 8 6.477 8 12c0 7.5 10 22 10 22s10-14.5 10-22c0-5.523-4.477-10-10-10z" fill="#1a6fff"/><circle cx="18" cy="12" r="5.5" fill="white"/><text x="18" y="16" text-anchor="middle" font-family="'Bricolage Grotesque',sans-serif" font-weight="800" font-size="7" fill="#1a6fff">P</text></svg></div>
     <span class="tn-logo-text">My Spot Parking</span>
   </a>
@@ -185,11 +229,104 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         <div class="unit-pills" id="uh-pills"></div>
       </div>
 
-      <!-- Slots -->
-      <div class="slots-head">
+      <!-- MY VEHICLES -->
+      <div class="section-head">
+        <div class="section-title">My Vehicles</div>
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px;" onclick="openAddVehicle()">+ Add Vehicle</button>
+      </div>
+
+      <!-- Add vehicle form -->
+      <div class="add-vehicle-form" id="add-vehicle-form">
+        <div style="font-size:14px;font-weight:700;margin-bottom:14px;">Add a Vehicle</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">License Plate *</label>
+            <input class="form-input" id="av-plate" type="text" placeholder="TXK-4821" maxlength="10" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9\-]/g,'')">
+          </div>
+          <div class="form-group">
+            <label class="form-label">State / Region</label>
+            <select class="form-select" id="av-state">
+              <option value="">— State —</option>
+              <option>AL</option><option>AK</option><option>AZ</option><option>AR</option><option>CA</option><option>CO</option><option>CT</option><option>DE</option><option>FL</option><option>GA</option><option>HI</option><option>ID</option><option>IL</option><option>IN</option><option>IA</option><option>KS</option><option>KY</option><option>LA</option><option>ME</option><option>MD</option><option>MA</option><option>MI</option><option>MN</option><option>MS</option><option>MO</option><option>MT</option><option>NE</option><option>NV</option><option>NH</option><option>NJ</option><option>NM</option><option>NY</option><option>NC</option><option>ND</option><option>OH</option><option>OK</option><option>OR</option><option>PA</option><option>RI</option><option>SC</option><option>SD</option><option>TN</option><option>TX</option><option>UT</option><option>VT</option><option>VA</option><option>WA</option><option>WV</option><option>WI</option><option>WY</option><option>DC</option><option>PR</option><option>GU</option><option>VI</option><option>AS</option><option>MP</option><option>Canada</option><option>Mexico</option><option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Make</label>
+            <input class="form-input" id="av-make" type="text" placeholder="Toyota">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Model</label>
+            <input class="form-input" id="av-model" type="text" placeholder="Camry">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Year</label>
+            <input class="form-input" id="av-year" type="text" placeholder="2022" maxlength="4">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Color</label>
+            <input class="form-input" id="av-color" type="text" placeholder="Silver">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last 6 of VIN <span style="color:var(--text3);font-weight:400;">(optional but recommended)</span></label>
+          <input class="form-input" id="av-vin" type="text" placeholder="A1B2C3" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+          <div class="vin-hint">Found on your dashboard, door frame, or registration. Helps enforcement verify your permit if a plate is misread.</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" onclick="saveNewVehicle()">Save Vehicle</button>
+          <button class="btn btn-ghost" onclick="closeAddVehicle()">Cancel</button>
+        </div>
+      </div>
+
+      <div id="my-vehicles-list"></div>
+
+      <!-- PARKING SLOTS -->
+      <div class="slots-head" style="margin-top:8px;">
         <div class="slots-title">Your Parking Slots</div>
       </div>
       <div id="slots-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Vehicle Modal -->
+<div class="modal-bg" id="modal-edit-vehicle">
+  <div class="modal">
+    <div class="modal-title">Edit Vehicle</div>
+    <div class="modal-sub">Update your vehicle details.</div>
+    <input type="hidden" id="ev-id">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">License Plate *</label>
+        <input class="form-input" id="ev-plate" type="text" maxlength="10" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9\-]/g,'')">
+      </div>
+      <div class="form-group">
+        <label class="form-label">State / Region</label>
+        <select class="form-select" id="ev-state">
+          <option value="">— State —</option>
+          <option>AL</option><option>AK</option><option>AZ</option><option>AR</option><option>CA</option><option>CO</option><option>CT</option><option>DE</option><option>FL</option><option>GA</option><option>HI</option><option>ID</option><option>IL</option><option>IN</option><option>IA</option><option>KS</option><option>KY</option><option>LA</option><option>ME</option><option>MD</option><option>MA</option><option>MI</option><option>MN</option><option>MS</option><option>MO</option><option>MT</option><option>NE</option><option>NV</option><option>NH</option><option>NJ</option><option>NM</option><option>NY</option><option>NC</option><option>ND</option><option>OH</option><option>OK</option><option>OR</option><option>PA</option><option>RI</option><option>SC</option><option>SD</option><option>TN</option><option>TX</option><option>UT</option><option>VT</option><option>VA</option><option>WA</option><option>WV</option><option>WI</option><option>WY</option><option>DC</option><option>PR</option><option>GU</option><option>VI</option><option>AS</option><option>MP</option><option>Canada</option><option>Mexico</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Make</label><input class="form-input" id="ev-make" type="text"></div>
+      <div class="form-group"><label class="form-label">Model</label><input class="form-input" id="ev-model" type="text"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Year</label><input class="form-input" id="ev-year" type="text" maxlength="4"></div>
+      <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="ev-color" type="text"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Last 6 of VIN</label>
+      <input class="form-input" id="ev-vin" type="text" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveEditVehicle()">Save Changes</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-edit-vehicle')">Cancel</button>
     </div>
   </div>
 </div>
@@ -201,24 +338,19 @@ const SUPABASE_URL='https://ajadbfojccztiauxyxos.supabase.co';
 const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYWRiZm9qY2N6dGlhdXh5eG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTU1NDcsImV4cCI6MjA5MjM3MTU0N30.dHMc-kGb0YFHnTfxnwGYfikmKZBLPzS5lfe6SyRsguU';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
 
-let session=null; // {propertyId, propertyName, unitNumber}
+let session=null;
 let unitSlots=[];
 let unitPermits={};
+let myVehicles=[];
 
 // ── BOOT ──
 async function boot(){
-  // Check sessionStorage for existing session
   const saved=sessionStorage.getItem('unit_session');
   if(saved){
-    try{
-      session=JSON.parse(saved);
-      showApp();
-      return;
-    }catch(e){sessionStorage.removeItem('unit_session');}
+    try{session=JSON.parse(saved);showApp();return;}
+    catch(e){sessionStorage.removeItem('unit_session');}
   }
-  // Load properties for dropdown
   await loadPropertyDropdown();
-  // Check URL params (?property=ID&unit=A-102)
   const params=new URLSearchParams(window.location.search);
   const pId=params.get('property')||params.get('lot');
   const uNum=params.get('unit');
@@ -241,42 +373,25 @@ async function doLogin(){
   const err=document.getElementById('gate-err');
   const btn=document.getElementById('gate-btn');
   err.classList.remove('show');
-
   if(!propertyId){err.textContent='Please select your property.';err.classList.add('show');return;}
   if(!unitNumber){err.textContent='Please enter your unit number.';err.classList.add('show');return;}
   if(!password){err.textContent='Please enter your password.';err.classList.add('show');return;}
-
   btn.disabled=true;btn.textContent='Signing in…';
-
-  // Look up any slot for this unit + property — check password on first match
-  const {data:slots,error}=await sb
-    .from('property_units')
-    .select('*')
-    .eq('property_id',propertyId)
-    .eq('unit_number',unitNumber)
-    .limit(1);
-
+  const {data:slots,error}=await sb.from('property_units').select('*').eq('property_id',propertyId).eq('unit_number',unitNumber).limit(1);
   if(error||!slots||!slots.length){
     err.textContent='Unit not found for this property. Contact your property manager.';
     err.classList.add('show');btn.disabled=false;btn.textContent='Sign In →';return;
   }
-
   const slot=slots[0];
   if(!slot.unit_password){
     err.textContent='No password set for this unit. Contact your property manager.';
     err.classList.add('show');btn.disabled=false;btn.textContent='Sign In →';return;
   }
-
-  // Simple plaintext comparison (Option A — manager shares password)
-  // For production, consider bcrypt via a Netlify function
   if(slot.unit_password!==password){
     err.textContent='Incorrect password. Check with your property manager.';
     err.classList.add('show');btn.disabled=false;btn.textContent='Sign In →';return;
   }
-
-  // Get property name
   const {data:prop}=await sb.from('properties').select('name').eq('id',propertyId).single();
-
   session={propertyId,unitNumber,propertyName:prop?.name||'Property'};
   sessionStorage.setItem('unit_session',JSON.stringify(session));
   btn.disabled=false;btn.textContent='Sign In →';
@@ -307,31 +422,29 @@ async function loadUnitData(){
   document.getElementById('loading-screen').style.display='flex';
   document.getElementById('unit-header').style.display='none';
 
-  // Load all slots for this unit
-  const {data:slots}=await sb
-    .from('property_units')
-    .select('*')
-    .eq('property_id',session.propertyId)
-    .eq('unit_number',session.unitNumber)
-    .order('slot_label');
-
+  // Load slots
+  const {data:slots}=await sb.from('property_units').select('*').eq('property_id',session.propertyId).eq('unit_number',session.unitNumber).order('slot_label');
   unitSlots=slots||[];
 
-  // Load current unit_permits for these slots
+  // Load active unit_permits
   const slotIds=unitSlots.map(s=>s.id);
   let currentPermits={};
   if(slotIds.length){
-    const {data:ups}=await sb
-      .from('unit_permits')
-      .select('*')
-      .in('unit_slot_id',slotIds)
-      .is('void_at',null); // only non-voided
+    const {data:ups}=await sb.from('unit_permits').select('*').in('unit_slot_id',slotIds).is('void_at',null);
     (ups||[]).forEach(up=>{currentPermits[up.unit_slot_id]=up;});
   }
   unitPermits=currentPermits;
 
-  // Render
+  // Load My Vehicles for this unit
+  const {data:veh}=await sb.from('unit_vehicles')
+    .select('*')
+    .eq('property_id',session.propertyId)
+    .eq('unit_number',session.unitNumber)
+    .order('created_at');
+  myVehicles=veh||[];
+
   renderHeader();
+  renderMyVehicles();
   renderSlots();
 
   document.getElementById('loading-screen').style.display='none';
@@ -344,28 +457,141 @@ function renderHeader(){
   const garage=unitSlots.filter(s=>typeGroup(s.slot_type)==='garage').length;
   const open=unitSlots.filter(s=>typeGroup(s.slot_type)!=='garage').length;
   const pills=[];
-  if(garage) pills.push(`<span class="upill">🏗 ${garage} Garage${garage>1?'s':''}</span>`);
-  if(open)   pills.push(`<span class="upill">🅿️ ${open} Open Spot${open>1?'s':''}</span>`);
-  pills.push(`<span class="upill">🚗 ${unitSlots.length} Total Slot${unitSlots.length!==1?'s':''}</span>`);
+  if(garage) pills.push(`<span class="upill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 21V9h6v12"/><path d="M3 9h18"/></svg> ${garage} Garage${garage>1?'s':''}</span>`);
+  if(open)   pills.push(`<span class="upill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="11" rx="1"/><path d="M3 14h18"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg> ${open} Open Spot${open>1?'s':''}</span>`);
+  pills.push(`<span class="upill">${unitSlots.length} Total Slot${unitSlots.length!==1?'s':''}</span>`);
   document.getElementById('uh-pills').innerHTML=pills.join('');
 }
 
+// ── MY VEHICLES ──
+function renderMyVehicles(){
+  const list=document.getElementById('my-vehicles-list');
+
+  // Which plates are currently active on a slot?
+  const activePlates=new Set(Object.values(unitPermits).map(up=>up.plate));
+
+  if(!myVehicles.length){
+    list.innerHTML=`<div class="mv-empty">No vehicles saved yet. Add your first vehicle above to get started.</div>`;
+    return;
+  }
+
+  list.innerHTML=`<div class="mv-grid">${myVehicles.map(v=>{
+    const isActive=activePlates.has(v.plate);
+    const desc=[v.year,v.make,v.model,v.color].filter(Boolean).join(' ');
+    return `<div class="mv-card${isActive?' active-on-slot':''}">
+      <div class="mv-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a6fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M5 12h14"/></svg>
+      </div>
+      <div class="mv-info">
+        <div class="mv-plate">${v.plate}${v.plate_state?' <span style="font-weight:400;font-size:11px;color:var(--text3);">'+v.plate_state+'</span>':''}</div>
+        ${desc?`<div class="mv-desc">${desc}</div>`:''}
+        ${v.vin_last6?`<div class="mv-vin">VIN ···${v.vin_last6}</div>`:''}
+      </div>
+      <div class="mv-actions">
+        ${isActive?`<span class="mv-active-badge">Active</span>`:''}
+        <button class="mv-btn" onclick="openEditVehicle('${v.id}')">Edit</button>
+        <button class="mv-btn del" onclick="deleteVehicle('${v.id}','${v.plate}')">✕</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ── ADD VEHICLE ──
+function openAddVehicle(){
+  document.getElementById('add-vehicle-form').classList.add('open');
+  document.getElementById('av-plate').focus();
+}
+function closeAddVehicle(){
+  document.getElementById('add-vehicle-form').classList.remove('open');
+  ['av-plate','av-state','av-make','av-model','av-year','av-color','av-vin'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.value='';
+  });
+}
+async function saveNewVehicle(){
+  const plate=document.getElementById('av-plate').value.trim();
+  if(!plate){toast('Enter a license plate.');return;}
+  const payload={
+    property_id:session.propertyId,
+    unit_number:session.unitNumber,
+    plate,
+    plate_state:document.getElementById('av-state').value||null,
+    make:document.getElementById('av-make').value.trim()||null,
+    model:document.getElementById('av-model').value.trim()||null,
+    year:document.getElementById('av-year').value.trim()||null,
+    color:document.getElementById('av-color').value.trim()||null,
+    vin_last6:document.getElementById('av-vin').value.trim()||null
+  };
+  const {error}=await sb.from('unit_vehicles').insert(payload);
+  if(error){toast('Error: '+error.message);return;}
+  toast('Vehicle saved.');
+  closeAddVehicle();
+  await loadUnitData();
+}
+
+// ── EDIT VEHICLE ──
+function openEditVehicle(id){
+  const v=myVehicles.find(x=>x.id===id);
+  if(!v)return;
+  document.getElementById('ev-id').value=v.id;
+  document.getElementById('ev-plate').value=v.plate||'';
+  document.getElementById('ev-state').value=v.plate_state||'';
+  document.getElementById('ev-make').value=v.make||'';
+  document.getElementById('ev-model').value=v.model||'';
+  document.getElementById('ev-year').value=v.year||'';
+  document.getElementById('ev-color').value=v.color||'';
+  document.getElementById('ev-vin').value=v.vin_last6||'';
+  document.getElementById('modal-edit-vehicle').classList.add('open');
+}
+async function saveEditVehicle(){
+  const id=document.getElementById('ev-id').value;
+  const plate=document.getElementById('ev-plate').value.trim();
+  if(!plate){toast('Plate is required.');return;}
+  const {error}=await sb.from('unit_vehicles').update({
+    plate,
+    plate_state:document.getElementById('ev-state').value||null,
+    make:document.getElementById('ev-make').value.trim()||null,
+    model:document.getElementById('ev-model').value.trim()||null,
+    year:document.getElementById('ev-year').value.trim()||null,
+    color:document.getElementById('ev-color').value.trim()||null,
+    vin_last6:document.getElementById('ev-vin').value.trim()||null
+  }).eq('id',id);
+  if(error){toast('Error: '+error.message);return;}
+  toast('Vehicle updated.');
+  closeModal('modal-edit-vehicle');
+  await loadUnitData();
+}
+async function deleteVehicle(id,plate){
+  if(!confirm(`Remove ${plate} from My Vehicles?`))return;
+  const {error}=await sb.from('unit_vehicles').delete().eq('id',id);
+  if(error){toast('Error: '+error.message);return;}
+  toast(`${plate} removed.`);
+  await loadUnitData();
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ── SLOTS ──
 function typeGroup(slotType){
   if(slotType==='zone-garage') return 'garage';
   if(slotType==='zone-carport') return 'carport';
   return 'open';
 }
-
 function slotIcon(slotType){
-  const icons={'zone-garage':'🏗','zone-carport':'🏠','stall-ev':'⚡','stall-reserved':'⭐','stall-handicap':'♿','stall-guest':'🎟','stall-moto':'🏍'};
-  return icons[slotType]||'🅿️';
+  // Return SVG string
+  const svgs={
+    'zone-garage':'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 21V9h6v12"/><path d="M3 9h18"/></svg>',
+    'zone-carport':'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+    'stall-ev':'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
+    'stall-reserved':'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+    'stall-handicap':'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="2"/><path d="M9 9h6l1 5h3"/><path d="M10 22c-2.2 0-4-1.8-4-4s1.8-4 4-4h4"/></svg>'
+  };
+  return svgs[slotType]||'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="11" rx="1"/><path d="M3 14h18"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>';
 }
-
 function slotTypeLabel(slotType){
   const labels={'zone-garage':'Garage','zone-carport':'Carport','stall-standard':'Open Stall','stall-reserved':'Reserved Stall','stall-ev':'EV Charging','stall-handicap':'Handicap','stall-guest':'Guest','stall-moto':'Motorcycle'};
   return labels[slotType]||slotType;
 }
-
 function slotCssClass(slotType){
   if(slotType==='zone-garage') return 'type-garage';
   if(slotType==='zone-carport') return 'type-carport';
@@ -385,46 +611,52 @@ function renderSlots(){
     const up=unitPermits[slot.id];
     const isTenant=slot.managed_by==='tenant';
     const cssClass=slotCssClass(slot.slot_type);
-    const icon=slotIcon(slot.slot_type);
 
     const vehicleHtml=up
       ? `<div class="vehicle-current">
           <div class="vc-label">✓ Current Vehicle</div>
           <div class="vc-plate">${up.plate||'—'}</div>
           ${up.vehicle_desc?`<div class="vc-desc">${up.vehicle_desc}</div>`:''}
-          <div class="vc-expire">Assigned ${up.assigned_by==='manager'?'by manager':'by resident'} · ${fmt(up.created_at)}</div>
+          ${up.vin_last6?`<div class="vc-vin">VIN ···${up.vin_last6}</div>`:''}
+          <div class="vc-expire">Assigned ${up.assigned_by==='manager'?'by manager':'by you'} · ${fmt(up.created_at)}</div>
         </div>`
       : `<div class="vehicle-empty">
-          <div class="ve-icon">🅿️</div>
           <div class="ve-text">No vehicle currently assigned to this spot.</div>
         </div>`;
 
     const swapHtml=isTenant
-      ? `<div class="swap-form" id="swap-${slot.id}">
-          <div class="disclaimer-box">
-            <div class="disclaimer-text">⚠️ Swapping your vehicle will <strong>immediately void</strong> the current permit for this slot. The new vehicle will be assigned right away.</div>
+      ? `<div class="vehicle-picker" id="picker-${slot.id}">
+          <div class="picker-label">Select a vehicle to park here</div>
+          ${myVehicles.length
+            ? `<div class="picker-grid">${myVehicles.map(v=>{
+                const desc=[v.year,v.make,v.model,v.color].filter(Boolean).join(' ');
+                return `<div class="picker-card" id="pcard-${slot.id}-${v.id}" onclick="selectPickerVehicle('${slot.id}','${v.id}')">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a6fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M5 12h14"/></svg>
+                  <div>
+                    <div class="picker-card-plate">${v.plate}${v.plate_state?' <span style="font-weight:400;color:var(--text3);font-size:10px;">'+v.plate_state+'</span>':''}</div>
+                    ${desc?`<div class="picker-card-desc">${desc}</div>`:''}
+                    ${v.vin_last6?`<div class="picker-card-vin">VIN ···${v.vin_last6}</div>`:''}
+                  </div>
+                </div>`;
+              }).join('')}</div>`
+            : `<div class="picker-no-vehicles">Add a vehicle to "My Vehicles" above first, then you can assign it here.</div>`
+          }
+          ${myVehicles.length?`<div class="disclaimer-box">
+            <div class="disclaimer-text">⚠️ Selecting a new vehicle will <strong>immediately void</strong> the current permit for this slot.</div>
             <label class="disclaimer-check">
-              <input type="checkbox" id="disc-${slot.id}" onchange="checkSwapReady('${slot.id}')">
-              I understand my current permit will be voided immediately.
+              <input type="checkbox" id="disc-${slot.id}" onchange="checkPickerReady('${slot.id}')">
+              I understand the current permit will be voided.
             </label>
-          </div>
-          <div class="form-group">
-            <label class="form-label">New License Plate *</label>
-            <input class="form-input" id="swap-plate-${slot.id}" type="text" placeholder="e.g. TXK-4821" maxlength="10"
-              oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9\\-]/g,'');checkSwapReady('${slot.id}')">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Vehicle Description <span style="color:var(--text3);font-weight:400;">(optional)</span></label>
-            <input class="form-input" id="swap-desc-${slot.id}" type="text" placeholder="e.g. Silver Honda Civic">
-          </div>
+          </div>`:''}
           <div class="swap-actions">
-            <button class="btn btn-primary" id="swap-btn-${slot.id}" onclick="doSwap('${slot.id}')" disabled>Assign Vehicle →</button>
-            <button class="btn btn-ghost" onclick="closeSwap('${slot.id}')">Cancel</button>
+            <button class="btn btn-primary" id="swap-btn-${slot.id}" onclick="doSwap('${slot.id}')" disabled>Assign to This Spot →</button>
+            <button class="btn btn-ghost" onclick="closePicker('${slot.id}')">Cancel</button>
           </div>
         </div>
         <div style="display:flex;gap:8px;margin-top:4px;" id="swap-trigger-${slot.id}">
-          <button class="btn btn-ghost btn-sm" onclick="openSwap('${slot.id}')">
-            ${up?'🔄 Swap Vehicle':'➕ Assign Vehicle'}
+          <button class="btn btn-ghost" style="font-size:13px;" onclick="openPicker('${slot.id}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M5 12h14"/></svg>
+            ${up?'Swap Vehicle':'Assign Vehicle'}
           </button>
         </div>`
       : `<div class="locked-notice">
@@ -434,11 +666,11 @@ function renderSlots(){
 
     return `<div class="slot-card ${cssClass}" id="card-${slot.id}">
       <div class="slot-card-top">
-        <div class="slot-icon-wrap ${cssClass}">${icon}</div>
+        <div class="slot-icon-wrap ${cssClass}">${slotIcon(slot.slot_type)}</div>
         <div class="slot-meta">
           <div class="slot-label">${slot.slot_label}</div>
           <div class="slot-type-tag">${slotTypeLabel(slot.slot_type)}
-            <span class="slot-managed-tag ${slot.managed_by}">${slot.managed_by==='manager'?'🔒 Manager-Assigned':'✏️ Self-Service'}</span>
+            <span class="slot-managed-tag ${slot.managed_by}">${slot.managed_by==='manager'?'Manager-Assigned':'Self-Service'}</span>
           </div>
         </div>
       </div>
@@ -448,51 +680,67 @@ function renderSlots(){
   }).join('');
 }
 
-// ── SWAP ──
-function openSwap(slotId){
-  document.getElementById('swap-'+slotId).classList.add('open');
+// ── PICKER ──
+let pickerSelected={}; // slotId -> vehicleId
+
+function openPicker(slotId){
+  document.getElementById('picker-'+slotId).classList.add('open');
   document.getElementById('swap-trigger-'+slotId).style.display='none';
-  document.getElementById('swap-plate-'+slotId).focus();
+  pickerSelected[slotId]=null;
 }
-
-function closeSwap(slotId){
-  document.getElementById('swap-'+slotId).classList.remove('open');
+function closePicker(slotId){
+  document.getElementById('picker-'+slotId).classList.remove('open');
   document.getElementById('swap-trigger-'+slotId).style.display='flex';
-  document.getElementById('swap-plate-'+slotId).value='';
-  document.getElementById('swap-desc-'+slotId).value='';
-  document.getElementById('disc-'+slotId).checked=false;
-  document.getElementById('swap-btn-'+slotId).disabled=true;
-}
-
-function checkSwapReady(slotId){
-  const plate=document.getElementById('swap-plate-'+slotId).value.trim();
-  const disc=document.getElementById('disc-'+slotId).checked;
+  pickerSelected[slotId]=null;
+  // Clear selections
+  myVehicles.forEach(v=>{
+    const c=document.getElementById(`pcard-${slotId}-${v.id}`);
+    if(c) c.classList.remove('selected');
+  });
+  const disc=document.getElementById('disc-'+slotId);
+  if(disc) disc.checked=false;
   const btn=document.getElementById('swap-btn-'+slotId);
-  // If no current vehicle, disclaimer not needed
+  if(btn) btn.disabled=true;
+}
+function selectPickerVehicle(slotId,vehicleId){
+  pickerSelected[slotId]=vehicleId;
+  myVehicles.forEach(v=>{
+    const c=document.getElementById(`pcard-${slotId}-${v.id}`);
+    if(c) c.classList.toggle('selected',v.id===vehicleId);
+  });
+  checkPickerReady(slotId);
+}
+function checkPickerReady(slotId){
+  const hasSelection=!!pickerSelected[slotId];
   const hasCurrentVehicle=!!unitPermits[slotId];
-  btn.disabled=!(plate.length>=2&&(!hasCurrentVehicle||disc));
+  const discChecked=document.getElementById('disc-'+slotId)?.checked||false;
+  const btn=document.getElementById('swap-btn-'+slotId);
+  if(btn) btn.disabled=!(hasSelection&&(!hasCurrentVehicle||discChecked));
 }
 
 async function doSwap(slotId){
-  const plate=document.getElementById('swap-plate-'+slotId).value.trim();
-  const desc=document.getElementById('swap-desc-'+slotId).value.trim();
+  const vehicleId=pickerSelected[slotId];
+  if(!vehicleId){toast('Select a vehicle first.');return;}
+  const vehicle=myVehicles.find(v=>v.id===vehicleId);
+  if(!vehicle){toast('Vehicle not found.');return;}
+
   const btn=document.getElementById('swap-btn-'+slotId);
   btn.disabled=true;btn.textContent='Saving…';
 
-  // 1. Immediately void any existing unit_permit for this slot
+  // 1. Void existing unit_permit
   const existing=unitPermits[slotId];
   if(existing){
-    await sb.from('unit_permits')
-      .update({void_at:new Date().toISOString()})
-      .eq('id',existing.id);
-    // If the existing slot has a linked permit in the main permits table, revoke it
+    await sb.from('unit_permits').update({void_at:new Date().toISOString()}).eq('id',existing.id);
     if(existing.permit_id){
       await sb.from('permits').update({status:'revoked'}).eq('id',existing.permit_id);
     }
   }
 
-  // 2. Look up or create a permit in the permits table
-  // Find the property's active permit for this unit — if manager issued one, link it
+  // 2. Build vehicle description
+  const vehicleDesc=[vehicle.year,vehicle.make,vehicle.model,vehicle.color].filter(Boolean).join(' ');
+  const plate=vehicle.plate;
+
+  // 3. Look for an existing active permit for this unit to update, or create one
   const {data:existingPermit}=await sb.from('permits')
     .select('id')
     .eq('property_id',session.propertyId)
@@ -501,10 +749,19 @@ async function doSwap(slotId){
     .limit(1)
     .single();
 
-  // Update the existing permit's plate, or create a minimal one
   let permitId=null;
   if(existingPermit){
-    await sb.from('permits').update({plate,vehicle:desc||null,status:'active'}).eq('id',existingPermit.id);
+    await sb.from('permits').update({
+      plate,
+      plate_state:vehicle.plate_state||null,
+      vehicle:vehicleDesc||null,
+      vehicle_make:vehicle.make||null,
+      vehicle_model:vehicle.model||null,
+      vehicle_year:vehicle.year||null,
+      vehicle_color:vehicle.color||null,
+      vin_last6:vehicle.vin_last6||null,
+      status:'active'
+    }).eq('id',existingPermit.id);
     permitId=existingPermit.id;
   } else {
     const today=new Date().toISOString().split('T')[0];
@@ -513,7 +770,13 @@ async function doSwap(slotId){
       property_id:session.propertyId,
       unit_number:session.unitNumber,
       plate,
-      vehicle:desc||null,
+      plate_state:vehicle.plate_state||null,
+      vehicle:vehicleDesc||null,
+      vehicle_make:vehicle.make||null,
+      vehicle_model:vehicle.model||null,
+      vehicle_year:vehicle.year||null,
+      vehicle_color:vehicle.color||null,
+      vin_last6:vehicle.vin_last6||null,
       permit_type:'Resident — Monthly',
       status:'active',
       plan:'monthly',
@@ -524,24 +787,25 @@ async function doSwap(slotId){
     permitId=np?.id||null;
   }
 
-  // 3. Insert new unit_permit row
+  // 4. Insert new unit_permit row
   const {error}=await sb.from('unit_permits').insert({
     unit_slot_id:slotId,
     permit_id:permitId,
     plate,
-    vehicle_desc:desc||null,
+    vehicle_desc:vehicleDesc||null,
+    vin_last6:vehicle.vin_last6||null,
     assigned_by:'tenant'
   });
 
   if(error){
-    toast('❌ Error: '+error.message);
-    btn.disabled=false;btn.textContent='Assign Vehicle →';
+    toast('Error: '+error.message);
+    btn.disabled=false;btn.textContent='Assign to This Spot →';
     return;
   }
 
-  toast('✅ Vehicle assigned to '+plate);
-  closeSwap(slotId);
-  await loadUnitData(); // reload to refresh the display
+  toast('✅ '+plate+' assigned to this spot.');
+  closePicker(slotId);
+  await loadUnitData();
 }
 
 // ── UTILS ──
@@ -549,7 +813,6 @@ function fmt(iso){
   if(!iso)return'—';
   return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 }
-
 function toast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg;t.classList.add('show');
