@@ -33,7 +33,7 @@ async function sendViaSES({ to, subject, html, text }) {
 // ── Email templates ──────────────────────────────────────────
 
 function welcomeEmail({ name, email, password, propertyName, unitNumber, plate }) {
-  const loginUrl = `${SITE}/holder.html`;
+  const loginUrl = `${SITE}/unit.html`;
   return {
     subject: `Your parking permit is active — ${propertyName}`,
     html: `
@@ -45,18 +45,18 @@ function welcomeEmail({ name, email, password, propertyName, unitNumber, plate }
   <h2 style="margin:0 0 8px;">Welcome, ${name}!</h2>
   <p style="color:#475569;margin:0 0 24px;">Your parking permit for <strong>${propertyName}</strong> — Unit <strong>${unitNumber}</strong> is now active.</p>
   <div style="background:#f4f7ff;border-radius:10px;padding:20px;margin-bottom:24px;">
-    <div style="font-size:13px;color:#64748b;margin-bottom:4px;">LOGIN EMAIL</div>
-    <div style="font-size:16px;font-weight:600;font-family:monospace;">${email}</div>
+    <div style="font-size:13px;color:#64748b;margin-bottom:4px;">UNIT NUMBER</div>
+    <div style="font-size:16px;font-weight:600;font-family:monospace;">${unitNumber}</div>
     <div style="font-size:13px;color:#64748b;margin:12px 0 4px;">PASSWORD</div>
     <div style="font-size:22px;font-weight:700;font-family:monospace;letter-spacing:2px;color:#1a6fff;">${password}</div>
   </div>
   ${plate ? `<p style="color:#475569;margin:0 0 24px;">Active vehicle: <strong style="font-family:monospace;">${plate}</strong></p>` : ''}
   <a href="${loginUrl}" style="display:block;background:#1a6fff;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:600;font-size:15px;margin-bottom:24px;">Log In to Your Portal →</a>
-  <p style="color:#94a3b8;font-size:12px;">You can add or change your registered vehicles after logging in. Keep this email — it contains your login credentials.</p>
+  <p style="color:#94a3b8;font-size:12px;">Log in using your unit number and the password above. Keep this email — it contains your login credentials.</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
   <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc. · Provo, UT</p>
 </body></html>`,
-    text: `Welcome to My Spot Parking!\n\nProperty: ${propertyName}\nUnit: ${unitNumber}\n\nLogin: ${email}\nPassword: ${password}\n\nLog in at: ${loginUrl}`,
+    text: `Welcome to My Spot Parking!\n\nProperty: ${propertyName}\nUnit: ${unitNumber}\n\nUnit Number: ${unitNumber}\nPassword: ${password}\n\nLog in at: ${loginUrl}`,
   };
 }
 
