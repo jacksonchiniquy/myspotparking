@@ -116,6 +116,58 @@ function renewalReminderEmail({ name, propertyName, renewalDate, portalUrl }) {
   };
 }
 
+function inviteFlyerEmail({ email, propertyName, unitNumber, inviteCode, inviteLink }) {
+  return {
+    subject: `Your parking invite — ${propertyName} Unit ${unitNumber}`,
+    html: `
+<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;">
+  <div style="background:#1a6fff;border-radius:12px;padding:24px;text-align:center;margin-bottom:32px;">
+    <div style="font-size:32px;margin-bottom:8px;">🅿</div>
+    <div style="color:#fff;font-size:20px;font-weight:700;">My Spot Parking</div>
+  </div>
+  <h2 style="margin:0 0 8px;">You've been invited!</h2>
+  <p style="color:#475569;margin:0 0 24px;">Your property manager has set up a parking spot for you at <strong>${propertyName}</strong> — Unit <strong>${unitNumber}</strong>.</p>
+  <div style="background:#f4f7ff;border-radius:10px;padding:20px;margin-bottom:24px;text-align:center;">
+    <div style="font-size:13px;color:#64748b;margin-bottom:8px;">YOUR INVITE CODE</div>
+    <div style="font-size:28px;font-weight:800;font-family:monospace;letter-spacing:4px;color:#1a6fff;">${inviteCode}</div>
+  </div>
+  <p style="color:#475569;margin:0 0 16px;">Click below to set up your parking permit. It only takes a few minutes.</p>
+  <a href="${inviteLink}" style="display:block;background:#1a6fff;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:600;font-size:15px;margin-bottom:24px;">Set Up My Parking →</a>
+  <p style="color:#94a3b8;font-size:12px;">Or copy this link: ${inviteLink}</p>
+  <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc. · Provo, UT</p>
+</body></html>`,
+    text: `You've been invited to set up parking at ${propertyName} Unit ${unitNumber}.\n\nInvite Code: ${inviteCode}\n\nSign up here: ${inviteLink}`,
+  };
+}
+
+function passwordResetEmail({ name, password, propertyName, unitNumber }) {
+  const loginUrl = `${SITE}/unit.html`;
+  return {
+    subject: `Your new temporary password — ${propertyName}`,
+    html: `
+<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;">
+  <div style="background:#1a6fff;border-radius:12px;padding:24px;text-align:center;margin-bottom:32px;">
+    <div style="font-size:32px;margin-bottom:8px;">🔑</div>
+    <div style="color:#fff;font-size:20px;font-weight:700;">My Spot Parking</div>
+  </div>
+  <h2 style="margin:0 0 8px;">Password Reset</h2>
+  <p style="color:#475569;margin:0 0 24px;">Hi ${name}, here is your new temporary password for <strong>${propertyName}</strong> — Unit <strong>${unitNumber}</strong>.</p>
+  <div style="background:#f4f7ff;border-radius:10px;padding:20px;margin-bottom:24px;">
+    <div style="font-size:13px;color:#64748b;margin-bottom:4px;">UNIT NUMBER</div>
+    <div style="font-size:16px;font-weight:600;font-family:monospace;">${unitNumber}</div>
+    <div style="font-size:13px;color:#64748b;margin:12px 0 4px;">NEW TEMPORARY PASSWORD</div>
+    <div style="font-size:22px;font-weight:700;font-family:monospace;letter-spacing:2px;color:#1a6fff;">${password}</div>
+  </div>
+  <a href="${loginUrl}" style="display:block;background:#1a6fff;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:600;font-size:15px;margin-bottom:24px;">Log In to Your Portal →</a>
+  <p style="color:#94a3b8;font-size:12px;">Once logged in, go to ⚙ Account to set a permanent password. If you didn't request this reset, contact your property manager.</p>
+  <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc. · Provo, UT</p>
+</body></html>`,
+    text: `Password Reset\n\nHi ${name},\n\nYour new temporary password for ${propertyName} Unit ${unitNumber}:\n\nPassword: ${password}\n\nLog in at: ${loginUrl}\n\nSet a permanent password in Account Settings once logged in.`,
+  };
+}
+
 function managerAlertEmail({ managerEmail, eventType, tenantName, tenantEmail, propertyName, unitNumber }) {
   const titles = {
     payment_failed: '⚠️ Tenant Payment Failed',
@@ -158,6 +210,8 @@ exports.handler = async (event) => {
       case 'suspended':       template = permitSuspendedEmail(data); break;
       case 'renewal':         template = renewalReminderEmail(data); break;
       case 'manager_alert':   template = managerAlertEmail(data); break;
+      case 'invite_flyer':    template = inviteFlyerEmail(data); break;
+      case 'passwordReset':   template = passwordResetEmail(data); break;
       default:
         return { statusCode: 400, body: JSON.stringify({ error: 'Unknown email type: ' + type }) };
     }
@@ -180,6 +234,8 @@ exports.send = async ({ type, to, data }) => {
     case 'suspended':       template = permitSuspendedEmail(data); break;
     case 'renewal':         template = renewalReminderEmail(data); break;
     case 'manager_alert':   template = managerAlertEmail(data); break;
+    case 'invite_flyer':    template = inviteFlyerEmail(data); break;
+    case 'passwordReset':   template = passwordResetEmail(data); break;
     default: throw new Error('Unknown email type: ' + type);
   }
   return sendViaSES({ to, ...template });
