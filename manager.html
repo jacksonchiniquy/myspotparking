@@ -217,7 +217,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         <div class="tn-dropdown" id="dd-pmt" onclick="event.stopPropagation()">
           <div class="tn-dd-item" onclick="showPage('permits',document.getElementById('tab-pmt'));setIT('all');closeAllDD()"><div class="tn-dd-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg></div><div><div class="tn-dd-label">All Permits</div><div class="tn-dd-sub">Active, expired &amp; revoked</div></div></div>
           <div class="tn-dd-item" onclick="openModal('modal-issue-permit');closeAllDD()"><div class="tn-dd-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a6fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div><div class="tn-dd-label">Issue Permit</div><div class="tn-dd-sub">Create a new permit</div></div></div>
-          <div class="tn-dd-item" onclick="showPage('permits',document.getElementById('tab-pmt'));setIT('violations');closeAllDD()"><div class="tn-dd-icon">🚨</div><div><div class="tn-dd-label">Violations</div><div class="tn-dd-sub">Enforcement reports</div></div></div>
+          <div class="tn-dd-item" onclick="showPage('permits',document.getElementById('tab-pmt'));setIT('violations');closeAllDD()"><div class="tn-dd-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="tn-dd-label">Violations</div><div class="tn-dd-sub">Enforcement reports</div></div></div>
         </div>
       </button>
     </div>
@@ -294,7 +294,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       </div>
       <!-- Filter & Sort bar -->
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;">
-        <input class="search-bar" type="text" id="res-search" placeholder="🔍 Search name, email, unit, stall..." oninput="applyResidentFilters()" style="flex:1;min-width:200px;">
+        <input class="search-bar" type="text" id="res-search" placeholder="Search name, email, unit, stall..." oninput="applyResidentFilters()" style="flex:1;min-width:200px;">
         <div style="display:flex;align-items:center;gap:6px;">
           <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;white-space:nowrap;">PROPERTY</span>
           <select class="form-select" id="res-filter-property" onchange="applyResidentFilters()" style="font-size:12px;padding:6px 10px;width:auto;">
@@ -344,7 +344,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       </div>
       <!-- Filter & Sort bar -->
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;">
-        <input class="search-bar" type="text" id="permit-search" placeholder="🔍 Search plate, holder name..." oninput="applyPermitFilters()" style="flex:1;min-width:180px;">
+        <input class="search-bar" type="text" id="permit-search" placeholder="Search plate, holder name..." oninput="applyPermitFilters()" style="flex:1;min-width:180px;">
         <div style="display:flex;align-items:center;gap:6px;">
           <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;white-space:nowrap;">PROPERTY</span>
           <select class="form-select" id="permit-filter-property" onchange="applyPermitFilters()" style="font-size:12px;padding:6px 10px;width:auto;">
@@ -459,7 +459,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
             <!-- Mode toggle -->
             <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0;">
               <button id="mode-edit" class="lot-mode-btn active" onclick="setLotMode('edit')">Edit</button>
-              <button id="mode-view" class="lot-mode-btn" onclick="setLotMode('view')">👁 View</button>
+              <button id="mode-view" class="lot-mode-btn" onclick="setLotMode('view')">View</button>
             </div>
             <div style="width:1px;height:28px;background:var(--border);flex-shrink:0;"></div>
             <!-- Quantity -->
@@ -473,8 +473,8 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
             </div>
             <!-- Orientation -->
             <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0;" id="lot-orient-wrap">
-              <button id="orient-h" class="lot-mode-btn active" onclick="setOrient('horizontal')" title="Place side by side horizontally">⬌ Horizontal</button>
-              <button id="orient-v" class="lot-mode-btn" onclick="setOrient('vertical')" title="Place stacked vertically">⬍ Vertical</button>
+              <button id="orient-h" class="lot-mode-btn active" onclick="setOrient('horizontal')" title="Place side by side horizontally">Horizontal</button>
+              <button id="orient-v" class="lot-mode-btn" onclick="setOrient('vertical')" title="Place stacked vertically">Vertical</button>
             </div>
             <div style="width:1px;height:28px;background:var(--border);flex-shrink:0;"></div>
             <!-- Label style -->
@@ -505,33 +505,33 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
                 <button class="lot-mode-btn" onclick="lotZoom(0.1)" style="padding:5px 9px;font-size:14px;">+</button>
               </div>
             </div>
-            <button class="btn btn-ghost btn-sm" onclick="lotResetZoom()">⟳ Fit All</button>
+            <button class="btn btn-ghost btn-sm" onclick="lotResetZoom()">Fit All</button>
             <button class="btn btn-ghost btn-sm" onclick="clearLot()">Clear</button>
-            <button class="btn btn-ghost btn-sm" onclick="openModal('modal-lot-bg')" title="Set a satellite photo as the map background">🛰 Set Background</button>
-            <button class="btn btn-ghost btn-sm" onclick="openModal('modal-lot-import')" title="Upload a photo of your lot and let AI generate the layout">📷 Import from Image</button>
-            <button class="btn btn-ghost btn-sm" onclick="syncAllResidentsToMap()" title="Sync all residents' stall numbers to this map">👥 Sync Residents</button>
-            <button class="btn btn-primary btn-sm" id="lot-save-btn" onclick="saveLotLayout()">💾 Save Layout</button>
+            <button class="btn btn-ghost btn-sm" onclick="openModal('modal-lot-bg')" title="Set a satellite photo as the map background">Set Background</button>
+            <button class="btn btn-ghost btn-sm" onclick="openModal('modal-lot-import')" title="Upload a photo of your lot and let AI generate the layout">Import from Image</button>
+            <button class="btn btn-ghost btn-sm" onclick="syncAllResidentsToMap()" title="Sync all residents' stall numbers to this map">Sync Residents</button>
+            <button class="btn btn-primary btn-sm" id="lot-save-btn" onclick="saveLotLayout()">Save Layout</button>
           </div>
           <!-- Row 2: element palette -->
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;" id="lot-palette">
             <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;margin-right:2px;">Add:</span>
-            <button class="lot-add-btn" onclick="addElements('stall-standard')">🚗 Stall</button>
-            <button class="lot-add-btn" onclick="addElements('stall-reserved')">⭐ Reserved</button>
-            <button class="lot-add-btn" onclick="addElements('stall-handicap')">♿ Handicap</button>
-            <button class="lot-add-btn" onclick="addElements('stall-ev')">⚡ EV</button>
-            <button class="lot-add-btn" onclick="addElements('stall-guest')">🎟 Guest</button>
-            <button class="lot-add-btn" onclick="addElements('stall-moto')">🏍 Moto</button>
+            <button class="lot-add-btn" onclick="addElements('stall-standard')">Stall</button>
+            <button class="lot-add-btn" onclick="addElements('stall-reserved')">Reserved</button>
+            <button class="lot-add-btn" onclick="addElements('stall-handicap')">Handicap</button>
+            <button class="lot-add-btn" onclick="addElements('stall-ev')">EV</button>
+            <button class="lot-add-btn" onclick="addElements('stall-guest')">Guest</button>
+            <button class="lot-add-btn" onclick="addElements('stall-moto')">Moto</button>
             <div style="width:1px;height:20px;background:var(--border);"></div>
             <button class="lot-add-btn lot-add-zone" onclick="addElements('zone-carport')">Carport</button>
-            <button class="lot-add-btn lot-add-zone" onclick="addElements('zone-garage')">🏗 Garage</button>
-            <button class="lot-add-btn lot-add-zone" onclick="addElements('zone-yard')">🌿 Yard</button>
-            <button class="lot-add-btn lot-add-zone" onclick="addElements('zone-storage')">📦 Storage</button>
-            <button class="lot-add-btn lot-add-zone" onclick="addElements('zone-loading')">🚚 Loading</button>
-            <button class="lot-add-btn lot-add-zone" onclick="addElements('zone-firelane')">🚒 Fire Lane</button>
+            <button class="lot-add-btn lot-add-zone" onclick="addElements('zone-garage')">Garage</button>
+            <button class="lot-add-btn lot-add-zone" onclick="addElements('zone-yard')">Yard</button>
+            <button class="lot-add-btn lot-add-zone" onclick="addElements('zone-storage')">Storage</button>
+            <button class="lot-add-btn lot-add-zone" onclick="addElements('zone-loading')">Loading</button>
+            <button class="lot-add-btn lot-add-zone" onclick="addElements('zone-firelane')">Fire Lane</button>
             <button class="lot-add-btn lot-add-zone" onclick="addElements('zone-service')">Service</button>
-            <button class="lot-add-btn lot-add-zone" onclick="addElements('zone-landscape')">🌳 Landscape</button>
+            <button class="lot-add-btn lot-add-zone" onclick="addElements('zone-landscape')">Landscape</button>
             <div style="width:1px;height:20px;background:var(--border);"></div>
-            <button class="lot-add-btn lot-add-label" onclick="addElements('label')">🏷 Label</button>
+            <button class="lot-add-btn lot-add-label" onclick="addElements('label')">Label</button>
           </div>
         </div>
 
@@ -559,8 +559,8 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
               <label class="form-label">Assign To</label>
               <!-- Toggle: resident vs permit -->
               <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:8px;">
-                <button id="assign-mode-resident" onclick="setAssignMode('resident')" style="flex:1;padding:6px;font-size:11px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;border:none;background:var(--blue);color:#fff;cursor:pointer;transition:all .15s;">👤 Resident</button>
-                <button id="assign-mode-permit" onclick="setAssignMode('permit')" style="flex:1;padding:6px;font-size:11px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;border:none;background:#f1f5fb;color:var(--text2);cursor:pointer;transition:all .15s;">🚗 Vehicle</button>
+                <button id="assign-mode-resident" onclick="setAssignMode('resident')" style="flex:1;padding:6px;font-size:11px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;border:none;background:var(--blue);color:#fff;cursor:pointer;transition:all .15s;">Resident</button>
+                <button id="assign-mode-permit" onclick="setAssignMode('permit')" style="flex:1;padding:6px;font-size:11px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;border:none;background:#f1f5fb;color:var(--text2);cursor:pointer;transition:all .15s;">Vehicle</button>
               </div>
               <!-- Resident dropdown -->
               <select class="form-select" id="lsp-resident" onchange="assignToResident(this.value)" style="font-size:13px;padding:7px 10px;display:block;">
@@ -619,8 +619,8 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
                 <div style="font-size:16px;font-weight:700;margin-bottom:6px;">QR Code for this property</div>
                 <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;">Post this QR code at your lot entrance or stalls. Visitors scan it with their phone, enter their plate, and pay instantly — no app required.</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                  <button class="btn btn-primary btn-sm" onclick="downloadQR()">⬇ Download QR Code</button>
-                  <button class="btn btn-ghost btn-sm" onclick="copyPayLink()">🔗 Copy Pay Link</button>
+                  <button class="btn btn-primary btn-sm" onclick="downloadQR()">Download QR Code</button>
+                  <button class="btn btn-ghost btn-sm" onclick="copyPayLink()">Copy Pay Link</button>
                   <a id="pay-link-open" class="btn btn-ghost btn-sm" href="#" target="_blank">↗ Open Pay Page</a>
                 </div>
                 <div style="margin-top:12px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text3);word-break:break-all;" id="pay-link-display"></div>
@@ -642,7 +642,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
               <button class="btn btn-primary btn-sm" onclick="addRate()">+ Add Rate</button>
             </div>
             <div id="rates-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;"></div>
-            <button class="btn btn-ghost btn-sm btn-full" id="save-rates-btn" onclick="saveRates()">💾 Save Rates</button>
+            <button class="btn btn-ghost btn-sm btn-full" id="save-rates-btn" onclick="saveRates()">Save Rates</button>
           </div>
 
           <!-- Recent Transient Sessions -->
@@ -692,17 +692,17 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div class="form-group"><label class="form-label">Slot Label</label><input class="form-input" id="us-slot-label" type="text" placeholder="e.g. Garage, Carport, Spot 1"></div>
     <div class="form-group"><label class="form-label">Slot Type</label>
       <select class="form-select" id="us-slot-type">
-        <option value="stall-standard">🚗 Standard Stall</option>
-        <option value="stall-reserved">⭐ Reserved</option>
-        <option value="stall-handicap">♿ Handicap</option>
-        <option value="stall-ev">⚡ EV</option>
-        <option value="stall-guest">🎟 Guest</option>
-        <option value="stall-moto">🏍 Moto</option>
+        <option value="stall-standard">Standard Stall</option>
+        <option value="stall-reserved">Reserved</option>
+        <option value="stall-handicap">Handicap</option>
+        <option value="stall-ev">EV</option>
+        <option value="stall-guest">Guest</option>
+        <option value="stall-moto">Moto</option>
         <option value="zone-carport">Carport</option>
-        <option value="zone-garage">🏗 Garage</option>
-        <option value="zone-yard">🌿 Yard</option>
-        <option value="zone-storage">📦 Storage</option>
-        <option value="zone-loading">🚚 Loading</option>
+        <option value="zone-garage">Garage</option>
+        <option value="zone-yard">Yard</option>
+        <option value="zone-storage">Storage</option>
+        <option value="zone-loading">Loading</option>
       </select>
     </div>
     <div class="form-group"><label class="form-label">Managed By</label>
@@ -731,7 +731,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-add-property">
   <div class="modal" style="width:580px;">
     <button class="modal-close" onclick="closeModal('modal-add-property')">✕</button>
-    <div class="modal-title">🏢 Add Property</div>
+    <div class="modal-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><polyline points="8 7 8 12 16 12 16 7"/></svg>Add Property</div>
     <div class="modal-sub">Register a new parking location</div>
     <div class="err-msg" id="pp-err"></div>
     <!-- Management Type -->
@@ -739,12 +739,12 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <label class="form-label">Management Type</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div id="pp-type-linked" onclick="setPropType('linked')" style="border:2px solid var(--blue);background:rgba(26,111,255,.06);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s;">
-          <div style="font-size:16px;margin-bottom:6px;">🔗</div>
+          <div style="margin-bottom:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
           <div style="font-size:13px;font-weight:700;margin-bottom:3px;">Linked Portal</div>
           <div style="font-size:11px;color:var(--text2);line-height:1.4;">Residents create accounts and manage their own permits</div>
         </div>
         <div id="pp-type-self" onclick="setPropType('self')" style="border:2px solid var(--border);background:var(--surface2);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s;">
-          <div style="font-size:16px;margin-bottom:6px;">🗂</div>
+          <div style="margin-bottom:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
           <div style="font-size:13px;font-weight:700;margin-bottom:3px;">Self-Managed</div>
           <div style="font-size:11px;color:var(--text2);line-height:1.4;">You manage everything internally — no resident accounts needed</div>
         </div>
@@ -770,22 +770,22 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;">
           <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;">Stall Types</div>
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">🚗 Standard</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-standard" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">⭐ Reserved</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-reserved" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">♿ Handicap</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-handicap" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">⚡ EV Charging</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-ev" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">🎟 Guest / Visitor</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-guest" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">🏍 Motorcycle</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-moto" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">Standard</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-standard" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">Reserved</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-reserved" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">Handicap</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-handicap" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">EV Charging</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-ev" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">Guest / Visitor</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-guest" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">Motorcycle</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-moto" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
           </div>
         </div>
         <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;">
           <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;">Areas &amp; Structures</div>
           <div style="display:flex;flex-direction:column;gap:8px;">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">Carport</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-carport" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">🏗 Garage</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-garage" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">🌿 Yard / Fenced</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-yard" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">📦 Open Storage</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-storage" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">🚚 Loading Dock</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-loading" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">Garage</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-garage" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">Yard / Fenced</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-yard" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">Open Storage</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-storage" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label style="font-size:12px;color:var(--text2);">Loading Dock</label><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;color:var(--text3);">$</span><input class="form-input" id="rate-loading" type="number" placeholder="0" min="0" style="width:72px;font-size:12px;padding:5px 8px;"><span style="font-size:11px;color:var(--text3);">/mo</span></div></div>
           </div>
         </div>
       </div>
@@ -798,12 +798,12 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-issue-permit">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-issue-permit')">✕</button>
-    <div class="modal-title">🎫 Issue New Permit</div>
+    <div class="modal-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2z"/></svg>Issue New Permit</div>
     <div class="modal-sub" id="ip-modal-sub">Create a digital parking permit</div>
     <div class="err-msg" id="ip-err"></div>
     <!-- Linked property fields -->
     <div id="ip-linked-section">
-      <div style="background:rgba(26,111,255,.06);border:1px solid rgba(26,111,255,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue2);margin-bottom:16px;">💡 Enter the resident's email to link this permit to their dashboard automatically.</div>
+      <div style="background:rgba(26,111,255,.06);border:1px solid rgba(26,111,255,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue2);margin-bottom:16px;">Enter the resident's email to link this permit to their dashboard automatically.</div>
       <div class="form-group"><label class="form-label">Resident Email (optional)</label><input class="form-input" id="ip-holder-email" type="email" placeholder="resident@example.com"></div>
     </div>
     <!-- Self-managed fields -->
@@ -877,7 +877,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-assign-permit">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-assign-permit')">✕</button>
-    <div class="modal-title">🔗 Assign Permit to Resident</div>
+    <div class="modal-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Assign Permit to Resident</div>
     <div class="modal-sub" id="assign-modal-sub">Link this permit to a resident's account</div>
     <input type="hidden" id="assign-permit-id">
     <div class="form-group"><label class="form-label">Resident Email</label><input class="form-input" id="assign-email" type="email" placeholder="resident@example.com"><div style="font-size:11px;color:var(--text3);margin-top:5px;">The resident must have a My Spot Parking Holder account. The permit will appear on their dashboard immediately.</div></div>
@@ -904,7 +904,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div id="ir-status" style="font-size:11px;color:var(--text3);margin-top:6px;"></div>
     </div>
     <div id="ir-no-code" style="display:none;margin-top:8px;padding:12px;background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.25);border-radius:10px;font-size:13px;color:#b45309;">
-      ⚠️ This unit has no invite code yet.
+      This unit has no invite code yet.
       <button class="btn btn-ghost btn-sm" style="margin-top:6px;width:100%;" onclick="generateInviteFromModal()">Generate Invite Code</button>
     </div>
     <div style="margin-top:16px;padding:12px;background:var(--surface2);border-radius:10px;font-size:12px;color:var(--text2);line-height:1.6;">
@@ -968,7 +968,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-add-resident">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-add-resident')">✕</button>
-    <div class="modal-title">👤 Add Resident</div>
+    <div class="modal-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Add Resident</div>
     <div class="modal-sub" id="ar-modal-sub">Add a resident to this property</div>
     <div class="err-msg" id="ar-err"></div>
     <!-- Account type toggle -->
@@ -976,12 +976,12 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <label class="form-label">Resident Type</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;">
         <div id="ar-type-portal" onclick="setResidentType('portal')" style="border:2px solid var(--blue);background:rgba(26,111,255,.06);border-radius:10px;padding:12px;cursor:pointer;transition:all .2s;">
-          <div style="font-size:14px;margin-bottom:4px;">🔗</div>
+          <div style="margin-bottom:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
           <div style="font-size:12px;font-weight:700;margin-bottom:2px;">Portal Account</div>
           <div style="font-size:11px;color:var(--text2);line-height:1.3;">Resident gets login access to their permit portal</div>
         </div>
         <div id="ar-type-internal" onclick="setResidentType('internal')" style="border:2px solid var(--border);background:var(--surface2);border-radius:10px;padding:12px;cursor:pointer;transition:all .2s;">
-          <div style="font-size:14px;margin-bottom:4px;">🗂</div>
+          <div style="margin-bottom:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
           <div style="font-size:12px;font-weight:700;margin-bottom:2px;">Internal Only</div>
           <div style="font-size:11px;color:var(--text2);line-height:1.3;">Stored internally — no login required</div>
         </div>
@@ -1012,7 +1012,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-stripe-revenue">
   <div class="modal" style="width:560px;">
     <button class="modal-close" onclick="closeModal('modal-stripe-revenue')">✕</button>
-    <div class="modal-title">💳 Billing & Revenue</div>
+    <div class="modal-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Billing & Revenue</div>
     <div class="modal-sub">Revenue summary for all your properties</div>
     <div id="stripe-revenue-content"></div>
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;">
@@ -1028,11 +1028,11 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-lot-bg">
   <div class="modal" style="width:520px;">
     <button class="modal-close" onclick="closeModal('modal-lot-bg')">✕</button>
-    <div class="modal-title">🛰 Set Map Background</div>
+    <div class="modal-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Set Map Background</div>
     <div class="modal-sub">Upload a satellite or aerial photo to use as the canvas background. Place stalls directly on top of the image.</div>
 
     <div id="lot-bg-upload" style="border:2px dashed var(--border);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:14px;" onclick="document.getElementById('lot-bg-input').click()" ondragover="event.preventDefault();this.style.borderColor='var(--blue)'" ondragleave="this.style.borderColor='var(--border)'" ondrop="handleBgDrop(event)">
-      <div style="font-size:32px;margin-bottom:8px;">🛰</div>
+      <div style="margin-bottom:8px;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text3);"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
       <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Click to upload or drag and drop</div>
       <div style="font-size:11px;color:var(--text3);">Screenshot from Google Maps satellite view, aerial photo, or floor plan</div>
       <input type="file" id="lot-bg-input" accept="image/*" style="display:none;" onchange="handleBgSelect(this)">
@@ -1044,7 +1044,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     </div>
 
     <div style="background:rgba(26,111,255,.06);border:1px solid rgba(26,111,255,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue2);margin-bottom:14px;">
-      💡 <strong>How to get a good screenshot:</strong> Open Google Maps, search your property address, click the satellite view, zoom in until parking stalls are visible, then take a screenshot. The image will be stretched to fit the canvas — stalls you place will be scaled to match.
+      <strong>How to get a good screenshot:</strong> Open Google Maps, search your property address, click the satellite view, zoom in until parking stalls are visible, then take a screenshot. The image will be stretched to fit the canvas — stalls you place will be scaled to match.
     </div>
 
     <!-- Opacity slider -->
@@ -1067,19 +1067,19 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-lot-import">
   <div class="modal" style="width:560px;">
     <button class="modal-close" onclick="closeModal('modal-lot-import')">✕</button>
-    <div class="modal-title">🗺 Generate Lot Layout</div>
+    <div class="modal-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Generate Lot Layout</div>
     <div class="modal-sub">Upload an aerial photo or describe your lot — AI will generate a starting layout you can edit.</div>
 
     <!-- Tab toggle -->
     <div style="display:flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-bottom:18px;">
-      <button id="import-tab-image" onclick="setImportTab('image')" style="flex:1;padding:8px;font-size:13px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;border:none;background:var(--blue);color:#fff;cursor:pointer;transition:all .15s;">📷 Upload Image</button>
-      <button id="import-tab-text" onclick="setImportTab('text')" style="flex:1;padding:8px;font-size:13px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;border:none;background:#f1f5fb;color:var(--text2);cursor:pointer;transition:all .15s;">✍️ Describe Your Lot</button>
+      <button id="import-tab-image" onclick="setImportTab('image')" style="flex:1;padding:8px;font-size:13px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;border:none;background:var(--blue);color:#fff;cursor:pointer;transition:all .15s;">Upload Image</button>
+      <button id="import-tab-text" onclick="setImportTab('text')" style="flex:1;padding:8px;font-size:13px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;border:none;background:#f1f5fb;color:var(--text2);cursor:pointer;transition:all .15s;">Describe Your Lot</button>
     </div>
 
     <!-- Image tab -->
     <div id="import-panel-image">
       <div id="lot-import-upload" style="border:2px dashed var(--border);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:14px;" onclick="document.getElementById('lot-img-input').click()" ondragover="event.preventDefault();this.style.borderColor='var(--blue)'" ondragleave="this.style.borderColor='var(--border)'" ondrop="handleLotImageDrop(event)">
-        <div style="font-size:32px;margin-bottom:8px;">🗺</div>
+        <div style="margin-bottom:8px;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text3);"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></div>
         <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Click to upload or drag and drop</div>
         <div style="font-size:11px;color:var(--text3);">JPG, PNG — aerial photos, satellite views, floor plans</div>
         <input type="file" id="lot-img-input" accept="image/*" style="display:none;" onchange="handleLotImageSelect(this)">
@@ -1088,7 +1088,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         <img id="lot-img-preview" style="width:100%;max-height:180px;object-fit:contain;border-radius:8px;border:1px solid var(--border);">
         <div style="font-size:11px;color:var(--text3);margin-top:5px;text-align:center;" id="lot-img-name"></div>
       </div>
-      <div style="background:rgba(26,111,255,.06);border:1px solid rgba(26,111,255,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue2);margin-bottom:14px;">💡 Aerial or satellite photos work best. The AI will identify rows, stalls, covered areas and zones.</div>
+      <div style="background:rgba(26,111,255,.06);border:1px solid rgba(26,111,255,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue2);margin-bottom:14px;">Aerial or satellite photos work best. The AI will identify rows, stalls, covered areas and zones.</div>
     </div>
 
     <!-- Text description tab -->
@@ -1133,7 +1133,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     </div>
     <div id="stall-unassigned" style="display:none;">
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px;text-align:center;">
-        <div style="font-size:28px;margin-bottom:8px;">🅿️</div>
+        <div style="margin-bottom:8px;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text3);"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></svg></div>
         <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Stall Available</div>
         <div style="font-size:12px;color:var(--text3);">No permit assigned to this stall.</div>
       </div>
@@ -1227,7 +1227,7 @@ function enterApp(profile){
   document.getElementById('tn-name').textContent=profile.full_name||profile.email;
   const hr=new Date().getHours();
   const firstName=(profile.full_name||'').split(' ')[0]||'there';
-  document.getElementById('dash-greeting').textContent=(hr<12?'Good morning':hr<17?'Good afternoon':'Good evening')+', '+firstName+' 👋';
+  document.getElementById('dash-greeting').textContent=(hr<12?'Good morning':hr<17?'Good afternoon':'Good evening')+', '+firstName+'!';
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   document.getElementById('ip-start').value=today();
   document.getElementById('ip-end').value=futureDate(365);
@@ -1346,14 +1346,14 @@ function renderPropGrid(){
         <div style="font-size:16px;font-weight:700;">${p.name}</div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
           <span style="background:rgba(0,200,122,.1);color:#00a063;border:1px solid rgba(0,200,122,.2);border-radius:20px;padding:2px 9px;font-size:11px;font-family:'JetBrains Mono',monospace;">${activeCount} active</span>
-          <span style="background:${p.property_type==='self'?'rgba(107,114,128,.1)':'rgba(26,111,255,.1)'};color:${p.property_type==='self'?'#475569':'var(--blue)'};border:1px solid ${p.property_type==='self'?'rgba(107,114,128,.2)':'rgba(26,111,255,.2)'};border-radius:20px;padding:2px 9px;font-size:10px;font-family:'JetBrains Mono',monospace;">${p.property_type==='self'?'🗂 Self-Managed':'🔗 Linked'}</span>
+          <span style="background:${p.property_type==='self'?'rgba(107,114,128,.1)':'rgba(26,111,255,.1)'};color:${p.property_type==='self'?'#475569':'var(--blue)'};border:1px solid ${p.property_type==='self'?'rgba(107,114,128,.2)':'rgba(26,111,255,.2)'};border-radius:20px;padding:2px 9px;font-size:10px;font-family:'JetBrains Mono',monospace;">${p.property_type==='self'?'Self-Managed':'Linked'}</span>
         </div>
       </div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:14px">📍 ${p.address||'No address'}</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${p.address||'No address'}</div>
       <div style="display:flex;gap:14px;font-size:12px;color:var(--text2);flex-wrap:wrap;margin-bottom:6px">
-        <span>🅿️ <strong>${p.total_spots||0}</strong> spots</span>
-        <span>🗺 ${p.zones||'—'}</span>
-        <span>💰 $${p.monthly_rate||12}/mo</span>
+        <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg><strong>${p.total_spots||0}</strong> spots</span>
+        <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px;"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>${p.zones||'—'}</span>
+        <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px;"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>$${p.monthly_rate||12}/mo</span>
       </div>
       <!-- Occupancy bar -->
       <div style="margin-bottom:16px;">
@@ -2168,7 +2168,7 @@ function initCharts(){
 // -- HELPERS --
 function buildRatePills(rates){
   if(!rates||!Object.keys(rates).length) return '';
-  const labels={standard:'🚗 Standard',reserved:'⭐ Reserved',handicap:'♿ Handicap',ev:'⚡ EV',guest:'🎟 Guest',moto:'🏍 Moto',carport:'🏠 Carport',garage:'🏗 Garage',yard:'🌿 Yard',storage:'📦 Storage',loading:'🚚 Loading'};
+  const labels={standard:'Standard',reserved:'Reserved',handicap:'Handicap',ev:'EV',guest:'Guest',moto:'Moto',carport:'Carport',garage:'Garage',yard:'Yard',storage:'Storage',loading:'Loading'};
   return Object.entries(rates).map(([k,v])=>
     `<span style="background:rgba(0,200,122,.08);border:1px solid rgba(0,200,122,.2);color:#007a4a;padding:4px 12px;border-radius:20px;font-size:12px;">${labels[k]||k}: $${v}/mo</span>`
   ).join('');
@@ -2596,7 +2596,7 @@ async function saveRates(){
     .update({transient_rates:transientRates})
     .eq('id',currentPropertyId)
     .eq('manager_id',currentUser.id);
-  btn.disabled=false;btn.textContent='💾 Save Rates';
+  btn.disabled=false;btn.textContent='Save Rates';
   if(error){toast('❌ '+error.message);return;}
   // Update local cache
   const prop=allProperties.find(p=>p.id===currentPropertyId);
@@ -3051,20 +3051,20 @@ function resizeLotCanvas(dw,dh){
 }
 
 const ELEMENT_DEFS={
-  'stall-standard':{label:'Stall',w:80,h:120,fill:'#e8f5ff',stroke:'#4d8fff',textColor:'#1a6fff',icon:'🚗',isParking:true},
-  'stall-reserved': {label:'Reserved',w:80,h:120,fill:'#fef3c7',stroke:'#f59e0b',textColor:'#92400e',icon:'⭐',isParking:true},
-  'stall-handicap': {label:'Handicap',w:80,h:120,fill:'#fce7f3',stroke:'#ec4899',textColor:'#9d174d',icon:'♿',isParking:true},
-  'stall-ev':       {label:'EV',w:80,h:120,fill:'#ede9fe',stroke:'#7c3aed',textColor:'#4c1d95',icon:'⚡',isParking:true},
-  'stall-guest':    {label:'Guest',w:80,h:120,fill:'#ecfdf5',stroke:'#10b981',textColor:'#065f46',icon:'🎟',isParking:true},
-  'stall-moto':     {label:'Moto',w:55,h:90,fill:'#f0f9ff',stroke:'#0ea5e9',textColor:'#0c4a6e',icon:'🏍',isParking:true},
-  'zone-carport':   {label:'Carport',w:180,h:120,fill:'rgba(251,191,36,.12)',stroke:'#f59e0b',textColor:'#92400e',icon:'🏠',isZone:true,isParking:true},
-  'zone-garage':    {label:'Garage',w:200,h:160,fill:'rgba(100,116,139,.12)',stroke:'#64748b',textColor:'#334155',icon:'🏗',isZone:true,isParking:true},
-  'zone-yard':      {label:'Fenced Yard',w:220,h:180,fill:'rgba(134,239,172,.15)',stroke:'#22c55e',textColor:'#166534',icon:'🌿',isZone:true,isParking:true,dashed:true},
-  'zone-storage':   {label:'Open Storage',w:240,h:180,fill:'rgba(251,146,60,.1)',stroke:'#f97316',textColor:'#9a3412',icon:'📦',isZone:true,isParking:true,dashed:true},
-  'zone-loading':   {label:'Loading Dock',w:180,h:100,fill:'rgba(6,182,212,.1)',stroke:'#06b6d4',textColor:'#164e63',icon:'🚚',isZone:true,isParking:true},
-  'zone-firelane':  {label:'Fire Lane',w:200,h:60,fill:'rgba(239,68,68,.1)',stroke:'#ef4444',textColor:'#991b1b',icon:'🚒',isZone:true,dashed:true},
-  'zone-service':   {label:'Service Area',w:120,h:120,fill:'rgba(107,114,128,.1)',stroke:'#6b7280',textColor:'#374151',icon:'🗑',isZone:true},
-  'zone-landscape': {label:'Landscape',w:160,h:120,fill:'rgba(74,222,128,.15)',stroke:'#4ade80',textColor:'#166534',icon:'🌳',isZone:true,dashed:true},
+  'stall-standard':{label:'Stall',w:80,h:120,fill:'#e8f5ff',stroke:'#4d8fff',textColor:'#1a6fff',icon:'P',isParking:true},
+  'stall-reserved': {label:'Reserved',w:80,h:120,fill:'#fef3c7',stroke:'#f59e0b',textColor:'#92400e',icon:'R',isParking:true},
+  'stall-handicap': {label:'Handicap',w:80,h:120,fill:'#fce7f3',stroke:'#ec4899',textColor:'#9d174d',icon:'HC',isParking:true},
+  'stall-ev':       {label:'EV',w:80,h:120,fill:'#ede9fe',stroke:'#7c3aed',textColor:'#4c1d95',icon:'EV',isParking:true},
+  'stall-guest':    {label:'Guest',w:80,h:120,fill:'#ecfdf5',stroke:'#10b981',textColor:'#065f46',icon:'G',isParking:true},
+  'stall-moto':     {label:'Moto',w:55,h:90,fill:'#f0f9ff',stroke:'#0ea5e9',textColor:'#0c4a6e',icon:'M',isParking:true},
+  'zone-carport':   {label:'Carport',w:180,h:120,fill:'rgba(251,191,36,.12)',stroke:'#f59e0b',textColor:'#92400e',icon:'CP',isZone:true,isParking:true},
+  'zone-garage':    {label:'Garage',w:200,h:160,fill:'rgba(100,116,139,.12)',stroke:'#64748b',textColor:'#334155',icon:'GR',isZone:true,isParking:true},
+  'zone-yard':      {label:'Fenced Yard',w:220,h:180,fill:'rgba(134,239,172,.15)',stroke:'#22c55e',textColor:'#166534',icon:'YD',isZone:true,isParking:true,dashed:true},
+  'zone-storage':   {label:'Open Storage',w:240,h:180,fill:'rgba(251,146,60,.1)',stroke:'#f97316',textColor:'#9a3412',icon:'ST',isZone:true,isParking:true,dashed:true},
+  'zone-loading':   {label:'Loading Dock',w:180,h:100,fill:'rgba(6,182,212,.1)',stroke:'#06b6d4',textColor:'#164e63',icon:'LD',isZone:true,isParking:true},
+  'zone-firelane':  {label:'Fire Lane',w:200,h:60,fill:'rgba(239,68,68,.1)',stroke:'#ef4444',textColor:'#991b1b',icon:'FL',isZone:true,dashed:true},
+  'zone-service':   {label:'Service Area',w:120,h:120,fill:'rgba(107,114,128,.1)',stroke:'#6b7280',textColor:'#374151',icon:'SV',isZone:true},
+  'zone-landscape': {label:'Landscape',w:160,h:120,fill:'rgba(74,222,128,.15)',stroke:'#4ade80',textColor:'#166534',icon:'LS',isZone:true,dashed:true},
   'label':          {label:'Label',w:100,h:36,fill:'rgba(249,115,22,.08)',stroke:'#f97316',textColor:'#c2410c',icon:'',isLabel:true},
 };
 
@@ -3204,8 +3204,8 @@ function updateAssignedDisplay(el){
     const resident=el.residentId?allResidents.find(r=>r.id===el.residentId):null;
     const permit=el.permitId?allPermits.find(p=>p.id===el.permitId):null;
     let html='<div style="font-weight:700;color:#007a4a;margin-bottom:4px;">✓ Assigned</div>';
-    if(resident) html+=`<div>👤 ${resident.full_name||resident.email}</div>`;
-    if(permit) html+=`<div>🚗 ${permit.plate}${permit.vehicle?' · '+permit.vehicle:''}</div>`;
+    if(resident) html+=`<div>${resident.full_name||resident.email}</div>`;
+    if(permit) html+=`<div><strong style="font-family:'JetBrains Mono',monospace">${permit.plate}</strong>${permit.vehicle?' · '+permit.vehicle:''}</div>`;
     else if(el.residentId) html+=`<div style="color:var(--text3);font-size:11px;">No vehicle permit yet for this property</div>`;
     disp.innerHTML=html;
     disp.style.display='block';
@@ -3453,7 +3453,7 @@ function clearLot(){
 async function saveLotLayout(){
   const btn=document.getElementById('lot-save-btn');
   btn.disabled=true;btn.textContent='Saving...';
-  if(!currentPropertyId){toast('⚠️ No property selected');btn.disabled=false;btn.textContent='💾 Save Layout';return;}
+  if(!currentPropertyId){toast('No property selected');btn.disabled=false;btn.textContent='Save Layout';return;}
 
   // Build save data including background (only if under 500KB)
   let saveData=[...lotElements.filter(e=>e.type!=='__bg__')];
@@ -3471,7 +3471,7 @@ async function saveLotLayout(){
     .eq('id',currentPropertyId)
     .eq('manager_id',currentUser.id)
     .select();
-  btn.disabled=false;btn.textContent='💾 Save Layout';
+  btn.disabled=false;btn.textContent='Save Layout';
   if(error){console.error('Save error:',error);toast('❌ Save failed: '+error.message);return;}
   if(!data||data.length===0){toast('❌ Save failed: Permission denied.');return;}
   const prop=allProperties.find(p=>p.id===currentPropertyId);
@@ -3677,7 +3677,15 @@ function hitTest(el,wx,wy){
 
 function openStallInfo(el){
   const def=ELEMENT_DEFS[el.type]||{};
-  document.getElementById('stall-icon').textContent=def.icon||'🅿️';
+  const stallIconEl=document.getElementById('stall-icon');
+  stallIconEl.innerHTML='';
+  stallIconEl.style.fontFamily="'JetBrains Mono',monospace";
+  stallIconEl.style.fontWeight='800';
+  stallIconEl.style.fontSize='15px';
+  stallIconEl.style.color=def.textColor||'var(--text2)';
+  stallIconEl.style.background=def.fill||'var(--surface2)';
+  stallIconEl.style.border='1px solid '+(def.stroke||'var(--border)');
+  stallIconEl.textContent=def.icon||'P';
   document.getElementById('stall-title').textContent=
     el.stallNum?(el.stallNum+(el.label&&el.label!==def.label?' — '+el.label:'')):(el.label||def.label||'Stall');
   document.getElementById('stall-type').textContent=def.label||el.type;
@@ -4162,7 +4170,7 @@ function renderUnitsTab(){
     return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);background:#f8faff;gap:12px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:36px;height:36px;border-radius:10px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;">🏠</div>
+          <div style="width:36px;height:36px;border-radius:10px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
           <div>
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="font-weight:700;font-size:15px;">Unit ${unitNum}</span>
@@ -4192,12 +4200,25 @@ function renderUnitsTab(){
 
 function renderUnitSlotCard(s){
   const permit=_unitPermits.find(p=>p.unit_slot_id===s.id);
-  const typeIcon={'stall-standard':'🚗','stall-reserved':'⭐','stall-handicap':'♿','stall-ev':'⚡','stall-guest':'🎟','stall-moto':'🏍','zone-carport':'🏠','zone-garage':'🏗','zone-yard':'🌿','zone-storage':'📦','zone-loading':'🚚'}[s.slot_type]||'🅿';
+  const _slotSvgs={
+    'stall-standard':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
+    'stall-reserved':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+    'stall-handicap':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7v6l3 3"/><path d="M9 19a5 5 0 1 0 6-7.6"/></svg>',
+    'stall-ev':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+    'stall-guest':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+    'stall-moto':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6h-5l-2 5h9l-2-5z"/><path d="M12 6V3"/></svg>',
+    'zone-carport':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+    'zone-garage':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>',
+    'zone-yard':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M12 12C12 8 7 6 7 6s0 5 5 6z"/><path d="M12 12C12 8 17 6 17 6s0 5-5 6z"/></svg>',
+    'zone-storage':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>',
+    'zone-loading':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>'
+  };
+  const typeIcon=_slotSvgs[s.slot_type]||'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h18"/></svg>';
   const typeLabel=(s.slot_type||'').replace('stall-','').replace('zone-','').replace(/\b\w/g,c=>c.toUpperCase());
   const managed=s.managed_by==='manager';
   const sJson=JSON.stringify(s).replace(/"/g,'&quot;');
   return `<div style="display:flex;align-items:center;gap:12px;background:${managed?'rgba(255,170,0,0.05)':'rgba(26,111,255,0.04)'};border:1px solid ${managed?'rgba(255,170,0,0.25)':'var(--border)'};border-radius:10px;padding:12px 14px;">
-    <div style="font-size:18px;flex-shrink:0;">${typeIcon}</div>
+    <div style="flex-shrink:0;width:28px;height:28px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text2);">${typeIcon}</div>
     <div style="flex:1;min-width:0;">
       <div style="font-size:13px;font-weight:700;">${s.slot_label||'Slot'} <span style="font-size:11px;color:var(--text3);font-weight:400;font-family:'JetBrains Mono',monospace;">${typeLabel}</span></div>
       ${permit
