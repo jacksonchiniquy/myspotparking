@@ -117,18 +117,57 @@ h1, h2, h3 { font-family: 'Sora', sans-serif; }
 }
 .hv-btn { padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; font-family: 'Inter', sans-serif; border: 1px solid var(--border); background: white; color: var(--slate); cursor: default; }
 .hv-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
-.hv-body { padding: 12px; background: white; }
-.lot-property { font-size: 11px; font-weight: 700; color: var(--slate2); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; font-family: 'Sora', sans-serif; }
-.lot-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; margin-bottom: 8px; }
-.ls { border-radius: 4px; aspect-ratio: 2/3; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 700; font-family: 'Inter', sans-serif; }
-.ls-a { background: #EEF4FF; border: 1px solid #C3D8FF; color: #1B6FFF; }
-.ls-ok { background: #E6FAF2; border: 1.5px solid #00C87A; color: #00875A; }
-.ls-r { background: #FEF9E7; border: 1px solid #F5C842; color: #92720E; }
-.ls-ev { background: #F3EEFF; border: 1px solid #B197FC; color: #6741D9; }
-.ls-h { background: #FFF0F0; border: 1px solid #FFA8A8; color: #C92A2A; }
-.lot-legend { display: flex; gap: 12px; flex-wrap: wrap; }
-.ll { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--slate2); font-family: 'Inter', sans-serif; }
-.ll-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.hv-body { padding: 14px 14px 10px; background: #f1f3f5; }
+.lot-property { font-size: 10px; font-weight: 700; color: #6b7280; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; font-family: 'Sora', sans-serif; display: flex; align-items: center; gap: 6px; }
+.lot-property::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #9ca3af; }
+/* Lot rows with a drive-aisle gap between them */
+.lot-rows { display: flex; flex-direction: column; gap: 0; margin-bottom: 10px; }
+.lot-row-group { display: flex; flex-direction: column; gap: 4px; }
+.lot-row-group + .lot-row-group { margin-top: 10px; position: relative; }
+.lot-row-group + .lot-row-group::before {
+  content: 'DRIVE AISLE';
+  display: block;
+  text-align: center;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #9ca3af;
+  margin: 4px 0 4px;
+  font-family: 'Inter', sans-serif;
+}
+.lot-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+.ls {
+  border-radius: 3px;
+  aspect-ratio: 3/5;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 3px;
+  font-size: 7px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  border-bottom-width: 2px;
+  border-top-width: 1px;
+  border-left-width: 1px;
+  border-right-width: 1px;
+  border-style: solid;
+  position: relative;
+}
+/* Stall stripe at top to suggest header line */
+.ls::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 2px 2px 0 0; opacity: 0.35; }
+.ls-a { background: #ddeeff; border-color: #93c5fd; border-bottom-color: #3b82f6; color: #1d4ed8; }
+.ls-a::before { background: #3b82f6; }
+.ls-ok { background: #d1fae5; border-color: #6ee7b7; border-bottom-color: #059669; color: #065f46; }
+.ls-ok::before { background: #059669; }
+.ls-r { background: #fef3c7; border-color: #fcd34d; border-bottom-color: #d97706; color: #92400e; }
+.ls-r::before { background: #d97706; }
+.ls-ev { background: #ede9fe; border-color: #c4b5fd; border-bottom-color: #7c3aed; color: #4c1d95; }
+.ls-ev::before { background: #7c3aed; }
+.ls-h { background: #fee2e2; border-color: #fca5a5; border-bottom-color: #dc2626; color: #7f1d1d; }
+.ls-h::before { background: #dc2626; }
+.lot-legend { display: flex; gap: 10px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid #e5e7eb; }
+.ll { display: flex; align-items: center; gap: 4px; font-size: 9.5px; color: var(--slate2); font-family: 'Inter', sans-serif; }
+.ll-dot { width: 8px; height: 10px; border-radius: 2px; flex-shrink: 0; border-bottom-width: 2px; border-top-width: 1px; border-left-width: 1px; border-right-width: 1px; border-style: solid; }
 .hv-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px solid var(--border); }
 .hv-stat { padding: 10px 14px; text-align: center; border-right: 1px solid var(--border); }
 .hv-stat:last-child { border-right: none; }
@@ -341,17 +380,30 @@ footer { background: #080E19; padding: 48px 60px 36px; }
       <span class="hv-btn" style="background:var(--blue);color:white;border-color:var(--blue);">Save Layout</span>
     </div>
     <div class="hv-body">
-      <div class="lot-property">Row A — North Side</div>
-      <div class="lot-grid">
-        <div class="ls ls-ok">1</div><div class="ls ls-ok">2</div><div class="ls ls-a">3</div><div class="ls ls-ok">4</div><div class="ls ls-ok">5</div><div class="ls ls-a">6</div><div class="ls ls-ok">7</div><div class="ls ls-ev">EV</div><div class="ls ls-ok">9</div><div class="ls ls-a">10</div>
-        <div class="ls ls-a">11</div><div class="ls ls-ok">12</div><div class="ls ls-ok">13</div><div class="ls ls-r">R</div><div class="ls ls-ok">15</div><div class="ls ls-ok">16</div><div class="ls ls-a">17</div><div class="ls ls-ok">18</div><div class="ls ls-ev">EV</div><div class="ls ls-ok">20</div>
-        <div class="ls ls-ok">21</div><div class="ls ls-ok">22</div><div class="ls ls-a">23</div><div class="ls ls-ok">24</div><div class="ls ls-ok">25</div><div class="ls ls-r">R</div><div class="ls ls-ok">27</div><div class="ls ls-ok">28</div><div class="ls ls-a">29</div><div class="ls ls-h">HC</div>
+      <div class="lot-property">Timp Industrial · Lot A</div>
+      <div class="lot-rows">
+        <!-- Row facing north — noses point up -->
+        <div class="lot-row-group">
+          <div class="lot-grid">
+            <div class="ls ls-ok">1</div><div class="ls ls-ok">2</div><div class="ls ls-a">3</div><div class="ls ls-ok">4</div><div class="ls ls-ok">5</div><div class="ls ls-a">6</div><div class="ls ls-ok">7</div><div class="ls ls-ev">EV</div><div class="ls ls-ok">9</div><div class="ls ls-a">10</div>
+          </div>
+        </div>
+        <!-- Row facing south — noses point down, separated by aisle -->
+        <div class="lot-row-group">
+          <div class="lot-grid">
+            <div class="ls ls-a">11</div><div class="ls ls-ok">12</div><div class="ls ls-ok">13</div><div class="ls ls-r">R</div><div class="ls ls-ok">15</div><div class="ls ls-ok">16</div><div class="ls ls-a">17</div><div class="ls ls-ok">18</div><div class="ls ls-ev">EV</div><div class="ls ls-ok">20</div>
+          </div>
+          <div class="lot-grid">
+            <div class="ls ls-ok">21</div><div class="ls ls-ok">22</div><div class="ls ls-a">23</div><div class="ls ls-ok">24</div><div class="ls ls-ok">25</div><div class="ls ls-r">R</div><div class="ls ls-ok">27</div><div class="ls ls-ok">28</div><div class="ls ls-a">29</div><div class="ls ls-h">HC</div>
+          </div>
+        </div>
       </div>
       <div class="lot-legend">
-        <span class="ll"><span class="ll-dot" style="background:#E6FAF2;border:1px solid #00C87A;"></span>Assigned</span>
-        <span class="ll"><span class="ll-dot" style="background:#EEF4FF;border:1px solid #C3D8FF;"></span>Available</span>
-        <span class="ll"><span class="ll-dot" style="background:#FEF9E7;border:1px solid #F5C842;"></span>Reserved</span>
-        <span class="ll"><span class="ll-dot" style="background:#F3EEFF;border:1px solid #B197FC;"></span>EV</span>
+        <span class="ll"><span class="ll-dot" style="background:#d1fae5;border-color:#6ee7b7;border-bottom-color:#059669;"></span>Assigned</span>
+        <span class="ll"><span class="ll-dot" style="background:#ddeeff;border-color:#93c5fd;border-bottom-color:#3b82f6;"></span>Available</span>
+        <span class="ll"><span class="ll-dot" style="background:#fef3c7;border-color:#fcd34d;border-bottom-color:#d97706;"></span>Reserved</span>
+        <span class="ll"><span class="ll-dot" style="background:#ede9fe;border-color:#c4b5fd;border-bottom-color:#7c3aed;"></span>EV</span>
+        <span class="ll"><span class="ll-dot" style="background:#fee2e2;border-color:#fca5a5;border-bottom-color:#dc2626;"></span>HC</span>
       </div>
     </div>
     <div class="hv-stats">
