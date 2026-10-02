@@ -146,6 +146,10 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 .locked-notice{display:flex;align-items:center;gap:8px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:8px;padding:10px 12px;font-size:12px;color:#92400e;}
 .locked-notice svg{flex-shrink:0;}
 
+/* ── ACCOUNT MENU ── */
+.acct-btn{background:none;border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;color:var(--text2);display:none;transition:all .2s;}
+.acct-btn:hover{border-color:var(--blue);color:var(--blue);}
+
 /* ── TOAST ── */
 #toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 18px;font-size:13px;z-index:9999;transform:translateY(12px);opacity:0;transition:all .3s;max-width:320px;box-shadow:0 8px 32px rgba(15,23,42,0.1);}
 #toast.show{opacity:1;transform:translateY(0);}
@@ -178,6 +182,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
   </a>
   <div class="tn-right">
     <span class="tn-badge" id="unit-badge" style="display:none;">Unit —</span>
+    <button class="acct-btn" id="acct-btn" onclick="openModal('modal-account')">⚙ Account</button>
     <button class="btn-signout" id="signout-btn" onclick="signOut()">Sign Out</button>
   </div>
 </nav>
@@ -331,6 +336,46 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
   </div>
 </div>
 
+<!-- Email Capture Modal (first login) -->
+<div class="modal-bg" id="modal-email">
+  <div class="modal">
+    <div class="modal-title">Add your email</div>
+    <div class="modal-sub">Get notified about permit changes and use email to recover your password. You can skip this for now.</div>
+    <div class="err-msg" id="email-err"></div>
+    <div class="form-group">
+      <label class="form-label">Email Address</label>
+      <input class="form-input" id="email-input" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')saveEmail()">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveEmail()">Save Email</button>
+      <button class="btn btn-ghost" onclick="skipEmail()">Skip for now</button>
+    </div>
+  </div>
+</div>
+
+<!-- Account Modal -->
+<div class="modal-bg" id="modal-account">
+  <div class="modal">
+    <div class="modal-title">Account Settings</div>
+    <div class="modal-sub" id="acct-email-display" style="margin-bottom:16px;"></div>
+    <hr style="border:none;border-top:1px solid var(--border);margin-bottom:16px;">
+    <div style="font-size:14px;font-weight:700;margin-bottom:12px;">Change Password</div>
+    <div class="err-msg" id="pw-err"></div>
+    <div class="form-group">
+      <label class="form-label">New Password</label>
+      <input class="form-input" id="pw-new" type="password" placeholder="At least 6 characters">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirm New Password</label>
+      <input class="form-input" id="pw-confirm" type="password" placeholder="Repeat new password" onkeydown="if(event.key==='Enter')savePassword()">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="savePassword()">Update Password</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-account')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -405,6 +450,7 @@ function signOut(){
   document.getElementById('gate').style.display='flex';
   document.getElementById('gate-pass').value='';
   document.getElementById('unit-badge').style.display='none';
+  document.getElementById('acct-btn').style.display='none';
   document.getElementById('signout-btn').style.display='none';
 }
 
@@ -414,7 +460,9 @@ async function showApp(){
   document.getElementById('unit-badge').textContent='Unit '+session.unitNumber;
   document.getElementById('unit-badge').style.display='';
   document.getElementById('signout-btn').style.display='';
+  showAcctBtn();
   await loadUnitData();
+  checkEmailPrompt();
 }
 
 // ── DATA ──
@@ -817,6 +865,71 @@ function toast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg;t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ── ACCOUNT: show acct button, check for email ──
+function showAcctBtn(){
+  const btn=document.getElementById('acct-btn');
+  if(btn) btn.style.display='';
+}
+async function checkEmailPrompt(){
+  // Get the current Supabase auth session (anon key login stores a session)
+  const {data:{session:authSession}}=await sb.auth.getSession();
+  if(!authSession) return; // not using supabase auth, skip
+  const email=authSession.user?.email;
+  // Update account display
+  const disp=document.getElementById('acct-email-display');
+  if(disp) disp.textContent=email?`Signed in as ${email}`:'No email address on file.';
+  // Show email prompt if no email set
+  if(!email){
+    // Use a flag so it only fires once per session
+    if(!sessionStorage.getItem('email_prompted')){
+      sessionStorage.setItem('email_prompted','1');
+      openModal('modal-email');
+    }
+  }
+}
+async function saveEmail(){
+  const email=document.getElementById('email-input').value.trim();
+  const err=document.getElementById('email-err');
+  err.classList.remove('show');
+  if(!email||!email.includes('@')){err.textContent='Enter a valid email.';err.classList.add('show');return;}
+  const {error}=await sb.auth.updateUser({email});
+  if(error){err.textContent='Error: '+error.message;err.classList.add('show');return;}
+  toast('✅ Email saved. Check your inbox to confirm it.');
+  closeModal('modal-email');
+  const disp=document.getElementById('acct-email-display');
+  if(disp) disp.textContent=`Signed in as ${email} (pending confirmation)`;
+}
+function skipEmail(){
+  closeModal('modal-email');
+  toast('You can add your email anytime via Account settings.');
+}
+
+// ── CHANGE PASSWORD ──
+function openModal(id){
+  // Reset password fields on open
+  if(id==='modal-account'){
+    document.getElementById('pw-new').value='';
+    document.getElementById('pw-confirm').value='';
+    document.getElementById('pw-err').classList.remove('show');
+  }
+  document.getElementById(id).classList.add('open');
+}
+async function savePassword(){
+  const pw=document.getElementById('pw-new').value;
+  const pw2=document.getElementById('pw-confirm').value;
+  const err=document.getElementById('pw-err');
+  err.classList.remove('show');
+  if(!pw||pw.length<6){err.textContent='Password must be at least 6 characters.';err.classList.add('show');return;}
+  if(pw!==pw2){err.textContent='Passwords do not match.';err.classList.add('show');return;}
+  const {error}=await sb.auth.updateUser({password:pw});
+  if(error){
+    // Not using Supabase auth — fall through gracefully
+    err.textContent='Password change not available. Your manager sets your password.';err.classList.add('show');return;
+  }
+  toast('✅ Password updated.');
+  closeModal('modal-account');
 }
 
 boot();
