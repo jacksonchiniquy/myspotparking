@@ -209,7 +209,34 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <input class="form-input" id="gate-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <button class="btn btn-primary btn-full" style="font-size:15px;padding:13px;" id="gate-btn" onclick="doLogin()">Sign In →</button>
-    <div class="back-link"><a href="portals.html">← Back to portals</a></div>
+    <div class="back-link"><a href="portals.html">← Back to portals</a> · <a onclick="showForgot()">Forgot password?</a></div>
+  </div>
+</div>
+
+<!-- FORGOT PASSWORD -->
+<div id="forgot-gate" style="display:none;min-height:100vh;align-items:center;justify-content:center;padding:80px 20px 40px;">
+  <div class="gate-card">
+    <div class="gate-badge">🔑 Reset Password</div>
+    <div class="gate-title">Forgot Password?</div>
+    <div class="gate-sub">Enter your property, unit number, and the email on your account. We'll send you a new temporary password.</div>
+    <div class="err-msg" id="forgot-err"></div>
+    <div class="err-msg" id="forgot-ok" style="background:rgba(0,200,122,.08);border-color:rgba(0,200,122,.3);color:#007a4a;"></div>
+    <div class="form-group">
+      <label class="form-label">Property</label>
+      <select class="form-select" id="forgot-property">
+        <option value="">— Select your property —</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Unit Number</label>
+      <input class="form-input" id="forgot-unit" type="text" placeholder="e.g. A-102" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email Address</label>
+      <input class="form-input" id="forgot-email" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doForgot()">
+    </div>
+    <button class="btn btn-primary btn-full" style="font-size:15px;padding:13px;" id="forgot-btn" onclick="doForgot()">Send New Password →</button>
+    <div class="back-link"><a onclick="showLogin()">← Back to login</a></div>
   </div>
 </div>
 
@@ -924,6 +951,99 @@ async function savePassword(){
   if(error){err.textContent='Error: '+error.message;err.classList.add('show');return;}
   toast('✅ Password updated. Use it next time you log in.');
   closeModal('modal-account');
+}
+
+// ── FORGOT PASSWORD ──
+function showForgot(){
+  document.getElementById('gate').style.display='none';
+  const fg=document.getElementById('forgot-gate');
+  fg.style.display='flex';
+  // Copy property options if not already populated
+  const src=document.getElementById('gate-property');
+  const dst=document.getElementById('forgot-property');
+  if(dst.options.length<=1 && src.options.length>1){
+    dst.innerHTML=src.innerHTML;
+  }
+  document.getElementById('forgot-err').classList.remove('show');
+  document.getElementById('forgot-ok').classList.remove('show');
+  document.getElementById('forgot-unit').value='';
+  document.getElementById('forgot-email').value='';
+}
+
+function showLogin(){
+  document.getElementById('forgot-gate').style.display='none';
+  document.getElementById('gate').style.display='flex';
+}
+
+function generatePassword(){
+  const chars='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let p='';for(let i=0;i<10;i++) p+=chars[Math.floor(Math.random()*chars.length)];
+  return p;
+}
+
+async function doForgot(){
+  const propertyId=document.getElementById('forgot-property').value;
+  const unitNumber=document.getElementById('forgot-unit').value.trim();
+  const email=document.getElementById('forgot-email').value.trim().toLowerCase();
+  const err=document.getElementById('forgot-err');
+  const ok=document.getElementById('forgot-ok');
+  const btn=document.getElementById('forgot-btn');
+  err.classList.remove('show');
+  ok.classList.remove('show');
+  if(!propertyId){err.textContent='Please select your property.';err.classList.add('show');return;}
+  if(!unitNumber){err.textContent='Please enter your unit number.';err.classList.add('show');return;}
+  if(!email||!email.includes('@')){err.textContent='Please enter a valid email address.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Sending…';
+
+  // Look up unit
+  const {data:slots,error}=await sb.from('property_units').select('*').eq('property_id',propertyId).eq('unit_number',unitNumber).limit(1);
+  if(error||!slots||!slots.length){
+    err.textContent='Unit not found for this property.';err.classList.add('show');
+    btn.disabled=false;btn.textContent='Send New Password →';return;
+  }
+  const slot=slots[0];
+  const storedEmail=(slot.tenant_email||'').toLowerCase();
+  if(!storedEmail){
+    err.textContent='No email address is on file for this unit. Contact your property manager.';err.classList.add('show');
+    btn.disabled=false;btn.textContent='Send New Password →';return;
+  }
+  if(storedEmail!==email){
+    err.textContent='That email does not match what we have on file for this unit.';err.classList.add('show');
+    btn.disabled=false;btn.textContent='Send New Password →';return;
+  }
+
+  // Generate new password and save it
+  const newPassword=generatePassword();
+  const {error:upErr}=await sb.from('property_units').update({unit_password:newPassword}).eq('id',slot.id);
+  if(upErr){
+    err.textContent='Error resetting password. Please try again.';err.classList.add('show');
+    btn.disabled=false;btn.textContent='Send New Password →';return;
+  }
+
+  // Send email via Netlify function
+  const {data:prop}=await sb.from('properties').select('name').eq('id',propertyId).single();
+  const res=await fetch('/.netlify/functions/send-email',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      type:'passwordReset',
+      email:slot.tenant_email,
+      name:slot.tenant_name||'Resident',
+      password:newPassword,
+      propertyName:prop?.name||'Your Property',
+      unitNumber
+    })
+  });
+
+  btn.disabled=false;btn.textContent='Send New Password →';
+  if(res.ok){
+    ok.textContent='✅ A new temporary password has been sent to '+slot.tenant_email+'. Check your inbox.';
+    ok.classList.add('show');
+  } else {
+    // Password was reset even if email failed — tell them to contact manager
+    ok.textContent='✅ Password reset. If you don\'t receive an email shortly, contact your property manager.';
+    ok.classList.add('show');
+  }
 }
 
 boot();
