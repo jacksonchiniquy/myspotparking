@@ -336,30 +336,26 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
   </div>
 </div>
 
-<!-- Email Capture Modal (first login) -->
-<div class="modal-bg" id="modal-email">
-  <div class="modal">
-    <div class="modal-title">Add your email</div>
-    <div class="modal-sub">Get notified about permit changes and use email to recover your password. You can skip this for now.</div>
-    <div class="err-msg" id="email-err"></div>
-    <div class="form-group">
-      <label class="form-label">Email Address</label>
-      <input class="form-input" id="email-input" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')saveEmail()">
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-primary" onclick="saveEmail()">Save Email</button>
-      <button class="btn btn-ghost" onclick="skipEmail()">Skip for now</button>
-    </div>
-  </div>
-</div>
-
 <!-- Account Modal -->
 <div class="modal-bg" id="modal-account">
   <div class="modal">
     <div class="modal-title">Account Settings</div>
-    <div class="modal-sub" id="acct-email-display" style="margin-bottom:16px;"></div>
-    <hr style="border:none;border-top:1px solid var(--border);margin-bottom:16px;">
-    <div style="font-size:14px;font-weight:700;margin-bottom:12px;">Change Password</div>
+    <div class="modal-sub">Unit <span id="acct-unit-display">—</span> · <span id="acct-prop-display">—</span></div>
+
+    <div style="font-size:14px;font-weight:700;margin-bottom:12px;">Email Address</div>
+    <div class="err-msg" id="email-err"></div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" id="acct-email-input" type="email" placeholder="you@example.com">
+    </div>
+    <div style="margin-bottom:20px;">
+      <button class="btn btn-ghost" style="font-size:13px;" onclick="saveEmail()">Save Email</button>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin-bottom:20px;">
+
+    <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Change Password</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Set a personal password to replace your temporary one.</div>
     <div class="err-msg" id="pw-err"></div>
     <div class="form-group">
       <label class="form-label">New Password</label>
@@ -371,7 +367,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     </div>
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="savePassword()">Update Password</button>
-      <button class="btn btn-ghost" onclick="closeModal('modal-account')">Cancel</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-account')">Close</button>
     </div>
   </div>
 </div>
@@ -462,7 +458,7 @@ async function showApp(){
   document.getElementById('signout-btn').style.display='';
   showAcctBtn();
   await loadUnitData();
-  checkEmailPrompt();
+  populateAccountModal();
 }
 
 // ── DATA ──
@@ -867,55 +863,52 @@ function toast(msg){
   setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-// ── ACCOUNT: show acct button, check for email ──
+// ── ACCOUNT ──
 function showAcctBtn(){
   const btn=document.getElementById('acct-btn');
   if(btn) btn.style.display='';
 }
-async function checkEmailPrompt(){
-  // Get the current Supabase auth session (anon key login stores a session)
-  const {data:{session:authSession}}=await sb.auth.getSession();
-  if(!authSession) return; // not using supabase auth, skip
-  const email=authSession.user?.email;
-  // Update account display
-  const disp=document.getElementById('acct-email-display');
-  if(disp) disp.textContent=email?`Signed in as ${email}`:'No email address on file.';
-  // Show email prompt if no email set
-  if(!email){
-    // Use a flag so it only fires once per session
-    if(!sessionStorage.getItem('email_prompted')){
-      sessionStorage.setItem('email_prompted','1');
-      openModal('modal-email');
-    }
+
+function populateAccountModal(){
+  // Pre-fill unit/property labels
+  const unitEl=document.getElementById('acct-unit-display');
+  const propEl=document.getElementById('acct-prop-display');
+  if(unitEl) unitEl.textContent=session.unitNumber;
+  if(propEl) propEl.textContent=session.propertyName;
+  // Pre-fill email from the loaded unit data
+  const emailInput=document.getElementById('acct-email-input');
+  if(emailInput && unitSlots.length){
+    const email=unitSlots[0]?.tenant_email||'';
+    emailInput.value=email;
   }
 }
-async function saveEmail(){
-  const email=document.getElementById('email-input').value.trim();
-  const err=document.getElementById('email-err');
-  err.classList.remove('show');
-  if(!email||!email.includes('@')){err.textContent='Enter a valid email.';err.classList.add('show');return;}
-  const {error}=await sb.auth.updateUser({email});
-  if(error){err.textContent='Error: '+error.message;err.classList.add('show');return;}
-  toast('✅ Email saved. Check your inbox to confirm it.');
-  closeModal('modal-email');
-  const disp=document.getElementById('acct-email-display');
-  if(disp) disp.textContent=`Signed in as ${email} (pending confirmation)`;
-}
-function skipEmail(){
-  closeModal('modal-email');
-  toast('You can add your email anytime via Account settings.');
-}
 
-// ── CHANGE PASSWORD ──
 function openModal(id){
-  // Reset password fields on open
   if(id==='modal-account'){
     document.getElementById('pw-new').value='';
     document.getElementById('pw-confirm').value='';
     document.getElementById('pw-err').classList.remove('show');
+    document.getElementById('email-err').classList.remove('show');
+    populateAccountModal();
   }
   document.getElementById(id).classList.add('open');
 }
+
+async function saveEmail(){
+  const email=document.getElementById('acct-email-input').value.trim();
+  const err=document.getElementById('email-err');
+  err.classList.remove('show');
+  if(!email||!email.includes('@')){err.textContent='Enter a valid email address.';err.classList.add('show');return;}
+  const {error}=await sb.from('property_units')
+    .update({tenant_email:email})
+    .eq('property_id',session.propertyId)
+    .eq('unit_number',session.unitNumber);
+  if(error){err.textContent='Error: '+error.message;err.classList.add('show');return;}
+  // Update local cache
+  unitSlots.forEach(s=>s.tenant_email=email);
+  toast('✅ Email saved.');
+}
+
 async function savePassword(){
   const pw=document.getElementById('pw-new').value;
   const pw2=document.getElementById('pw-confirm').value;
@@ -923,12 +916,12 @@ async function savePassword(){
   err.classList.remove('show');
   if(!pw||pw.length<6){err.textContent='Password must be at least 6 characters.';err.classList.add('show');return;}
   if(pw!==pw2){err.textContent='Passwords do not match.';err.classList.add('show');return;}
-  const {error}=await sb.auth.updateUser({password:pw});
-  if(error){
-    // Not using Supabase auth — fall through gracefully
-    err.textContent='Password change not available. Your manager sets your password.';err.classList.add('show');return;
-  }
-  toast('✅ Password updated.');
+  const {error}=await sb.from('property_units')
+    .update({unit_password:pw})
+    .eq('property_id',session.propertyId)
+    .eq('unit_number',session.unitNumber);
+  if(error){err.textContent='Error: '+error.message;err.classList.add('show');return;}
+  toast('✅ Password updated. Use it next time you log in.');
   closeModal('modal-account');
 }
 
