@@ -93,7 +93,12 @@ async function handleCheckoutCompleted(session) {
 
   // 2. Generate password
   const password = generatePassword();
-
+// Save password to property_units so unit.html login works
+await sbUpdate(
+  'property_units',
+  { unit_password: password },
+  `invite_code=eq.${invite_code}`
+);
   // 3. Create or find Supabase auth user
   const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
     method: 'POST',
