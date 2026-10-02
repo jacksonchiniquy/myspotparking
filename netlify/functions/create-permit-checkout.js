@@ -58,7 +58,7 @@ exports.handler = async (event) => {
         tenant_email: tenantEmail,
         billing_interval: billingInterval,
       },
-      success_url: `${SITE}/holder.html?signup=success`,
+      success_url: `${SITE}/signup.html?signup=success`,
       cancel_url: `${SITE}/signup.html?invite=${inviteCode}&cancelled=true`,
     });
 

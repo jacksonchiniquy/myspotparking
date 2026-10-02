@@ -211,6 +211,15 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
       </div>
       <!-- SIGNIN -->
       <div id="panel-signin">
+        <div id="signup-success-banner" style="display:none;background:linear-gradient(135deg,rgba(0,200,122,.1),rgba(0,200,122,.04));border:1px solid rgba(0,200,122,.3);border-radius:14px;padding:16px 18px;margin-bottom:20px;">
+          <div style="display:flex;align-items:flex-start;gap:12px;">
+            <div style="flex-shrink:0;width:32px;height:32px;background:rgba(0,200,122,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:3px;">Payment confirmed — you're all set!</div>
+              <div style="font-size:13px;color:var(--text2);line-height:1.5;"><strong>Check your email</strong> for your login password, then sign in below to access your permit.</div>
+            </div>
+          </div>
+        </div>
         <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(0,200,122,.1);border:1px solid rgba(0,200,122,.2);border-radius:20px;padding:4px 13px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:14px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M5 12h14"/></svg> Permit Holder</div>
         <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Welcome back</div>
         <div style="font-size:13px;color:var(--text2);margin-bottom:24px;">Sign in to manage your permits</div>
@@ -520,12 +529,12 @@ function restoreFromHash(){
   const h=window.location.hash.replace('#','');
   const map={overview:'sb-overview',permits:'sb-permits',vehicles:'sb-vehicles',guests:'sb-guests',subscription:'sb-subscription',account:'sb-account'};
   if(h&&map[h]) showPanel(h,document.getElementById(map[h]));
-  // Handle signup=success redirect from Stripe
+  // Handle signup=success redirect from Stripe (safety net — primary flow uses signup.html)
   const params=new URLSearchParams(window.location.search);
   if(params.get('signup')==='success'){
-    toast('🎉 Payment confirmed! Your permit is now active. Check your email for login credentials.');
+    const banner=document.getElementById('signup-success-banner');
+    if(banner) banner.style.display='block';
     history.replaceState(null,'',window.location.pathname);
-    showPanel('subscription',document.getElementById('sb-subscription'));
   }
 }
 
