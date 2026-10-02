@@ -1,8 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
-  <!-- Background circle -->
-  <rect width="80" height="80" rx="18" fill="#2859a8"/>
-  <!-- Pin shape (scaled/centered within the square) -->
-  <path d="M40 10C32.268 10 26 16.268 26 24c0 9.8 14 30 14 30S54 33.8 54 24c0-7.732-6.268-14-14-14z" fill="white"/>
-  <circle cx="40" cy="24" r="8" fill="#2859a8"/>
-  <text x="40" y="29" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="11" fill="white">P</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 80">
+  <!-- Left bracket mark -->
+  <line x1="8" y1="62" x2="20" y2="38" stroke="#5a6378" stroke-width="5" stroke-linecap="round"/>
+  <line x1="8" y1="62" x2="26" y2="62" stroke="#5a6378" stroke-width="5" stroke-linecap="round"/>
+  <!-- Right bracket mark -->
+  <line x1="92" y1="62" x2="80" y2="38" stroke="#5a6378" stroke-width="5" stroke-linecap="round"/>
+  <line x1="92" y1="62" x2="74" y2="62" stroke="#5a6378" stroke-width="5" stroke-linecap="round"/>
+  <!-- Shadow -->
+  <ellipse cx="50" cy="70" rx="10" ry="3.5" fill="#374269" opacity="0.2"/>
+  <!-- Pin -->
+  <path d="M50 4C40.6 4 33 11.6 33 21c0 12.5 17 41 17 41S67 33.5 67 21C67 11.6 59.4 4 50 4z" fill="#2859a8"/>
+  <!-- White circle -->
+  <circle cx="50" cy="21" r="11" fill="white"/>
+  <!-- P -->
+  <text x="50" y="26" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="14" fill="#374269">P</text>
 </svg>
