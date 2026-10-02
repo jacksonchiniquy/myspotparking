@@ -448,6 +448,7 @@ function signOut(){
   document.getElementById('unit-badge').style.display='none';
   document.getElementById('acct-btn').style.display='none';
   document.getElementById('signout-btn').style.display='none';
+  document.getElementById('unit-badge').style.display='none';
 }
 
 async function showApp(){
@@ -455,8 +456,8 @@ async function showApp(){
   document.getElementById('app').style.display='block';
   document.getElementById('unit-badge').textContent='Unit '+session.unitNumber;
   document.getElementById('unit-badge').style.display='';
-  document.getElementById('signout-btn').style.display='';
-  showAcctBtn();
+  document.getElementById('signout-btn').style.display='inline-flex';
+  document.getElementById('acct-btn').style.display='inline-flex';
   await loadUnitData();
   populateAccountModal();
 }
