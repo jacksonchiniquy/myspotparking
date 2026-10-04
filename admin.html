@@ -136,6 +136,57 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 .select-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;font-family:'Bricolage Grotesque',sans-serif;font-size:14px;outline:none;-webkit-appearance:none;}
 .select-input:focus{border-color:var(--blue);}
 
+/* ── PLANS ── */
+.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}
+.plan-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;position:relative;overflow:hidden;}
+.plan-card.plan-pro{border-color:rgba(47,129,247,.3);box-shadow:0 0 0 1px rgba(47,129,247,.1);}
+.plan-card.plan-enterprise{border-color:rgba(163,113,247,.3);box-shadow:0 0 0 1px rgba(163,113,247,.1);}
+.plan-accent{position:absolute;top:0;left:0;right:0;height:3px;}
+.plan-starter .plan-accent{background:var(--green);}
+.plan-pro .plan-accent{background:var(--blue);}
+.plan-enterprise .plan-accent{background:var(--purple);}
+.plan-badge{display:inline-flex;align-items:center;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;padding:3px 9px;border-radius:10px;margin-bottom:10px;}
+.plan-starter .plan-badge{background:rgba(63,185,80,.15);color:var(--green2);border:1px solid rgba(63,185,80,.25);}
+.plan-pro .plan-badge{background:rgba(47,129,247,.15);color:var(--blue2);border:1px solid rgba(47,129,247,.25);}
+.plan-enterprise .plan-badge{background:rgba(163,113,247,.15);color:var(--purple);border:1px solid rgba(163,113,247,.25);}
+.plan-name{font-size:18px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;}
+.plan-price{font-size:13px;color:var(--text2);margin-bottom:14px;}
+.plan-features-list{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.plan-features-list li{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:7px;}
+.plan-features-list li::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.plan-starter .plan-features-list li::before{background:var(--green);}
+.plan-pro .plan-features-list li::before{background:var(--blue);}
+.plan-enterprise .plan-features-list li::before{background:var(--purple);}
+.plan-count{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+
+/* plan pills in manager table */
+.pill-starter{background:rgba(63,185,80,.1);color:var(--green2);border:1px solid rgba(63,185,80,.2);}
+.pill-starter::before{background:var(--green);}
+.pill-pro{background:rgba(47,129,247,.12);color:var(--blue2);border:1px solid rgba(47,129,247,.2);}
+.pill-pro::before{background:var(--blue);}
+.pill-enterprise{background:rgba(163,113,247,.12);color:var(--purple);border:1px solid rgba(163,113,247,.2);}
+.pill-enterprise::before{background:var(--purple);}
+
+/* feature toggle rows */
+.feature-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border2);}
+.feature-row:last-child{border-bottom:none;}
+.feature-info{flex:1;}
+.feature-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:1px;}
+.feature-desc{font-size:11px;color:var(--text3);}
+.feature-tier{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:1px 7px;border-radius:8px;margin-left:8px;flex-shrink:0;}
+.ft-core{background:rgba(63,185,80,.1);color:var(--green2);}
+.ft-starter{background:rgba(47,129,247,.1);color:var(--blue2);}
+.ft-pro{background:rgba(163,113,247,.12);color:var(--purple);}
+.ft-enterprise{background:rgba(211,156,36,.12);color:var(--amber2);}
+.toggle{position:relative;width:38px;height:21px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-slider{position:absolute;inset:0;background:var(--surface3);border-radius:21px;cursor:pointer;transition:background .2s;}
+.toggle-slider::after{content:'';position:absolute;top:3px;left:3px;width:15px;height:15px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.toggle input:checked+.toggle-slider{background:var(--blue);}
+.toggle input:checked+.toggle-slider::after{transform:translateX(17px);}
+.toggle input:disabled+.toggle-slider{opacity:.4;cursor:not-allowed;}
+.modal-section-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin:16px 0 8px;}
+
 @media(max-width:900px){
   .sidebar{display:none;}
   .stat-grid{grid-template-columns:1fr 1fr 1fr;}
@@ -181,6 +232,8 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <button class="sb-item" id="sb-permits" onclick="showPanel('permits',this)">🎫 Permits<span class="sb-count" id="cnt-permits">0</span></button>
       <button class="sb-item" id="sb-residents" onclick="showPanel('residents',this)">👥 Residents<span class="sb-count" id="cnt-residents">0</span></button>
       <button class="sb-item" id="sb-violations" onclick="showPanel('violations',this)">🚨 Violations<span class="sb-count" id="cnt-violations">0</span></button>
+      <div class="sb-section">Billing</div>
+      <button class="sb-item" id="sb-plans" onclick="showPanel('plans',this)">💎 Plans & Features</button>
       <div class="sb-section">Admin</div>
       <button class="sb-item" id="sb-staff" onclick="showPanel('staff',this)">⚡ Staff Access</button>
     </nav>
@@ -232,7 +285,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
           <div class="section-title">All Managers</div>
           <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-manager')">+ Add Manager</button>
         </div>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Properties</th><th>Permits</th><th>Joined</th><th>Actions</th></tr></thead><tbody id="tbl-managers"></tbody></table></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Plan</th><th>Properties</th><th>Permits</th><th>Joined</th><th>Actions</th></tr></thead><tbody id="tbl-managers"></tbody></table></div>
       </div>
 
       <!-- PROPERTIES -->
@@ -276,6 +329,68 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Reason</th><th>Property</th><th>Officer</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody id="tbl-violations"></tbody></table></div>
       </div>
 
+      <!-- PLANS & FEATURES -->
+      <div id="panel-plans" class="panel">
+        <div class="section-head">
+          <div class="section-title">Plans & Features</div>
+        </div>
+
+        <!-- Tier overview cards -->
+        <div class="plan-grid">
+          <div class="plan-card plan-starter">
+            <div class="plan-accent"></div>
+            <div class="plan-badge">Starter</div>
+            <div class="plan-name">Starter</div>
+            <div class="plan-price">Free · basic access</div>
+            <ul class="plan-features-list">
+              <li>Permit Management</li>
+              <li>Resident Portal</li>
+              <li>Lot Map</li>
+            </ul>
+            <div class="plan-count" id="plan-count-starter">— managers</div>
+          </div>
+          <div class="plan-card plan-pro">
+            <div class="plan-accent"></div>
+            <div class="plan-badge">Pro</div>
+            <div class="plan-name">Pro</div>
+            <div class="plan-price">Per-property monthly</div>
+            <ul class="plan-features-list">
+              <li>Everything in Starter</li>
+              <li>Enforcement Module</li>
+              <li>Pay-to-Park</li>
+              <li>Analytics Dashboard</li>
+              <li>White-label Branding</li>
+            </ul>
+            <div class="plan-count" id="plan-count-pro">— managers</div>
+          </div>
+          <div class="plan-card plan-enterprise">
+            <div class="plan-accent"></div>
+            <div class="plan-badge">Enterprise</div>
+            <div class="plan-name">Enterprise</div>
+            <div class="plan-price">Custom pricing</div>
+            <ul class="plan-features-list">
+              <li>Everything in Pro</li>
+              <li>Tenant Billing</li>
+              <li>PMS Integration</li>
+              <li>Multi-Staff Accounts</li>
+              <li>API Access</li>
+            </ul>
+            <div class="plan-count" id="plan-count-enterprise">— managers</div>
+          </div>
+        </div>
+
+        <!-- Managers w/ plan assignment -->
+        <div class="section-head" style="margin-top:8px;">
+          <div class="section-title">Manager Plan Assignments</div>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Plan</th><th>Actions</th></tr></thead>
+            <tbody id="tbl-plan-managers"></tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- STAFF -->
       <div id="panel-staff" class="panel">
         <div class="section-head">
@@ -307,6 +422,14 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div class="form-group"><label class="form-label">Email *</label><input class="form-input" id="am-email" type="email" placeholder="manager@company.com"></div>
     <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="am-phone" type="tel" placeholder="+1 (555) 000-0000"></div>
     <div class="form-group"><label class="form-label">Temporary Password *</label><input class="form-input" id="am-pass" type="text" value="WelcomeMSP2026!" placeholder="Temporary password"></div>
+    <div class="form-group">
+      <label class="form-label">Plan Tier</label>
+      <select class="select-input" id="am-plan">
+        <option value="starter">Starter — free, basic access</option>
+        <option value="pro">Pro — per-property monthly</option>
+        <option value="enterprise">Enterprise — custom pricing</option>
+      </select>
+    </div>
     <button class="btn btn-primary btn-full" id="am-btn" onclick="addManager()">Create Manager Account →</button>
     <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="closeModal('modal-add-manager')">Cancel</button>
   </div>
@@ -327,6 +450,40 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div class="form-group"><label class="form-label">Temporary Password *</label><input class="form-input" id="as-pass" type="text" value="AdminMSP2026!" placeholder="Temporary password"></div>
     <button class="btn btn-primary btn-full" id="as-btn" onclick="addStaffAdmin()">Grant Admin Access →</button>
     <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="closeModal('modal-add-staff')">Cancel</button>
+  </div>
+</div>
+
+<!-- Manage Features Modal -->
+<div class="modal-overlay" id="modal-features">
+  <div class="modal" style="width:520px;">
+    <button class="modal-close" onclick="closeModal('modal-features')">✕</button>
+    <div class="modal-title">💎 Manage Plan & Features</div>
+    <div class="modal-sub" id="mf-manager-name">Select a manager</div>
+
+    <div class="modal-section-label">Plan Tier</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:4px;">
+      <button class="btn btn-ghost btn-sm" id="plan-btn-starter" onclick="selectPlan('starter')" style="justify-content:center;">Starter</button>
+      <button class="btn btn-ghost btn-sm" id="plan-btn-pro" onclick="selectPlan('pro')" style="justify-content:center;">Pro</button>
+      <button class="btn btn-ghost btn-sm" id="plan-btn-enterprise" onclick="selectPlan('enterprise')" style="justify-content:center;">Enterprise</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Selecting a tier auto-enables that tier's default features. You can still toggle individual flags below.</div>
+
+    <div class="modal-section-label">Core Features (always on)</div>
+    <div id="mf-core-features"></div>
+
+    <div class="modal-section-label">Starter+</div>
+    <div id="mf-starter-features"></div>
+
+    <div class="modal-section-label">Pro+</div>
+    <div id="mf-pro-features"></div>
+
+    <div class="modal-section-label">Enterprise</div>
+    <div id="mf-enterprise-features"></div>
+
+    <div style="display:flex;gap:8px;margin-top:20px;">
+      <button class="btn btn-primary" style="flex:1;" id="mf-save-btn" onclick="saveFeatures()">Save Changes</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-features')">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -356,6 +513,32 @@ let allPermits=[];
 let allResidents=[];
 let allViolations=[];
 let allStaff=[];
+let allFeatureFlags={}; // keyed by manager_id → {plan, flags:{featureKey:bool}}
+
+// ── PLAN / FEATURE DEFINITIONS ──────────────────────────────────
+const FEATURES=[
+  {key:'permits',       name:'Permit Management',      desc:'Issue, revoke and track parking permits',       tier:'core',       alwaysOn:true},
+  {key:'resident_portal',name:'Resident Portal',       desc:'Tenant self-service portal for vehicles & permits', tier:'core',  alwaysOn:true},
+  {key:'lot_map',       name:'Lot Map',                desc:'Visual map of parking spots and occupancy',     tier:'starter',    alwaysOn:false},
+  {key:'enforcement',   name:'Enforcement Module',     desc:'Officer patrol app, violation logging',         tier:'pro',        alwaysOn:false},
+  {key:'pay_to_park',   name:'Pay-to-Park',            desc:'Transient visitor payments via Stripe',         tier:'pro',        alwaysOn:false},
+  {key:'analytics',     name:'Analytics Dashboard',    desc:'Occupancy, revenue and trend charts',           tier:'pro',        alwaysOn:false},
+  {key:'white_label',   name:'White-label Branding',   desc:'Remove My Spot Parking branding for manager',  tier:'pro',        alwaysOn:false},
+  {key:'tenant_billing',name:'Tenant Billing',         desc:'Automated monthly billing subscriptions per unit', tier:'enterprise', alwaysOn:false},
+  {key:'pms_integration',name:'PMS Integration',       desc:'Sync with Yardi, Entrata and other PMS platforms', tier:'enterprise', alwaysOn:false},
+  {key:'multi_staff',   name:'Multi-Staff Accounts',   desc:'Multiple logins per manager property',         tier:'enterprise', alwaysOn:false},
+  {key:'api_access',    name:'API Access',             desc:'REST API for custom integrations',             tier:'enterprise', alwaysOn:false},
+];
+
+const TIER_DEFAULTS={
+  starter:['permits','resident_portal','lot_map'],
+  pro:    ['permits','resident_portal','lot_map','enforcement','pay_to_park','analytics','white_label'],
+  enterprise:['permits','resident_portal','lot_map','enforcement','pay_to_park','analytics','white_label','tenant_billing','pms_integration','multi_staff','api_access'],
+};
+
+let mfCurrentManagerId=null;
+let mfCurrentFlags={}; // live state while modal open
+let mfCurrentPlan='starter';
 
 // ── AUTH ──────────────────────────────────────────────────────
 
@@ -436,9 +619,18 @@ function enterApp(){
 // ── DATA ──────────────────────────────────────────────────────
 
 async function loadAll(){
-  await Promise.all([loadManagers(),loadProperties(),loadPermits(),loadResidents(),loadViolations(),loadStaff()]);
+  await Promise.all([loadManagers(),loadProperties(),loadPermits(),loadResidents(),loadViolations(),loadStaff(),loadFeatureFlags()]);
   renderDashboard();
   restoreFromHash();
+}
+
+async function loadFeatureFlags(){
+  const {data}=await sb.from('manager_features').select('*');
+  allFeatureFlags={};
+  (data||[]).forEach(row=>{
+    allFeatureFlags[row.manager_id]={plan:row.plan||'starter',flags:row.flags||{}};
+  });
+  renderPlanPanel();
 }
 
 async function loadManagers(){
@@ -447,6 +639,7 @@ async function loadManagers(){
   document.getElementById('cnt-managers').textContent=allManagers.length;
   document.getElementById('s-managers').textContent=allManagers.length;
   renderManagers(allManagers);
+  renderPlanPanel();
 }
 
 async function loadProperties(){
@@ -510,19 +703,23 @@ function renderManagers(data){
   document.getElementById('tbl-managers').innerHTML=data.map(m=>{
     const props=allProperties.filter(p=>p.manager_id===m.id).length;
     const permits=allPermits.filter(p=>allProperties.filter(x=>x.manager_id===m.id).map(x=>x.id).includes(p.property_id)&&p.status==='active').length;
+    const plan=(allFeatureFlags[m.id]?.plan)||'starter';
+    const planLabel={starter:'Starter',pro:'Pro',enterprise:'Enterprise'}[plan]||plan;
     return `<tr>
       <td><div style="font-weight:600">${m.full_name||'—'}</div></td>
       <td style="font-size:12px;color:var(--text2)">${m.email||'—'}</td>
       <td style="font-size:12px">${m.company||'—'}</td>
+      <td><span class="pill pill-${plan}">${planLabel}</span></td>
       <td style="font-size:12px;text-align:center">${props}</td>
       <td style="font-size:12px;text-align:center">${permits}</td>
       <td style="font-size:12px;color:var(--text3)">${m.created_at?new Date(m.created_at).toLocaleDateString():'—'}</td>
       <td><div class="tbl-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openFeatureModal('${m.id}')">💎 Plan</button>
         <button class="btn btn-ghost btn-sm" onclick="impersonate('${m.id}','manager')">View</button>
         <button class="btn btn-danger btn-sm" onclick="confirmDelete('user','${m.id}','${(m.full_name||m.email||'').replace(/'/g,'')}')">Delete</button>
       </div></td>
     </tr>`;
-  }).join('')||'<tr><td colspan="7" class="loading">No managers found</td></tr>';
+  }).join('')||'<tr><td colspan="8" class="loading">No managers found</td></tr>';
 }
 
 function renderProperties(data){
@@ -620,6 +817,7 @@ function renderStaff(data){
 async function addManager(){
   const fname=g('am-fname'),lname=g('am-lname'),email=g('am-email'),pass=g('am-pass');
   const company=g('am-company'),phone=g('am-phone');
+  const plan=document.getElementById('am-plan')?.value||'starter';
   const err=document.getElementById('am-err'),btn=document.getElementById('am-btn');
   err.classList.remove('show');
   if(!fname||!email||!pass){err.textContent='First name, email and password are required.';err.classList.add('show');return;}
@@ -628,11 +826,16 @@ async function addManager(){
   if(error&&error.message!=='User already registered'){err.textContent=error.message;err.classList.add('show');btn.disabled=false;btn.textContent='Create Manager Account →';return;}
   if(data?.user?.id){
     await sb.from('users').upsert({id:data.user.id,email,full_name:(fname+' '+lname).trim(),company,phone,role:'manager'},{onConflict:'id'});
+    // Set default feature flags for the chosen plan
+    const flags={};
+    FEATURES.forEach(f=>{flags[f.key]=f.alwaysOn||TIER_DEFAULTS[plan].includes(f.key);});
+    await sb.from('manager_features').upsert({manager_id:data.user.id,plan,flags,updated_at:new Date().toISOString()},{onConflict:'manager_id'});
   }
   btn.disabled=false;btn.textContent='Create Manager Account →';
   closeModal('modal-add-manager');
   await loadManagers();
-  toast('✅ Manager account created for '+fname);
+  await loadFeatureFlags();
+  toast('✅ Manager account created for '+fname+' ('+(plan.charAt(0).toUpperCase()+plan.slice(1))+' plan)');
 }
 
 async function addStaffAdmin(){
@@ -697,6 +900,146 @@ function impersonate(managerId,role){
   toast('👀 Viewing manager: '+mgrName(managerId));
 }
 
+// ── PLANS & FEATURES ─────────────────────────────────────────────
+
+function renderPlanPanel(){
+  // Count per plan
+  const counts={starter:0,pro:0,enterprise:0};
+  allManagers.forEach(m=>{
+    const plan=(allFeatureFlags[m.id]?.plan)||'starter';
+    if(counts[plan]!==undefined) counts[plan]++;
+    else counts.starter++;
+  });
+  ['starter','pro','enterprise'].forEach(p=>{
+    const el=document.getElementById('plan-count-'+p);
+    if(el) el.textContent=counts[p]+' manager'+(counts[p]!==1?'s':'');
+  });
+
+  // Manager plan assignment table
+  const tbody=document.getElementById('tbl-plan-managers');
+  if(!tbody) return;
+  tbody.innerHTML=allManagers.map(m=>{
+    const plan=(allFeatureFlags[m.id]?.plan)||'starter';
+    const planLabel={starter:'Starter',pro:'Pro',enterprise:'Enterprise'}[plan]||plan;
+    return `<tr>
+      <td><div style="font-weight:600">${m.full_name||'—'}</div></td>
+      <td style="font-size:12px;color:var(--text2)">${m.email||'—'}</td>
+      <td style="font-size:12px">${m.company||'—'}</td>
+      <td><span class="pill pill-${plan}">${planLabel}</span></td>
+      <td><div class="tbl-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openFeatureModal('${m.id}')">Manage →</button>
+      </div></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="5" class="loading">No managers found</td></tr>';
+}
+
+function openFeatureModal(managerId){
+  mfCurrentManagerId=managerId;
+  const mgr=allManagers.find(m=>m.id===managerId);
+  document.getElementById('mf-manager-name').textContent=(mgr?.full_name||mgr?.email||'Manager')+' — plan & feature settings';
+
+  // Load existing or defaults
+  const existing=allFeatureFlags[managerId];
+  mfCurrentPlan=existing?.plan||'starter';
+  // Start with tier defaults, then overlay saved flags
+  const defaultFlags={};
+  FEATURES.forEach(f=>{defaultFlags[f.key]=f.alwaysOn;});
+  TIER_DEFAULTS[mfCurrentPlan].forEach(k=>{defaultFlags[k]=true;});
+  mfCurrentFlags=Object.assign({},defaultFlags,existing?.flags||{});
+
+  renderFeatureModal();
+  openModal('modal-features');
+}
+
+function renderFeatureModal(){
+  // Highlight active plan button
+  ['starter','pro','enterprise'].forEach(p=>{
+    const btn=document.getElementById('plan-btn-'+p);
+    if(!btn) return;
+    btn.className='btn btn-sm';
+    btn.style.justifyContent='center';
+    if(p===mfCurrentPlan){
+      const colors={starter:'background:rgba(63,185,80,.2);color:var(--green2);border:1px solid rgba(63,185,80,.4);',
+                    pro:'background:rgba(47,129,247,.2);color:var(--blue2);border:1px solid rgba(47,129,247,.4);',
+                    enterprise:'background:rgba(163,113,247,.2);color:var(--purple);border:1px solid rgba(163,113,247,.4);'};
+      btn.style.cssText='justify-content:center;'+colors[p];
+    } else {
+      btn.style.cssText='justify-content:center;background:var(--surface2);color:var(--text2);border:1px solid var(--border);';
+    }
+  });
+
+  // Render feature groups
+  const groups={core:[],starter:[],pro:[],enterprise:[]};
+  FEATURES.forEach(f=>groups[f.tier].push(f));
+
+  const mkRow=(f)=>{
+    const on=!!mfCurrentFlags[f.key];
+    const disabled=f.alwaysOn?'disabled':'';
+    const tierClass={'core':'ft-core','starter':'ft-starter','pro':'ft-pro','enterprise':'ft-enterprise'}[f.tier]||'';
+    const tierLabel={'core':'Core','starter':'Starter','pro':'Pro','enterprise':'Enterprise'}[f.tier]||f.tier;
+    return `<div class="feature-row">
+      <div class="feature-info">
+        <div class="feature-name">${f.name}<span class="feature-tier ${tierClass}">${tierLabel}</span></div>
+        <div class="feature-desc">${f.desc}</div>
+      </div>
+      <label class="toggle" title="${f.alwaysOn?'Always enabled':''}">
+        <input type="checkbox" ${on?'checked':''} ${disabled} onchange="toggleFeature('${f.key}',this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>`;
+  };
+
+  document.getElementById('mf-core-features').innerHTML=groups.core.map(mkRow).join('');
+  document.getElementById('mf-starter-features').innerHTML=groups.starter.map(mkRow).join('');
+  document.getElementById('mf-pro-features').innerHTML=groups.pro.map(mkRow).join('');
+  document.getElementById('mf-enterprise-features').innerHTML=groups.enterprise.map(mkRow).join('');
+}
+
+function selectPlan(plan){
+  mfCurrentPlan=plan;
+  // Apply tier defaults (enable everything up to this tier)
+  FEATURES.forEach(f=>{
+    if(f.alwaysOn) return; // always on, don't touch
+    mfCurrentFlags[f.key]=TIER_DEFAULTS[plan].includes(f.key);
+  });
+  renderFeatureModal();
+}
+
+function toggleFeature(key,val){
+  mfCurrentFlags[key]=val;
+}
+
+async function saveFeatures(){
+  if(!mfCurrentManagerId) return;
+  const btn=document.getElementById('mf-save-btn');
+  btn.disabled=true;btn.textContent='Saving...';
+
+  const payload={
+    manager_id:mfCurrentManagerId,
+    plan:mfCurrentPlan,
+    flags:mfCurrentFlags,
+    updated_at:new Date().toISOString()
+  };
+
+  const {error}=await sb.from('manager_features')
+    .upsert(payload,{onConflict:'manager_id'});
+
+  btn.disabled=false;btn.textContent='Save Changes';
+
+  if(error){
+    toast('❌ Error saving: '+error.message);
+    return;
+  }
+
+  // Update local cache
+  allFeatureFlags[mfCurrentManagerId]={plan:mfCurrentPlan,flags:{...mfCurrentFlags}};
+  closeModal('modal-features');
+  renderManagers(allManagers);
+  renderPlanPanel();
+  const mgr=allManagers.find(m=>m.id===mfCurrentManagerId);
+  toast('✅ Plan saved for '+(mgr?.full_name||'manager'));
+}
+
 // ── SEARCH ──────────────────────────────────────────────────────
 
 function globalSearch(q){
@@ -739,8 +1082,8 @@ function propMgrId(propId){
   return allProperties.find(p=>p.id===propId)?.manager_id||null;
 }
 
-const PANELS=['dashboard','managers','properties','permits','residents','violations','staff'];
-const PANEL_TITLES={dashboard:'Dashboard',managers:'Managers',properties:'Properties',permits:'Permits',residents:'Residents / Holders',violations:'Violations',staff:'Staff Access'};
+const PANELS=['dashboard','managers','properties','permits','residents','violations','plans','staff'];
+const PANEL_TITLES={dashboard:'Dashboard',managers:'Managers',properties:'Properties',permits:'Permits',residents:'Residents / Holders',violations:'Violations',plans:'Plans & Features',staff:'Staff Access'};
 function showPanel(name,el){
   PANELS.forEach(p=>document.getElementById('panel-'+p)?.classList.remove('active'));
   document.getElementById('panel-'+name)?.classList.add('active');
