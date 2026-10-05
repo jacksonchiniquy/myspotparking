@@ -715,6 +715,17 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       </select>
     </div>
     <div class="form-group"><label class="form-label">Max Vehicles</label><input class="form-input" id="us-max-vehicles" type="number" min="1" max="10" value="1"></div>
+    <div class="form-group">
+      <label class="form-label">Billing</label>
+      <select class="form-select" id="us-billing-type" onchange="toggleBillingAmount()">
+        <option value="free">Free — no payment required</option>
+        <option value="monthly">Monthly — tenant pays per month</option>
+      </select>
+    </div>
+    <div class="form-group" id="us-billing-amount-wrap" style="display:none;">
+      <label class="form-label">Monthly Amount ($)</label>
+      <input class="form-input" id="us-monthly-amount" type="number" min="0" step="0.01" placeholder="e.g. 75.00">
+    </div>
     <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="us-notes" type="text" placeholder="Optional internal note"></div>
     <button class="btn btn-primary btn-full" id="us-save-btn" onclick="saveUnitSlot()">Save Slot</button>
   </div>
@@ -4133,17 +4144,19 @@ let toastTimer;
 function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3200);}
 
 // === UNIT SLOTS ===
-let _unitSlots=[], _unitPermits=[];
+let _unitSlots=[], _unitPermits=[], _allUnitPermits=[];
 
 async function loadUnitsTab(propId){
   if(!propId) return;
   document.getElementById('units-list').innerHTML='<div style="text-align:center;padding:48px;color:var(--text3);font-size:13px;">Loading…</div>';
-  const [{data:slots},{data:permits}] = await Promise.all([
+  const [{data:slots},{data:permits},{data:allPermits}] = await Promise.all([
     sb.from('property_units').select('*').eq('property_id',propId).order('unit_number').order('slot_label'),
-    sb.from('unit_permits').select('*').is('void_at',null)
+    sb.from('unit_permits').select('*').is('void_at',null),
+    sb.from('unit_permits').select('*').order('created_at',{ascending:false})
   ]);
   _unitSlots = slots||[];
   _unitPermits = permits||[];
+  _allUnitPermits = allPermits||[];
   renderUnitsTab();
 }
 
@@ -4197,6 +4210,7 @@ function renderUnitsTab(){
       <div style="padding:14px 20px;display:flex;flex-direction:column;gap:10px;">
         ${slots.map(s=>renderUnitSlotCard(s)).join('')}
       </div>
+      ${renderUnitVehicleRoster(unitNum,slots)}
     </div>`;
   }).join('');
 }
@@ -4219,11 +4233,19 @@ function renderUnitSlotCard(s){
   const typeIcon=_slotSvgs[s.slot_type]||'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h18"/></svg>';
   const typeLabel=(s.slot_type||'').replace('stall-','').replace('zone-','').replace(/\b\w/g,c=>c.toUpperCase());
   const managed=s.managed_by==='manager';
+  const isFree=!s.billing_type||s.billing_type==='free';
+  const billingBadge=isFree
+    ?`<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(0,200,122,0.12);color:#007a4a;font-family:'JetBrains Mono',monospace;">FREE</span>`
+    :`<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(26,111,255,0.10);color:var(--blue);font-family:'JetBrains Mono',monospace;">$${Number(s.monthly_amount||0).toFixed(0)}/mo</span>`;
   const sJson=JSON.stringify(s).replace(/"/g,'&quot;');
   return `<div style="display:flex;align-items:center;gap:12px;background:${managed?'rgba(255,170,0,0.05)':'rgba(26,111,255,0.04)'};border:1px solid ${managed?'rgba(255,170,0,0.25)':'var(--border)'};border-radius:10px;padding:12px 14px;">
     <div style="flex-shrink:0;width:28px;height:28px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text2);">${typeIcon}</div>
     <div style="flex:1;min-width:0;">
-      <div style="font-size:13px;font-weight:700;">${s.slot_label||'Slot'} <span style="font-size:11px;color:var(--text3);font-weight:400;font-family:'JetBrains Mono',monospace;">${typeLabel}</span></div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <span style="font-size:13px;font-weight:700;">${s.slot_label||'Slot'}</span>
+        <span style="font-size:11px;color:var(--text3);font-weight:400;font-family:'JetBrains Mono',monospace;">${typeLabel}</span>
+        ${billingBadge}
+      </div>
       ${permit
         ?`<div style="font-size:12px;color:var(--text);margin-top:2px;"><strong style="font-family:'JetBrains Mono',monospace">${permit.plate}</strong>${permit.vehicle_desc?' · '+permit.vehicle_desc:''}</div>
           <div style="font-size:11px;color:var(--text3);margin-top:1px;">Assigned ${new Date(permit.created_at).toLocaleDateString()}</div>`
@@ -4236,6 +4258,62 @@ function renderUnitSlotCard(s){
       <button class="btn btn-ghost btn-sm" onclick="openEditUnitSlot(JSON.parse(this.dataset.s))" data-s="${sJson}">Edit</button>
       <button class="btn btn-danger btn-sm" onclick="deleteUnitSlot('${s.id}')">✕</button>
     </div>
+  </div>`;
+}
+
+function renderUnitVehicleRoster(unitNum, slots){
+  // Gather all slot IDs for this unit
+  const slotIds=new Set(slots.map(s=>s.id));
+  // All permits (including voided) linked to this unit's slots
+  const allVehicles=_allUnitPermits.filter(p=>slotIds.has(p.unit_slot_id));
+  if(!allVehicles.length) return '';
+  // Active (non-voided) permits keyed by slot
+  const activeBySlot={};
+  _unitPermits.filter(p=>slotIds.has(p.unit_slot_id)).forEach(p=>{activeBySlot[p.unit_slot_id]=p;});
+  // Deduplicate by plate (case-insensitive), keep most recent
+  const byPlate={};
+  allVehicles.forEach(p=>{
+    const key=(p.plate||'').toUpperCase();
+    if(!byPlate[key]||new Date(p.created_at)>new Date(byPlate[key].created_at)) byPlate[key]=p;
+  });
+  const uniqueVehicles=Object.values(byPlate);
+  // Mark each as assigned or not
+  const activePlates=new Set(Object.values(activeBySlot).map(p=>(p.plate||'').toUpperCase()));
+  const rows=uniqueVehicles.map(v=>{
+    const plate=(v.plate||'').toUpperCase();
+    const isAssigned=activePlates.has(plate);
+    const slotForV=isAssigned?slots.find(s=>activeBySlot[s.id]&&(activeBySlot[s.id].plate||'').toUpperCase()===plate):null;
+    const slotLabel=slotForV?slotForV.slot_label||'Slot':'';
+    const isVoided=!!v.void_at;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);">
+      <div style="flex-shrink:0;">${isAssigned
+        ?`<span title="Assigned to ${slotLabel}" style="font-size:16px;">🚗</span>`
+        :`<span title="Not assigned to any spot" style="font-size:16px;">⚠️</span>`}</div>
+      <div style="flex:1;min-width:0;">
+        <span style="font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;">${v.plate||'—'}</span>
+        ${v.vehicle_desc?`<span style="font-size:12px;color:var(--text3);margin-left:6px;">${v.vehicle_desc}</span>`:''}
+      </div>
+      <div style="font-size:11px;color:var(--text3);text-align:right;flex-shrink:0;">
+        ${isAssigned
+          ?`<span style="color:#007a4a;font-weight:600;">Assigned · ${slotLabel}</span>`
+          :isVoided
+            ?`<span style="color:var(--text3);">Previously assigned</span>`
+            :`<span style="color:#b45309;font-weight:600;">⚠ No spot</span>`}
+      </div>
+    </div>`;
+  }).join('');
+  const total=uniqueVehicles.length;
+  const assigned=activePlates.size;
+  const unassigned=total-assigned;
+  return `<div style="border-top:1px solid var(--border);padding:14px 20px 16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;">Registered Vehicles</div>
+      <div style="display:flex;gap:8px;">
+        <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(0,200,122,0.10);color:#007a4a;">${assigned} assigned</span>
+        ${unassigned>0?`<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(245,158,11,0.12);color:#b45309;">⚠ ${unassigned} no spot</span>`:''}
+      </div>
+    </div>
+    <div style="font-size:13px;">${rows}</div>
   </div>`;
 }
 
@@ -4269,6 +4347,10 @@ function copyInviteLink(link,unitNum){
 }
 
 let _editingSlot=null;
+function toggleBillingAmount(){
+  const billing=document.getElementById('us-billing-type').value;
+  document.getElementById('us-billing-amount-wrap').style.display=billing==='monthly'?'':'none';
+}
 function openAddUnitSlot(unitNumber=''){
   _editingSlot=null;
   document.getElementById('us-modal-title').textContent='Add Parking Slot';
@@ -4277,7 +4359,10 @@ function openAddUnitSlot(unitNumber=''){
   document.getElementById('us-slot-type').value='stall-standard';
   document.getElementById('us-managed-by').value='tenant';
   document.getElementById('us-max-vehicles').value='1';
+  document.getElementById('us-billing-type').value='free';
+  document.getElementById('us-monthly-amount').value='';
   document.getElementById('us-notes').value='';
+  toggleBillingAmount();
   openModal('modal-unit-slot');
 }
 function openEditUnitSlot(s){
@@ -4288,18 +4373,25 @@ function openEditUnitSlot(s){
   document.getElementById('us-slot-type').value=s.slot_type||'stall-standard';
   document.getElementById('us-managed-by').value=s.managed_by||'tenant';
   document.getElementById('us-max-vehicles').value=s.max_vehicles||1;
+  document.getElementById('us-billing-type').value=s.billing_type||'free';
+  document.getElementById('us-monthly-amount').value=s.monthly_amount||'';
   document.getElementById('us-notes').value=s.notes||'';
+  toggleBillingAmount();
   openModal('modal-unit-slot');
 }
 async function saveUnitSlot(){
   const btn=document.getElementById('us-save-btn');
   btn.disabled=true;btn.textContent='Saving…';
+  const billingType=document.getElementById('us-billing-type').value;
+  const monthlyAmt=parseFloat(document.getElementById('us-monthly-amount').value)||null;
   const data={
     unit_number:document.getElementById('us-unit-number').value.trim(),
     slot_label:document.getElementById('us-slot-label').value.trim(),
     slot_type:document.getElementById('us-slot-type').value,
     managed_by:document.getElementById('us-managed-by').value,
     max_vehicles:parseInt(document.getElementById('us-max-vehicles').value)||1,
+    billing_type:billingType,
+    monthly_amount:billingType==='monthly'?monthlyAmt:null,
     notes:document.getElementById('us-notes').value.trim()||null,
     property_id:currentPropertyId,
   };
