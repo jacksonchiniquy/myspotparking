@@ -4397,10 +4397,13 @@ async function saveUnitSlot(){
   };
   if(!data.unit_number){toast('Unit number is required');btn.disabled=false;btn.textContent='Save Slot';return;}
   const existing=_unitSlots.find(s=>s.unit_number===data.unit_number&&s.property_id===currentPropertyId);
-  // Only the first slot for a unit holds the invite_code (unique constraint).
-  // Additional slots for the same unit get null — they share the unit's invite link.
-  if(!existing&&!_editingSlot) data.invite_code=makeInviteCode();
-  // (no invite_code set for second+ slots — leave it absent so it inserts as null)
+  // Only the first slot for a unit holds the invite_code (unique constraint on non-null values).
+  // Additional slots explicitly set null so the unique constraint isn't triggered.
+  if(!existing&&!_editingSlot){
+    data.invite_code=makeInviteCode();
+  } else if(!_editingSlot){
+    data.invite_code=null; // explicit null — don't let DB default cause a collision
+  }
   let dbError;
   if(_editingSlot){
     const {error}=await sb.from('property_units').update(data).eq('id',_editingSlot.id);
