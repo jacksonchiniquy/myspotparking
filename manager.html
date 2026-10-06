@@ -4176,6 +4176,7 @@ function renderUnitsTab(){
     const inviteUsed=slots[0].invite_used||false;
     const tenantEmail=slots[0].tenant_email||'';
     const tenantName=slots[0].tenant_name||'';
+    const hasPassword=!!(slots[0].unit_password);
     const inviteLink=inviteCode?`${window.location.origin}/signup.html?code=${encodeURIComponent(inviteCode)}`:'';
     const usedBadge=inviteUsed
       ?`<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(0,200,122,0.12);color:#007a4a;font-family:'JetBrains Mono',monospace;">SIGNED UP</span>`
@@ -4204,6 +4205,8 @@ function renderUnitsTab(){
             <button class="btn btn-primary btn-sm" onclick="copyInviteLink('${inviteLink}','${unitNum}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Signup Link</button>
             ${inviteUsed?`<button class="btn btn-ghost btn-sm" title="Reset so a new tenant can sign up" onclick="resetInviteCode('${slots[0].id}','${unitNum}')">Reset Code</button>`:''}
           `:`<button class="btn btn-ghost btn-sm" onclick="generateInviteCodeForUnit('${slots[0].id}','${unitNum}')">Generate Invite</button>`}
+          ${inviteUsed&&!hasPassword?`<button class="btn btn-ghost btn-sm" style="color:var(--amber);border-color:rgba(245,158,11,0.4);" onclick="setUnitPassword('${unitNum}')">⚠ Set Password</button>`:''}
+          ${inviteUsed&&hasPassword?`<button class="btn btn-ghost btn-sm" onclick="resetUnitPassword('${unitNum}')">Reset Password</button>`:''}
           <button class="btn btn-ghost btn-sm" onclick="openAddUnitSlot('${unitNum}')">+ Slot</button>
         </div>
       </div>
@@ -4316,6 +4319,23 @@ function renderUnitVehicleRoster(unitNum, slots){
     </div>
     <div style="font-size:13px;">${rows}</div>
   </div>`;
+}
+
+function makeUnitPassword(length=10){
+  const chars='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  return Array.from({length},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+async function setUnitPassword(unitNum){
+  const pw=makeUnitPassword();
+  const {error}=await sb.from('property_units').update({unit_password:pw}).eq('property_id',currentPropertyId).eq('unit_number',unitNum);
+  if(error){toast('❌ Error: '+error.message);return;}
+  await navigator.clipboard.writeText(pw).catch(()=>{});
+  toast('✅ Password set for Unit '+unitNum+': '+pw+' (copied to clipboard)');
+  loadUnitsTab(currentPropertyId);
+}
+async function resetUnitPassword(unitNum){
+  if(!confirm('Generate a new password for Unit '+unitNum+'? The tenant will need to be given the new password.')) return;
+  await setUnitPassword(unitNum);
 }
 
 function makeInviteCode(){
