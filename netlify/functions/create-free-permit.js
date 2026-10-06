@@ -76,9 +76,9 @@ exports.handler = async (event) => {
       `invite_code=eq.${encodeURIComponent(inviteCode)}`
     );
 
-    // 2. Generate a password for the tenant's account
+    // 2. Generate a password and save to ALL slots for this unit
     const password = generatePassword();
-    await sbUpdate('property_units', { unit_password: password }, `invite_code=eq.${encodeURIComponent(inviteCode)}`);
+    await sbUpdate('property_units', { unit_password: password }, `property_id=eq.${propertyId}&unit_number=eq.${encodeURIComponent(unitNumber)}`);
 
     // 3. Create Supabase auth user
     let userId = null;

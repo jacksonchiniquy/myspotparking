@@ -448,12 +448,13 @@ async function doLogin(){
   if(!unitNumber){err.textContent='Please enter your unit number.';err.classList.add('show');return;}
   if(!password){err.textContent='Please enter your password.';err.classList.add('show');return;}
   btn.disabled=true;btn.textContent='Signing in…';
-  const {data:slots,error}=await sb.from('property_units').select('*').eq('property_id',propertyId).eq('unit_number',unitNumber).limit(1);
+  const {data:slots,error}=await sb.from('property_units').select('*').eq('property_id',propertyId).eq('unit_number',unitNumber);
   if(error||!slots||!slots.length){
     err.textContent='Unit not found for this property. Contact your property manager.';
     err.classList.add('show');btn.disabled=false;btn.textContent='Sign In →';return;
   }
-  const slot=slots[0];
+  // Find the slot that has a password set (multi-slot units: only one slot holds it)
+  const slot=slots.find(s=>s.unit_password)||slots[0];
   if(!slot.unit_password){
     err.textContent='No password set for this unit. Contact your property manager.';
     err.classList.add('show');btn.disabled=false;btn.textContent='Sign In →';return;

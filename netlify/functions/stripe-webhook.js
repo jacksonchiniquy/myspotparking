@@ -91,14 +91,13 @@ async function handleCheckoutCompleted(session) {
     `invite_code=eq.${invite_code}`
   );
 
-  // 2. Generate password
+  // 2. Generate password and save to ALL slots for this unit (some slots have null invite_code)
   const password = generatePassword();
-// Save password to property_units so unit.html login works
-await sbUpdate(
-  'property_units',
-  { unit_password: password },
-  `invite_code=eq.${invite_code}`
-);
+  await sbUpdate(
+    'property_units',
+    { unit_password: password },
+    `property_id=eq.${property_id}&unit_number=eq.${encodeURIComponent(unit_number)}`
+  );
   // 3. Create or find Supabase auth user
   const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
     method: 'POST',
