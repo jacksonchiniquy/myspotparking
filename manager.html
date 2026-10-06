@@ -4401,12 +4401,16 @@ async function saveUnitSlot(){
   if(existing?.invite_code&&!_editingSlot) data.invite_code=existing.invite_code;
   // Auto-generate invite_code for brand new units
   if(!existing&&!_editingSlot) data.invite_code=makeInviteCode();
+  let dbError;
   if(_editingSlot){
-    await sb.from('property_units').update(data).eq('id',_editingSlot.id);
+    const {error}=await sb.from('property_units').update(data).eq('id',_editingSlot.id);
+    dbError=error;
   } else {
-    await sb.from('property_units').insert(data);
+    const {error}=await sb.from('property_units').insert(data);
+    dbError=error;
   }
   btn.disabled=false;btn.textContent='Save Slot';
+  if(dbError){toast('❌ Error: '+dbError.message);console.error('saveUnitSlot error',dbError);return;}
   closeModal('modal-unit-slot');
   const isNewUnit=!existing&&!_editingSlot;
   toast(_editingSlot?'Slot updated':'Slot added');
