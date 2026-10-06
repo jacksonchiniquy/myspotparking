@@ -128,7 +128,7 @@ footer{padding:20px;text-align:center;font-size:11px;color:var(--text3);}
         </div>
       </div>
       <div class="page-title">Your information</div>
-      <div class="page-sub">Fill in your details and choose your billing cycle.</div>
+      <div class="page-sub" id="step-2-sub">Fill in your details and choose your billing cycle.</div>
       <div class="err-banner" id="err-2"></div>
       <div class="form-group">
         <label class="form-label">Full Name *</label>
@@ -139,11 +139,16 @@ footer{padding:20px;text-align:center;font-size:11px;color:var(--text3);}
         <input class="form-input" id="tenant-email" type="email" placeholder="you@example.com">
         <div class="form-hint">Your login credentials will be sent here</div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Choose Billing Cycle</label>
-        <div class="billing-grid" id="billing-grid">
-          <!-- Populated by JS from property rate config -->
+      <div id="billing-section">
+        <div class="form-group">
+          <label class="form-label">Choose Billing Cycle</label>
+          <div class="billing-grid" id="billing-grid">
+            <!-- Populated by JS from property rate config -->
+          </div>
         </div>
+      </div>
+      <div id="free-parking-notice" style="display:none;background:rgba(0,200,122,0.08);border:1px solid rgba(0,200,122,0.25);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:13px;color:#007a4a;">
+        ✅ <strong>Free parking included</strong> — no payment required for this spot.
       </div>
       <button class="btn btn-primary" id="btn-to-pay" onclick="goToPayment()">Continue to Payment →</button>
     </div>
@@ -251,7 +256,15 @@ async function lookupInvite() {
     document.getElementById('banner-unit').textContent = `Unit ${unit.unit_number}${unit.slot_label ? ' · ' + unit.slot_label : ''}`;
 
     // Build billing options from property rate or defaults
-    buildBillingOptions(_property);
+    const isFree = !_unit.billing_type || _unit.billing_type === 'free';
+    document.getElementById('billing-section').style.display = isFree ? 'none' : '';
+    document.getElementById('free-parking-notice').style.display = isFree ? '' : 'none';
+    document.getElementById('step-2-sub').textContent = isFree
+      ? 'Fill in your details to complete your signup.'
+      : 'Fill in your details and choose your billing cycle.';
+    document.getElementById('btn-to-pay').textContent = isFree ? 'Complete Signup →' : 'Continue to Payment →';
+
+    if (!isFree) buildBillingOptions(_property);
 
     goToStep(2);
 
@@ -293,7 +306,7 @@ function selectBilling(id) {
   event.currentTarget.classList.add('selected');
 }
 
-// ── Step 2 → Payment ─────────────────────────────────────────
+// ── Step 2 → Payment (or free signup) ────────────────────────
 async function goToPayment() {
   const name = document.getElementById('tenant-name').value.trim();
   const email = document.getElementById('tenant-email').value.trim();
@@ -303,9 +316,42 @@ async function goToPayment() {
   hideErr('err-2');
 
   const btn = document.getElementById('btn-to-pay');
+  const isFree = !_unit.billing_type || _unit.billing_type === 'free';
+
+  // ── FREE PATH ──────────────────────────────────────────────
+  if (isFree) {
+    btn.disabled = true; btn.textContent = 'Setting up your account…';
+    try {
+      sessionStorage.setItem('msp_signup_email', email);
+      const res = await fetch('/.netlify/functions/create-free-permit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inviteCode: _unit.invite_code,
+          propertyId: _unit.property_id,
+          unitNumber: _unit.unit_number,
+          tenantName: name,
+          tenantEmail: email,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        goToStep(3);
+      } else {
+        showErr('err-2', data.error || 'Signup failed. Please try again.');
+        btn.disabled = false; btn.textContent = 'Complete Signup →';
+      }
+    } catch (err) {
+      showErr('err-2', 'Network error. Please try again.');
+      btn.disabled = false; btn.textContent = 'Complete Signup →';
+      console.error(err);
+    }
+    return;
+  }
+
+  // ── PAID PATH (Stripe) ────────────────────────────────────
   btn.disabled = true; btn.textContent = 'Redirecting to payment…';
 
-  // Get amount for selected billing
   const property = _property || {};
   const monthly = property.monthly_rate || 5000;
   const quarterly = property.quarterly_rate || Math.round(monthly * 3 * 0.95);
