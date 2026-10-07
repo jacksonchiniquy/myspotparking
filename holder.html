@@ -682,6 +682,14 @@ async function loadPermits(){
 
   hasSubscription=all.some(p=>p.status==='active'&&(p.billing_interval||['monthly','quarterly','annual'].includes(p.plan)));
 
+  // Load property names for all permits so cards can show which property they belong to
+  const propIds=[...new Set(all.map(p=>p.property_id).filter(Boolean))];
+  if(propIds.length>0){
+    const {data:props}=await sb.from('properties').select('id,name').in('id',propIds);
+    const propMap=Object.fromEntries((props||[]).map(p=>[p.id,p.name]));
+    all.forEach(p=>{ if(p.property_id) p._property_name=propMap[p.property_id]||null; });
+  }
+
   // Load vehicles from vehicles table (for unit permits)
   if(unitPermits.length>0){
     const permitIds=unitPermits.map(p=>p.id);
@@ -945,7 +953,7 @@ function pcardHTML(p,isMgr=false,isEditable=false){
     <div class="pcard-top">
       <div class="pcard-meta">
         <div>
-          <div class="pcard-source">Parking Permit${p.unit_number?' · Unit '+p.unit_number:''}</div>
+          <div class="pcard-source">${p._property_name||'Parking Permit'}${p.unit_number?' · Unit '+p.unit_number:''}</div>
           <div class="pcard-plate">${displayPlate}</div>
           <div class="pcard-vehicle">${displayVeh}</div>
         </div>
