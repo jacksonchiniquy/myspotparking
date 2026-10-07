@@ -921,6 +921,10 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       This unit has no invite code yet.
       <button class="btn btn-ghost btn-sm" style="margin-top:6px;width:100%;" onclick="generateInviteFromModal()">Generate Invite Code</button>
     </div>
+    <div id="ir-no-units" style="display:none;margin-top:8px;padding:12px;background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.25);border-radius:10px;font-size:13px;color:#b45309;">
+      No units are configured for this property yet.<br>
+      <button class="btn btn-ghost btn-sm" style="margin-top:8px;width:100%;" onclick="closeModal('modal-invite');showPage('units');">Go to Units tab to add units →</button>
+    </div>
     <div style="margin-top:16px;padding:12px;background:var(--surface2);border-radius:10px;font-size:12px;color:var(--text2);line-height:1.6;">
       <strong>How it works:</strong> Your tenant uses this link to choose their parking plan and pay. Their permit is activated automatically after checkout.
     </div>
@@ -2081,10 +2085,15 @@ async function loadInviteUnits(propertyId){
   const unitSel=document.getElementById('ir-unit');
   document.getElementById('ir-link-row').style.display='none';
   document.getElementById('ir-no-code').style.display='none';
+  document.getElementById('ir-no-units').style.display='none';
   if(!propertyId){unitSel.innerHTML='<option value="">— select property first —</option>';return;}
   unitSel.innerHTML='<option value="">Loading…</option>';
   const {data}=await sb.from('property_units').select('unit_number,invite_code,invite_used,tenant_email,tenant_name').eq('property_id',propertyId).order('unit_number');
-  if(!data?.length){unitSel.innerHTML='<option value="">No units configured</option>';return;}
+  if(!data?.length){
+    unitSel.innerHTML='<option value="">No units configured</option>';
+    document.getElementById('ir-no-units').style.display='block';
+    return;
+  }
   // Deduplicate by unit_number
   const seen=new Set();
   const units=data.filter(u=>{if(seen.has(u.unit_number))return false;seen.add(u.unit_number);return true;});
