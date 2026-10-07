@@ -4430,8 +4430,8 @@ async function saveUnitSlot(){
   const isNewUnit=!existing&&!_editingSlot;
   toast(_editingSlot?'Slot updated':'Slot added');
   loadUnitsTab(currentPropertyId);
-  // After adding a brand new unit, prompt to send invite flyer
-  if(isNewUnit){
+  // After adding a brand new unit, prompt to send invite flyer — only for tenant-managed slots
+  if(isNewUnit&&data.managed_by!=='manager'){
     document.getElementById('flyer-unit-display').textContent=data.unit_number;
     document.getElementById('flyer-email').value='';
     document.getElementById('flyer-err').classList.remove('show');
