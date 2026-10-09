@@ -114,33 +114,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </div>
     <div style="background:#ffffff;border:1px solid rgba(15,23,42,0.12);border-radius:22px;padding:40px;box-shadow:0 24px 60px rgba(15,23,42,0.12);">
 
-      <div id="panel-signup">
-        <div style="font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:12px;background:rgba(255,170,0,.1);display:inline-block;padding:4px 12px;border-radius:20px;border:1px solid rgba(255,170,0,.2);">🚨 Enforcement Company</div>
-        <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Register your company</div>
-        <div style="font-size:13px;color:var(--slate);margin-bottom:28px;">Set up your enforcement patrol account</div>
-        <div class="err-msg" id="su-err"></div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">First Name</label><input class="form-input" id="su-fname" type="text" placeholder="Officer"></div>
-          <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="su-lname" type="text" placeholder="Johnson"></div>
-        </div>
-        <div class="form-group"><label class="form-label">Company Name</label><input class="form-input" id="su-company" type="text" placeholder="SecurePark Enforcement Inc."></div>
-        <div class="form-group"><label class="form-label">Work Email</label><input class="form-input" id="su-email" type="email" placeholder="officer@securepark.com"></div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Badge / Employee ID</label><input class="form-input" id="su-badge" type="text" placeholder="SP-4421"></div>
-          <div class="form-group"><label class="form-label">Patrol Region</label><select class="form-select" id="su-region"><option>Austin, TX</option><option>Dallas, TX</option><option>Houston, TX</option><option>San Antonio, TX</option><option>Other</option></select></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="su-pass" type="password" placeholder="••••••••"></div>
-          <div class="form-group"><label class="form-label">Confirm</label><input class="form-input" id="su-pass2" type="password" placeholder="••••••••"></div>
-        </div>
-        <button class="btn btn-amber btn-full" id="su-btn" onclick="handleSignUp()">Create Enforcement Account →</button>
-        <div class="divider">or</div>
-        <button class="btn btn-ghost btn-full" onclick="toast('🔗 Google coming soon')">Continue with Google</button>
-        <div class="modal-switch" style="margin-top:20px;">Already have an account? <a onclick="switchPanel('signin')">Sign in</a></div>
-        <div class="modal-switch" style="margin-top:8px;"><a href="index.html" style="color:var(--slate);">← Back to Home</a></div>
-      </div>
 
-      <div id="panel-signin" style="display:none;">
+      <div id="panel-signin">
         <div style="font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:12px;background:rgba(255,170,0,.1);display:inline-block;padding:4px 12px;border-radius:20px;border:1px solid rgba(255,170,0,.2);">🚨 Enforcement Company</div>
         <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Officer sign in</div>
         <div style="font-size:13px;color:var(--slate);margin-bottom:28px;">Access your enforcement console</div>
@@ -150,7 +125,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <button class="btn btn-amber btn-full" id="si-btn" onclick="handleSignIn()">Sign In →</button>
         <div class="divider">or</div>
         <button class="btn btn-ghost btn-full" onclick="toast('🔗 Google coming soon')">Continue with Google</button>
-        <div class="modal-switch" style="margin-top:20px;">New company? <a onclick="switchPanel('signup')">Register</a></div>
+        <div class="modal-switch" style="margin-top:20px;">Need an enforcement account? Contact <a href="mailto:sales@myspotparking.com">sales@myspotparking.com</a></div>
         <div class="modal-switch" style="margin-top:8px;"><a href="index.html" style="color:var(--slate);">← Back to Home</a></div>
       </div>
     </div>
@@ -265,89 +240,6 @@ let onPatrol=false;
 let sessionViolations=[];
 let patrolLog=[];
 let stats={valid:0,violations:0,checked:0};
-
-function switchPanel(p){
-  document.getElementById('panel-signup').style.display=p==='signup'?'block':'none';
-  document.getElementById('panel-signin').style.display=p==='signin'?'block':'none';
-}
-
-async function handleSignUp(){
-  const fname=document.getElementById('su-fname').value.trim();
-  const lname=document.getElementById('su-lname').value.trim();
-  const company=document.getElementById('su-company').value.trim();
-  const email=document.getElementById('su-email').value.trim().toLowerCase();
-  const badge=document.getElementById('su-badge').value.trim();
-  const region=document.getElementById('su-region').value;
-  const pass=document.getElementById('su-pass').value;
-  const pass2=document.getElementById('su-pass2').value;
-  const err=document.getElementById('su-err');
-  const btn=document.getElementById('su-btn');
-  err.classList.remove('show');
-  if(!fname||!company||!email||!pass){err.textContent='Please fill in all required fields.';err.classList.add('show');return;}
-  if(pass!==pass2){err.textContent='Passwords do not match.';err.classList.add('show');return;}
-  if(pass.length<6){err.textContent='Password must be at least 6 characters.';err.classList.add('show');return;}
-  btn.disabled=true;btn.textContent='Creating account...';
-
-  const {data,error}=await sb.auth.signUp({email,password:pass});
-
-  // If user already exists in auth, try to just create/update their profile
-  if(error&&(error.message.includes('already registered')||error.message.includes('already exists'))){
-    // Sign them in to get their ID, then upsert profile
-    const {data:signInData,error:signInError}=await sb.auth.signInWithPassword({email,password:pass});
-    if(signInError){
-      err.textContent='An account with this email already exists. Try signing in instead, or use a different email.';
-      err.classList.add('show');
-      btn.disabled=false;btn.textContent='Create Enforcement Account →';
-      return;
-    }
-    const userId=signInData?.user?.id;
-    if(userId){
-      await sb.from('users').upsert({
-        id:userId,email,
-        full_name:(fname+' '+lname).trim(),
-        company,badge_id:badge||null,region:region||null,role:'enforcer'
-      },{onConflict:'id'});
-      await sb.auth.signOut();
-    }
-    btn.disabled=false;btn.textContent='Create Enforcement Account →';
-    toast('✅ Account ready! You can now sign in.');
-    switchPanel('signin');
-    document.getElementById('si-email').value=email;
-    return;
-  }
-
-  if(error){
-    err.textContent=error.message;err.classList.add('show');
-    btn.disabled=false;btn.textContent='Create Enforcement Account →';
-    return;
-  }
-
-  const userId=data?.user?.id;
-  if(userId){
-    const {error:profileError}=await sb.from('users').upsert({
-      id:userId,
-      email,
-      full_name:(fname+' '+lname).trim(),
-      company,
-      badge_id:badge||null,
-      region:region||null,
-      role:'enforcer'
-    },{onConflict:'id'});
-
-    if(profileError){
-      console.error('Profile insert error:',profileError);
-      err.textContent='Account created but profile failed: '+profileError.message+'. Please contact support.';
-      err.classList.add('show');
-      btn.disabled=false;btn.textContent='Create Enforcement Account →';
-      return;
-    }
-  }
-
-  btn.disabled=false;btn.textContent='Create Enforcement Account →';
-  toast('✅ Account created! You can now sign in.');
-  switchPanel('signin');
-  document.getElementById('si-email').value=email;
-}
 
 async function handleSignIn(){
   const email=document.getElementById('si-email').value.trim();

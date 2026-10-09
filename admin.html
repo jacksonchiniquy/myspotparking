@@ -395,7 +395,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div id="panel-staff" class="panel">
         <div class="section-head">
           <div class="section-title">Admin Staff Access</div>
-          <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-staff')">+ Add Staff Admin</button>
+          <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm" onclick="openModal('modal-add-enforcer')">+ Add Enforcement Officer</button><button class="btn btn-primary btn-sm" onclick="openModal('modal-add-staff')">+ Add Staff Admin</button></div>
         </div>
         <div style="background:rgba(163,113,247,.08);border:1px solid rgba(163,113,247,.2);border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:13px;color:var(--purple);">⚡ Staff admins have full read and write access to the entire platform. Only grant this to trusted team members.</div>
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Added</th><th>Actions</th></tr></thead><tbody id="tbl-staff"></tbody></table></div>
@@ -436,6 +436,29 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 </div>
 
 <!-- Add Staff Admin -->
+<!-- Add Enforcement Officer -->
+<div class="modal-overlay" id="modal-add-enforcer">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-add-enforcer')">✕</button>
+    <div class="modal-title">🚔 Add Enforcement Officer</div>
+    <div class="modal-sub">Create a login for the enforcement portal. Enforcement accounts can only be created here.</div>
+    <div class="err-msg" id="ae-err"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">First Name *</label><input class="form-input" id="ae-fname" type="text" placeholder="Officer"></div>
+      <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="ae-lname" type="text" placeholder="Johnson"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Company *</label><input class="form-input" id="ae-company" type="text" placeholder="Lone Star"></div>
+    <div class="form-group"><label class="form-label">Email *</label><input class="form-input" id="ae-email" type="email" placeholder="officer@company.com"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Badge / Employee ID</label><input class="form-input" id="ae-badge" type="text" placeholder="LS-1042"></div>
+      <div class="form-group"><label class="form-label">Patrol Region</label><input class="form-input" id="ae-region" type="text" placeholder="Provo, UT"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Temporary Password *</label><input class="form-input" id="ae-pass" type="text" placeholder="At least 8 characters"></div>
+    <button class="btn btn-primary btn-full" id="ae-btn" onclick="addEnforcer()">Create Enforcement Account →</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="closeModal('modal-add-enforcer')">Cancel</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-add-staff">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-add-staff')">✕</button>
@@ -836,6 +859,25 @@ async function addManager(){
   await loadManagers();
   await loadFeatureFlags();
   toast('✅ Manager account created for '+fname+' ('+(plan.charAt(0).toUpperCase()+plan.slice(1))+' plan)');
+}
+
+async function addEnforcer(){
+  const fname=g('ae-fname'),lname=g('ae-lname'),company=g('ae-company'),email=g('ae-email').toLowerCase();
+  const badge=g('ae-badge'),region=g('ae-region'),pass=g('ae-pass');
+  const err=document.getElementById('ae-err'),btn=document.getElementById('ae-btn');
+  err.classList.remove('show');
+  if(!fname||!company||!email||!pass){err.textContent='First name, company, email and password are required.';err.classList.add('show');return;}
+  if(pass.length<8){err.textContent='Password must be at least 8 characters.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Creating...';
+  const {data,error}=await sb.auth.signUp({email,password:pass});
+  if(error){err.textContent=error.message.includes('registered')?'An account with this email already exists.':error.message;err.classList.add('show');btn.disabled=false;btn.textContent='Create Enforcement Account →';return;}
+  if(data?.user?.id){
+    const {error:pErr}=await sb.from('users').upsert({id:data.user.id,email,full_name:(fname+' '+lname).trim(),company,badge_id:badge||null,region:region||null,role:'enforcer'},{onConflict:'id'});
+    if(pErr){err.textContent='Login created but profile failed: '+pErr.message;err.classList.add('show');btn.disabled=false;btn.textContent='Create Enforcement Account →';return;}
+  }
+  btn.disabled=false;btn.textContent='Create Enforcement Account →';
+  closeModal('modal-add-enforcer');
+  toast('✅ Enforcement account created for '+fname+' ('+company+')');
 }
 
 async function addStaffAdmin(){
