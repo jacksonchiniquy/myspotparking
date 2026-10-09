@@ -170,12 +170,15 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
           <p style="font-size:14px;color:var(--slate);">Enter a license plate to verify permit status in real-time from the database.</p>
         </div>
         <div class="scan-box">
+          <label for="patrol-property" style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--slate);display:block;margin-bottom:8px;">Property You're Patrolling</label>
+          <select class="form-input" id="patrol-property" onchange="setPatrolProperty(this.value)" style="margin-bottom:6px;font-size:15px;font-weight:600;"><option value="">Loading your properties…</option></select>
+          <div id="patrol-property-note" style="font-size:12px;color:var(--slate);margin-bottom:18px;">Lookups only check permits, guest passes and paid sessions for this property.</div>
           <label style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--slate);display:block;margin-bottom:12px;">License Plate</label>
           <div style="display:flex;gap:12px;align-items:center;">
             <input class="plate-input" id="plate-input" type="text" placeholder="ENTER PLATE" maxlength="12" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')lookupPlate()">
             <button class="btn btn-amber" style="padding:14px 28px;font-size:16px;" onclick="lookupPlate()">Verify →</button>
           </div>
-          <div style="margin-top:12px;font-size:12px;color:var(--slate);">Enter any plate from your My Spot Parking database to check real-time permit status.</div>
+          <div style="margin-top:12px;font-size:12px;color:var(--slate);">Dashes and spaces don't matter. Expired permits show as not valid.</div>
         </div>
         <div id="lookup-result" style="margin-bottom:24px;"></div>
         <div class="stat-grid">
@@ -215,7 +218,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <h2 style="font-size:20px;font-weight:800;letter-spacing:-.03em;margin-bottom:20px;">Account Settings</h2>
         <div style="background:#ffffff;border:1px solid var(--border);border-radius:14px;padding:28px;max-width:480px;">
           <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="acc-name" type="text"></div>
-          <div class="form-group"><label class="form-label">Company</label><input class="form-input" id="acc-company" type="text"></div>
+          <div class="form-group"><label class="form-label">Company</label><input class="form-input" id="acc-company" type="text" readonly title="Set by My Spot Parking" style="opacity:.7;"></div>
           <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="acc-email" type="email"></div>
           <div class="form-row">
             <div class="form-group"><label class="form-label">Badge ID</label><input class="form-input" id="acc-badge" type="text"></div>
@@ -282,6 +285,7 @@ function enterDashboard(profile){
   renderViolationsLog();
   renderSummary();
   restoreFromHash();
+  loadAssignedProperties();
   setTimeout(()=>document.getElementById('plate-input').focus(),300);
 }
 
@@ -307,93 +311,103 @@ function togglePatrol(){
   }
 }
 
+// ── PATROL PROPERTY ──
+let patrolProperty=null; // {id,name}
+let assignedProperties=[];
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function loadAssignedProperties(){
+  const sel=document.getElementById('patrol-property');
+  const {data,error}=await sb.from('enforcement_assignments').select('property_id, properties(name,address)');
+  const seen=new Set();
+  assignedProperties=(data||[]).filter(a=>a.properties&&!seen.has(a.property_id)&&seen.add(a.property_id))
+    .map(a=>({id:a.property_id,name:a.properties.name,address:a.properties.address}))
+    .sort((a,b)=>a.name.localeCompare(b.name));
+  if(error||!assignedProperties.length){
+    sel.innerHTML='<option value="">No properties assigned yet</option>';sel.disabled=true;
+    document.getElementById('patrol-property-note').textContent='Your company has no properties assigned yet. Contact My Spot Parking to get set up.';
+    patrolProperty=null;return;
+  }
+  sel.disabled=false;
+  sel.innerHTML='<option value="">— Select property —</option>'+assignedProperties.map(p=>`<option value="${p.id}">${esc(p.name)}${p.address?' — '+esc(p.address):''}</option>`).join('');
+  let last=null;try{last=localStorage.getItem('patrol_property');}catch(e){}
+  const pick=assignedProperties.find(p=>p.id===last)||(assignedProperties.length===1?assignedProperties[0]:null);
+  if(pick){sel.value=pick.id;setPatrolProperty(pick.id);}
+}
+function setPatrolProperty(id){
+  patrolProperty=assignedProperties.find(p=>p.id===id)||null;
+  try{if(patrolProperty)localStorage.setItem('patrol_property',id);}catch(e){}
+}
+
+function resultCard(kind,title,sub,plate,rows,extraHtml=''){
+  const ok=kind==='valid';
+  const icon=ok
+    ?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00C87A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+    :'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+  const cells=rows.filter(r=>r[1]).map(([k,v])=>`<div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:4px;">${k}</div><div style="font-size:14px;font-weight:600;">${esc(v)}</div></div>`).join('');
+  return `<div class="${ok?'result-valid':'result-violation'}">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <div style="width:40px;height:40px;background:${ok?'rgba(0,200,122,.2)':'rgba(255,77,77,.2)'};border-radius:50%;display:flex;align-items:center;justify-content:center;">${icon}</div>
+      <div><div style="font-size:18px;font-weight:800;color:${ok?'var(--green)':'var(--red)'};">${title}</div><div style="font-size:12px;color:var(--slate2);">${sub}</div></div>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:500;letter-spacing:.14em;margin-bottom:16px;">${formatPlate(plate)}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;">${cells}</div>${extraHtml}
+  </div>`;
+}
+const fmtDate=d=>d?new Date(String(d).length===10?d+'T12:00:00':d).toLocaleDateString():'';
+const fmtTime=d=>d?new Date(d).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
+
 async function lookupPlate(){
   const raw=document.getElementById('plate-input').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(!patrolProperty){toast('⚠️ Select the property you are patrolling first');document.getElementById('patrol-property').focus();return;}
   if(!raw){toast('⚠️ Enter a plate number');return;}
-  stats.checked++;
-  updateStats();
   const resultEl=document.getElementById('lookup-result');
-  resultEl.innerHTML=`<div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:24px;text-align:center;color:var(--slate);">🔍 Looking up <strong style="font-family:'JetBrains Mono',monospace">${raw}</strong>...</div>`;
-
-  // Check permits AND transient paid sessions simultaneously
-  const [permitsRes, sessionsRes] = await Promise.all([
-    sb.from('permits').select('*').eq('plate',raw).eq('status','active'),
-    sb.from('parking_sessions').select('*').eq('plate',raw).eq('status','active').gte('expires_at',new Date().toISOString())
-  ]);
-
+  resultEl.innerHTML=`<div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:24px;text-align:center;color:var(--slate);">🔍 Looking up <strong style="font-family:'JetBrains Mono',monospace;">${formatPlate(raw)}</strong> at ${esc(patrolProperty.name)}…</div>`;
+  const {data:r,error}=await sb.rpc('enforcement_lookup',{p_plate:raw,p_property:patrolProperty.id});
+  if(error){
+    resultEl.innerHTML=`<div class="result-violation"><div style="font-weight:700;color:var(--red);">Lookup failed</div><div style="font-size:13px;color:var(--slate2);margin-top:6px;">${esc(error.message)}</div></div>`;
+    return;
+  }
+  stats.checked++;
   const time=new Date().toLocaleTimeString();
+  const where=`${esc(r.property||patrolProperty.name)} · ${time}`;
   document.getElementById('plate-input').value='';
 
-  if(permitsRes.data&&permitsRes.data.length>0){
-    // Regular permit
-    const permit=permitsRes.data[0];
+  if(r.result==='valid'){
     stats.valid++;updateStats();
-    patrolLog.unshift({plate:raw,result:'Valid',time});
-    renderSummary();
-    resultEl.innerHTML=`
-      <div class="result-valid">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-          <div style="width:40px;height:40px;background:rgba(0,200,122,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00C87A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          <div><div style="font-size:18px;font-weight:800;color:var(--green);">VALID PERMIT</div><div style="font-size:12px;color:var(--slate2);">Verified at ${time}</div></div>
-        </div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:500;letter-spacing:.14em;margin-bottom:16px;">${formatPlate(raw)}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
-          <div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:4px;">Vehicle</div><div style="font-size:13px;font-weight:600;">${permit.vehicle||'—'}</div></div>
-          <div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:4px;">Permit Type</div><div style="font-size:13px;font-weight:600;">${permit.permit_type||'Resident'}</div></div>
-          <div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:4px;">Expires</div><div style="font-size:13px;font-weight:600;">${permit.end_date||'—'}</div></div>
-        </div>
-        ${permit.vin_last6?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,200,122,.2);display:flex;align-items:center;gap:8px;"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);">VIN (last 6)</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;letter-spacing:.08em;">${permit.vin_last6}</span></div>`:''}
-      </div>`;
-
-  } else if(sessionsRes.data&&sessionsRes.data.length>0){
-    // Paid transient session
-    const session=sessionsRes.data[0];
-    const expiresAt=new Date(session.expires_at);
-    const minsLeft=Math.round((expiresAt-new Date())/60000);
-    stats.valid++;updateStats();
-    patrolLog.unshift({plate:raw,result:'Paid Session',time});
-    renderSummary();
-    resultEl.innerHTML=`
-      <div class="result-valid">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-          <div style="width:40px;height:40px;background:rgba(0,200,122,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00C87A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          <div><div style="font-size:18px;font-weight:800;color:var(--green);">PAID PARKING SESSION</div><div style="font-size:12px;color:var(--slate2);">Verified at ${time} · ${minsLeft} min remaining</div></div>
-        </div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:500;letter-spacing:.14em;margin-bottom:16px;">${formatPlate(raw)}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
-          <div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:4px;">Vehicle</div><div style="font-size:13px;font-weight:600;">${session.vehicle_desc||'—'}</div></div>
-          <div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:4px;">Amount Paid</div><div style="font-size:13px;font-weight:600;color:var(--green);">$${(session.amount_paid/100).toFixed(2)}</div></div>
-          <div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:4px;">Expires</div><div style="font-size:13px;font-weight:600;">${expiresAt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</div></div>
-        </div>
-      </div>`;
-
-  } else {
-    // No valid permit or session
+    if(r.kind==='permit'){
+      patrolLog.unshift({plate:raw,result:'Valid',time});
+      resultEl.innerHTML=resultCard('valid','VALID PERMIT','Verified at '+where,raw,[
+        ['Property',r.property],['Vehicle',r.vehicle||'—'],['Permit Type',r.permit_type],['Unit',r.unit_number],['Zone',r.zone],['Expires',fmtDate(r.end_date)||'No end date']],
+        r.vin_last6?`<div style="margin-top:12px;font-size:12px;color:var(--slate2);">VIN ends in <strong style="font-family:'JetBrains Mono',monospace;">${esc(r.vin_last6)}</strong></div>`:'');
+    }else if(r.kind==='session'){
+      patrolLog.unshift({plate:raw,result:'Paid Session',time});
+      const mins=Math.round((new Date(r.expires_at)-new Date())/60000);
+      resultEl.innerHTML=resultCard('valid','PAID PARKING SESSION',`${mins} min remaining · ${where}`,raw,[
+        ['Property',r.property],['Vehicle',r.vehicle||'—'],['Amount Paid',r.amount_paid!=null?'$'+Number(r.amount_paid).toFixed(2):''],['Expires',fmtTime(r.expires_at)]]);
+    }else{
+      patrolLog.unshift({plate:raw,result:'Guest Pass',time});
+      resultEl.innerHTML=resultCard('valid','VALID — GUEST PASS','Resident guest · '+where,raw,[
+        ['Property',r.property],['Guest',r.guest_name],['Hosted By',[r.host_name,r.host_unit?'Unit '+r.host_unit:''].filter(Boolean).join(' · ')||'Resident'],['Pass',`${fmtDate(r.visit_date)} · ${r.duration||''}`],['Valid Until',fmtTime(r.ends_at)]]);
+    }
+  }else{
+    // Expired permit or nothing valid at this property → log a violation for this property
     stats.violations++;updateStats();
+    const expired=r.result==='expired';
+    const reason=expired?`Permit expired ${fmtDate(r.end_date)}`:'No valid permit found for this property';
     const vid='C-'+Date.now().toString().slice(-6);
-    await sb.from('violations').insert({officer_id:currentUser.id,plate:raw,reason:'No valid permit found in system',status:'Open'});
-    sessionViolations.unshift({id:vid,plate:raw,reason:'No valid permit found',time,status:'Open'});
+    await sb.from('violations').insert({officer_id:currentUser.id,property_id:patrolProperty.id,plate:raw,reason,status:'Open'});
+    sessionViolations.unshift({id:vid,plate:raw,reason,time,status:'Open'});
     patrolLog.unshift({plate:raw,result:'Violation',time});
-    renderViolationsLog();renderSummary();
-    resultEl.innerHTML=`
-      <div class="result-violation">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-          <div style="width:40px;height:40px;background:rgba(255,77,77,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          </div>
-          <div><div style="font-size:18px;font-weight:800;color:var(--red);">VIOLATION — NO VALID PERMIT</div><div style="font-size:12px;color:var(--slate2);">Logged at ${time} · Citation ${vid}</div></div>
-        </div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:500;letter-spacing:.14em;margin-bottom:16px;">${formatPlate(raw)}</div>
-        <div style="display:flex;gap:10px;margin-top:16px;">
-          <button class="btn btn-sm" style="background:rgba(255,77,77,.1);color:var(--red);border:1px solid rgba(255,77,77,.2);" onclick="toast('🖨 Printing citation ${vid}')">Print Citation</button>
-          <button class="btn btn-ghost btn-sm" onclick="toast('📷 Photo logged')">Log Photo</button>
-        </div>
-      </div>`;
+    renderViolationsLog();
+    resultEl.innerHTML=resultCard('violation',expired?'VIOLATION — PERMIT EXPIRED':'VIOLATION — NO VALID PERMIT',`Logged at ${where} · Citation ${vid}`,raw,
+      expired?[['Property',r.property],['Vehicle',r.vehicle||'—'],['Permit Type',r.permit_type],['Expired',fmtDate(r.end_date)]]:[['Property',r.property]],
+      `<div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="btn btn-sm" style="background:rgba(255,77,77,.1);color:var(--red);border:1px solid rgba(255,77,77,.2);" onclick="toast('🖨 Printing citation ${vid}')">Print Citation</button>
+        <button class="btn btn-ghost btn-sm" onclick="toast('📷 Photo logged')">Log Photo</button>
+      </div>`);
   }
+  updateStats();renderSummary();
   document.getElementById('plate-input').focus();
 }
 

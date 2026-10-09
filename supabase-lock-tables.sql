@@ -12,7 +12,8 @@
 --   Admins ............ everything
 --   Managers .......... only their own properties' data
 --   Residents ......... only their own permits, vehicles, guest passes
---   Enforcement ....... can look up permits and paid sessions (read-only)
+--   Enforcement ....... checks plates only through enforcement_lookup()
+--                       (see supabase-enforcement.sql), for assigned properties
 --   Not logged in ..... nothing (the unit portal, invite sign-up and
 --                       payments now go through private server functions)
 -- No data is changed or deleted.
@@ -92,8 +93,6 @@ create policy "permits: residents read own" on public.permits for select
   using (holder_id = auth.uid());
 create policy "permits: residents delete own" on public.permits for delete
   using (holder_id = auth.uid());
-create policy "permits: enforcement read" on public.permits for select
-  using (public.my_role() = 'enforcer');
 
 -- ── property_units (unit slots, invite codes, unit passwords) ─
 create policy "units: admins" on public.property_units for all
@@ -136,7 +135,5 @@ create policy "sessions: admins" on public.parking_sessions for all
   using (public.is_admin()) with check (public.is_admin());
 create policy "sessions: managers read, own properties" on public.parking_sessions for select
   using (public.manages_property(property_id));
-create policy "sessions: enforcement read" on public.parking_sessions for select
-  using (public.my_role() = 'enforcer');
 
 commit;

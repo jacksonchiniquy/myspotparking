@@ -406,6 +406,13 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         </div>
         <div style="background:rgba(163,113,247,.08);border:1px solid rgba(163,113,247,.2);border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:13px;color:var(--purple);">⚡ Staff admins have full read and write access to the entire platform. Only grant this to trusted team members.</div>
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Added</th><th>Actions</th></tr></thead><tbody id="tbl-staff"></tbody></table></div>
+
+        <div class="section-head" style="margin-top:32px;">
+          <div class="section-title">Enforcement Companies</div>
+          <button class="btn btn-ghost btn-sm" onclick="openModal('modal-add-enforcer')">+ Add Enforcement Officer</button>
+        </div>
+        <div style="background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.25);border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:13px;color:#b45309;">Officers can only check plates at properties assigned to their company. Companies are grouped by the company name on each officer's account.</div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Company</th><th>Officers</th><th>Assigned Properties</th><th>Actions</th></tr></thead><tbody id="tbl-enf-companies"></tbody></table></div>
       </div>
 
     </div>
@@ -443,6 +450,20 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 </div>
 
 <!-- Add Staff Admin -->
+<!-- Assign properties to an enforcement company -->
+<div class="modal-overlay" id="modal-enf-assign">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-enf-assign')">✕</button>
+    <div class="modal-title">🚔 Properties for <span id="ea-company"></span></div>
+    <div class="modal-sub">Officers from this company can check plates only at the properties checked below.</div>
+    <div style="margin:8px 0 10px;"><input class="form-input" id="ea-filter" type="text" placeholder="Filter properties…" oninput="renderEnfAssignList()"></div>
+    <div id="ea-list" style="max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:6px 10px;"></div>
+    <button class="btn btn-primary btn-full" id="ea-save" style="margin-top:14px;" onclick="saveEnfAssignments()">Save Assignments</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="closeModal('modal-enf-assign')">Cancel</button>
+  </div>
+</div>
+<datalist id="enf-company-list"></datalist>
+
 <!-- Add Enforcement Officer -->
 <div class="modal-overlay" id="modal-add-enforcer">
   <div class="modal">
@@ -454,7 +475,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div class="form-group"><label class="form-label">First Name *</label><input class="form-input" id="ae-fname" type="text" placeholder="Officer"></div>
       <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="ae-lname" type="text" placeholder="Johnson"></div>
     </div>
-    <div class="form-group"><label class="form-label">Company *</label><input class="form-input" id="ae-company" type="text" placeholder="Lone Star"></div>
+    <div class="form-group"><label class="form-label">Company *</label><input class="form-input" id="ae-company" type="text" placeholder="Lone Star" list="enf-company-list"></div>
     <div class="form-group"><label class="form-label">Email *</label><input class="form-input" id="ae-email" type="email" placeholder="officer@company.com"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Badge / Employee ID</label><input class="form-input" id="ae-badge" type="text" placeholder="LS-1042"></div>
@@ -650,6 +671,7 @@ function enterApp(){
 
 async function loadAll(){
   await Promise.all([loadPendingManagers(),loadManagers(),loadProperties(),loadPermits(),loadResidents(),loadViolations(),loadStaff(),loadFeatureFlags()]);
+  await loadEnforcement(); // after properties, so property names show
   renderDashboard();
   restoreFromHash();
 }
@@ -918,6 +940,60 @@ async function addManager(){
   toast('✅ Manager account created for '+fname+' ('+(plan.charAt(0).toUpperCase()+plan.slice(1))+' plan)');
 }
 
+// ── ENFORCEMENT COMPANIES ───────────────────────────────────────
+let allEnforcers=[],enfAssignments=[],_eaCompany=null,_eaChecked=new Set();
+const companyKey=c=>String(c||'').trim().toLowerCase();
+async function loadEnforcement(){
+  const [{data:officers},{data:assigns}]=await Promise.all([
+    sb.from('users').select('id,full_name,email,company').eq('role','enforcer'),
+    sb.from('enforcement_assignments').select('*')
+  ]);
+  allEnforcers=officers||[];enfAssignments=assigns||[];
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const groups={};
+  allEnforcers.forEach(o=>{const k=companyKey(o.company)||'(no company)';(groups[k]=groups[k]||{name:(o.company||'').trim()||'(no company)',officers:[]}).officers.push(o);});
+  document.getElementById('enf-company-list').innerHTML=Object.values(groups).filter(g=>g.name!=='(no company)').map(g=>`<option value="${esc(g.name)}">`).join('');
+  const propName=id=>allProperties.find(p=>p.id===id)?.name||'(deleted property)';
+  document.getElementById('tbl-enf-companies').innerHTML=Object.entries(groups).map(([k,g])=>{
+    const props=enfAssignments.filter(a=>companyKey(a.company)===k).map(a=>propName(a.property_id));
+    const officers=g.officers.map(o=>esc(o.full_name||o.email)).join(', ');
+    const can=g.name!=='(no company)';
+    return `<tr><td><strong>${esc(g.name)}</strong></td><td style="font-size:12px;">${officers}</td>
+      <td style="font-size:12px;">${props.length?props.map(esc).join(', '):'<span style="color:#b45309;">None — officers can\'t check plates yet</span>'}</td>
+      <td>${can?`<button class="btn btn-primary btn-sm" onclick="openEnfAssign('${encodeURIComponent(g.name)}')">Assign Properties</button>`:'<span style="font-size:11px;color:var(--text3);">Add a company name to these officers first</span>'}</td></tr>`;
+  }).join('')||'<tr><td colspan="4" class="loading">No enforcement officers yet</td></tr>';
+}
+function openEnfAssign(encName){
+  _eaCompany=decodeURIComponent(encName);
+  _eaChecked=new Set(enfAssignments.filter(a=>companyKey(a.company)===companyKey(_eaCompany)).map(a=>a.property_id));
+  document.getElementById('ea-company').textContent=_eaCompany;
+  document.getElementById('ea-filter').value='';
+  renderEnfAssignList();
+  openModal('modal-enf-assign');
+}
+function renderEnfAssignList(){
+  const f=document.getElementById('ea-filter').value.trim().toLowerCase();
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  document.getElementById('ea-list').innerHTML=allProperties.filter(p=>!f||(p.name||'').toLowerCase().includes(f)||(p.address||'').toLowerCase().includes(f)).map(p=>
+    `<label style="display:flex;gap:10px;align-items:center;padding:8px 2px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;">
+      <input type="checkbox" ${_eaChecked.has(p.id)?'checked':''} onchange="this.checked?_eaChecked.add('${p.id}'):_eaChecked.delete('${p.id}')">
+      <span><strong>${esc(p.name)}</strong>${p.address?`<span style="color:var(--text3);"> — ${esc(p.address)}</span>`:''}</span></label>`).join('')||'<div style="padding:12px;color:var(--text3);font-size:13px;">No properties match.</div>';
+}
+async function saveEnfAssignments(){
+  const btn=document.getElementById('ea-save');btn.disabled=true;btn.textContent='Saving…';
+  const current=enfAssignments.filter(a=>companyKey(a.company)===companyKey(_eaCompany));
+  const toRemove=current.filter(a=>!_eaChecked.has(a.property_id)).map(a=>a.id);
+  const toAdd=[..._eaChecked].filter(id=>!current.some(a=>a.property_id===id)).map(id=>({property_id:id,company:_eaCompany}));
+  let err=null;
+  if(toRemove.length){const {error}=await sb.from('enforcement_assignments').delete().in('id',toRemove);err=err||error;}
+  if(toAdd.length){const {error}=await sb.from('enforcement_assignments').insert(toAdd);err=err||error;}
+  btn.disabled=false;btn.textContent='Save Assignments';
+  if(err){toast('❌ '+err.message);return;}
+  closeModal('modal-enf-assign');
+  await loadEnforcement();
+  toast('✅ '+_eaCompany+': '+_eaChecked.size+' propert'+(_eaChecked.size===1?'y':'ies')+' assigned');
+}
+
 async function addEnforcer(){
   const fname=g('ae-fname'),lname=g('ae-lname'),company=g('ae-company'),email=g('ae-email').toLowerCase();
   const badge=g('ae-badge'),region=g('ae-region'),pass=g('ae-pass');
@@ -934,6 +1010,7 @@ async function addEnforcer(){
   }
   btn.disabled=false;btn.textContent='Create Enforcement Account →';
   closeModal('modal-add-enforcer');
+  await loadEnforcement();
   toast('✅ Enforcement account created for '+fname+' ('+company+')');
 }
 
