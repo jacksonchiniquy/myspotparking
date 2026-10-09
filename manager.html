@@ -4535,9 +4535,22 @@ async function deleteUnitSlot(id){
   toast('Slot deleted');
   loadUnitsTab(currentPropertyId);
 }
+// Slot assignments go through the unit service so the permit enforcement sees
+// is always updated together with the slot (same rules as the unit portal).
+async function unitService(action,payload){
+  const {data:{session}}=await sb.auth.getSession();
+  try{
+    const res=await fetch('/.netlify/functions/unit-api',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body:JSON.stringify({action,...payload})});
+    const body=await res.json().catch(()=>({}));
+    return res.ok?body:{error:body.error||'Something went wrong'};
+  }catch(e){return {error:'Could not reach the server'};}
+}
 async function managerVoidSlot(slotId){
-  if(!confirm('Void the current vehicle assignment for this slot?')) return;
-  await sb.from('unit_permits').update({void_at:new Date().toISOString()}).eq('unit_slot_id',slotId).is('void_at',null);
+  if(!confirm('Void the current vehicle assignment for this slot? Its permit will no longer show as valid to enforcement.')) return;
+  const r=await unitService('managerVoid',{slotId});
+  if(r.error){toast('❌ '+r.error);return;}
   toast('Slot cleared');
   loadUnitsTab(currentPropertyId);
 }
@@ -4555,15 +4568,9 @@ async function saveManagerAssign(){
   const desc=document.getElementById('ma-desc').value.trim();
   if(!plate){toast('Plate required');return;}
   btn.disabled=true;btn.textContent='Saving…';
-  await sb.from('unit_permits').update({void_at:new Date().toISOString()}).eq('unit_slot_id',_assigningSlotId).is('void_at',null);
-  const slot=_unitSlots.find(s=>s.id===_assigningSlotId);
-  let permitId=null;
-  if(slot){
-    const {data:perms}=await sb.from('permits').select('id').eq('property_id',slot.property_id).eq('unit_number',slot.unit_number).eq('status','active').limit(1);
-    if(perms?.length) permitId=perms[0].id;
-  }
-  await sb.from('unit_permits').insert({unit_slot_id:_assigningSlotId,permit_id:permitId,plate,vehicle_desc:desc||null,assigned_by:'manager'});
+  const r=await unitService('managerAssign',{slotId:_assigningSlotId,plate,desc});
   btn.disabled=false;btn.textContent='Assign Vehicle';
+  if(r.error){toast('❌ '+r.error);return;}
   closeModal('modal-manager-assign');
   toast('Vehicle assigned');
   loadUnitsTab(currentPropertyId);

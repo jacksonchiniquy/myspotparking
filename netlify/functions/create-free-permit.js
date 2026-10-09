@@ -2,6 +2,7 @@
 // No Stripe involved. Mirrors what stripe-webhook does after checkout.session.completed.
 
 const { send } = require('./send-email');
+const { hashPassword } = require('./lib/unit-password');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -78,7 +79,7 @@ exports.handler = async (event) => {
 
     // 2. Generate a password and save to ALL slots for this unit
     const password = generatePassword();
-    await sbUpdate('property_units', { unit_password: password }, `property_id=eq.${propertyId}&unit_number=eq.${encodeURIComponent(unitNumber)}`);
+    await sbUpdate('property_units', { unit_password: hashPassword(password) }, `property_id=eq.${propertyId}&unit_number=eq.${encodeURIComponent(unitNumber)}`);
 
     // 3. Create Supabase auth user
     let userId = null;

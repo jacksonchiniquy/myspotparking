@@ -6,6 +6,7 @@
 //   customer.subscription.deleted → suspend permit, notify manager
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { hashPassword } = require('./lib/unit-password');
 const { send } = require('./send-email');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -95,7 +96,7 @@ async function handleCheckoutCompleted(session) {
   const password = generatePassword();
   await sbUpdate(
     'property_units',
-    { unit_password: password },
+    { unit_password: hashPassword(password) },
     `property_id=eq.${property_id}&unit_number=eq.${encodeURIComponent(unit_number)}`
   );
   // 3. Create or find Supabase auth user

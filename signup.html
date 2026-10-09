@@ -230,10 +230,12 @@ async function lookupInvite() {
   btn.disabled = true; btn.textContent = 'Looking up…';
 
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/property_units?invite_code=eq.${encodeURIComponent(code)}&select=*,properties(*)`, {
-      headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` },
+    const res = await fetch('/.netlify/functions/invite-lookup', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }),
     });
-    const rows = await res.json();
+    if (!res.ok) throw new Error('lookup failed');
+    const found = (await res.json()).unit;
+    const rows = found ? [found] : [];
 
     if (!rows?.length) {
       showErr('err-1', 'Invite code not found. Check for typos or contact your property manager.');

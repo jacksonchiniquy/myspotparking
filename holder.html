@@ -553,10 +553,14 @@ async function handleSignUp(){
   if(pass.length<6){err.textContent='Password must be at least 6 characters.';err.classList.add('show');return;}
   btn.disabled=true;btn.textContent='Creating account...';
 
-  // Check if this email already has a permit (created via invite checkout)
-  // If so, guide them to sign in with the password from their welcome email
-  const {data:existingPermit}=await sb.from('permits').select('id,holder_email').eq('holder_email',email).limit(1);
-  if(existingPermit?.length){
+  // If an account already exists for this email (e.g. created by an invite
+  // checkout), guide them to sign in with the password from their welcome email
+  let {data:accountExists,error:rpcErr}=await sb.rpc('account_exists_for_email',{addr:email});
+  if(rpcErr){ // database helper not installed yet: fall back to the old check
+    const {data:existingPermit}=await sb.from('permits').select('id').eq('holder_email',email).limit(1);
+    accountExists=!!existingPermit?.length;
+  }
+  if(accountExists===true){
     err.innerHTML='An account for this email already exists — <a href="#" onclick="switchPanel(\'signin\');document.getElementById(\'si-email\').value=\''+email+'\';return false;" style="color:var(--green);text-decoration:underline;">sign in instead</a>. Use the password from your welcome email, or use "Forgot password" below.';
     err.classList.add('show');
     btn.disabled=false;btn.textContent='Create Account →';
@@ -577,7 +581,6 @@ async function handleSignUp(){
   // New user — insert profile and link any permits by email
   if(data?.user){
     await sb.from('users').insert({id:data.user.id,email,full_name:(fname+' '+lname).trim(),phone,role:'holder'}).catch(()=>{});
-    await sb.from('permits').update({holder_id:data.user.id}).eq('holder_email',email).is('holder_id',null);
   }
   toast('✅ Account created! Check your email to confirm, then sign in.');
   btn.disabled=false;btn.textContent='Create Account →';
@@ -606,7 +609,9 @@ async function handleSignIn(){
     err.textContent='This account is not a Permit Holder account.';err.classList.add('show');
     await sb.auth.signOut();btn.disabled=false;btn.textContent='Sign In →';return;
   }
-  await sb.from('permits').update({holder_id:data.user.id}).eq('holder_email',email).is('holder_id',null);
+  // Link any permits a manager issued to this email before the account existed
+  const {error:claimErr}=await sb.rpc('claim_my_permits');
+  if(claimErr) await sb.from('permits').update({holder_id:data.user.id}).eq('holder_email',email).is('holder_id',null);
   enterApp(profile);
 }
 

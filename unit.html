@@ -414,12 +414,35 @@ let unitSlots=[];
 let unitPermits={};
 let myVehicles=[];
 
+// ── SERVER CALLS ──
+// All unit data goes through the private unit service; the browser never
+// touches unit passwords or other units' data.
+async function api(action,payload={}){
+  let res,body={};
+  try{
+    res=await fetch('/.netlify/functions/unit-api',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action,token:session?.token,...payload})});
+    body=await res.json().catch(()=>({}));
+  }catch(e){return {error:'Could not reach the server. Check your connection and try again.'};}
+  if(res.status===401&&session){
+    signOut();
+    const err=document.getElementById('gate-err');
+    err.textContent=body.error||'Please sign in again.';err.classList.add('show');
+    return {error:body.error||'Please sign in again.',signedOut:true};
+  }
+  if(!res.ok) return {error:body.error||'Something went wrong. Please try again.'};
+  return body;
+}
+
 // ── BOOT ──
 async function boot(){
   const saved=sessionStorage.getItem('unit_session');
   if(saved){
-    try{session=JSON.parse(saved);showApp();return;}
-    catch(e){sessionStorage.removeItem('unit_session');}
+    try{
+      session=JSON.parse(saved);
+      if(session&&session.token){showApp();return;}
+    }catch(e){}
+    session=null;sessionStorage.removeItem('unit_session');
   }
   await loadPropertyDropdown();
   const params=new URLSearchParams(window.location.search);
@@ -448,25 +471,12 @@ async function doLogin(){
   if(!unitNumber){err.textContent='Please enter your unit number.';err.classList.add('show');return;}
   if(!password){err.textContent='Please enter your password.';err.classList.add('show');return;}
   btn.disabled=true;btn.textContent='Signing in…';
-  const {data:slots,error}=await sb.from('property_units').select('*').eq('property_id',propertyId).eq('unit_number',unitNumber);
-  if(error||!slots||!slots.length){
-    err.textContent='Unit not found for this property. Contact your property manager.';
-    err.classList.add('show');btn.disabled=false;btn.textContent='Sign In →';return;
-  }
-  // Find the slot that has a password set (multi-slot units: only one slot holds it)
-  const slot=slots.find(s=>s.unit_password)||slots[0];
-  if(!slot.unit_password){
-    err.textContent='No password set for this unit. Contact your property manager.';
-    err.classList.add('show');btn.disabled=false;btn.textContent='Sign In →';return;
-  }
-  if(slot.unit_password!==password){
-    err.textContent='Incorrect password. Check with your property manager.';
-    err.classList.add('show');btn.disabled=false;btn.textContent='Sign In →';return;
-  }
-  const {data:prop}=await sb.from('properties').select('name').eq('id',propertyId).single();
-  session={propertyId,unitNumber,propertyName:prop?.name||'Property'};
-  sessionStorage.setItem('unit_session',JSON.stringify(session));
+  const r=await api('login',{propertyId,unitNumber,password});
   btn.disabled=false;btn.textContent='Sign In →';
+  if(r.error){err.textContent=r.error;err.classList.add('show');return;}
+  session={token:r.token,propertyId,unitNumber:r.unitNumber,propertyName:r.propertyName};
+  sessionStorage.setItem('unit_session',JSON.stringify(session));
+  document.getElementById('gate-pass').value='';
   showApp();
 }
 
@@ -498,26 +508,17 @@ async function loadUnitData(){
   document.getElementById('loading-screen').style.display='flex';
   document.getElementById('unit-header').style.display='none';
 
-  // Load slots
-  const {data:slots}=await sb.from('property_units').select('*').eq('property_id',session.propertyId).eq('unit_number',session.unitNumber).order('slot_label');
-  unitSlots=slots||[];
-
-  // Load active unit_permits
-  const slotIds=unitSlots.map(s=>s.id);
-  let currentPermits={};
-  if(slotIds.length){
-    const {data:ups}=await sb.from('unit_permits').select('*').in('unit_slot_id',slotIds).is('void_at',null);
-    (ups||[]).forEach(up=>{currentPermits[up.unit_slot_id]=up;});
+  const r=await api('load');
+  if(r.error){
+    document.getElementById('loading-screen').style.display='none';
+    if(!r.signedOut) toast(r.error);
+    return;
   }
-  unitPermits=currentPermits;
-
-  // Load My Vehicles for this unit
-  const {data:veh}=await sb.from('unit_vehicles')
-    .select('*')
-    .eq('property_id',session.propertyId)
-    .eq('unit_number',session.unitNumber)
-    .order('created_at');
-  myVehicles=veh||[];
+  unitSlots=r.slots||[];
+  unitPermits=r.unitPermits||{};
+  myVehicles=r.vehicles||[];
+  session.tenantEmail=r.tenantEmail||'';
+  session.propertyName=r.propertyName||session.propertyName;
 
   renderHeader();
   renderMyVehicles();
@@ -598,8 +599,8 @@ async function saveNewVehicle(){
     color:document.getElementById('av-color').value.trim()||null,
     vin_last6:document.getElementById('av-vin').value.trim()||null
   };
-  const {error}=await sb.from('unit_vehicles').insert(payload);
-  if(error){toast('Error: '+error.message);return;}
+  const r=await api('addVehicle',{vehicle:payload});
+  if(r.error){toast(r.error);return;}
   toast('Vehicle saved.');
   closeAddVehicle();
   await loadUnitData();
@@ -623,7 +624,7 @@ async function saveEditVehicle(){
   const id=document.getElementById('ev-id').value;
   const plate=document.getElementById('ev-plate').value.trim();
   if(!plate){toast('Plate is required.');return;}
-  const {error}=await sb.from('unit_vehicles').update({
+  const r=await api('editVehicle',{id,vehicle:{
     plate,
     plate_state:document.getElementById('ev-state').value||null,
     make:document.getElementById('ev-make').value.trim()||null,
@@ -631,16 +632,16 @@ async function saveEditVehicle(){
     year:document.getElementById('ev-year').value.trim()||null,
     color:document.getElementById('ev-color').value.trim()||null,
     vin_last6:document.getElementById('ev-vin').value.trim()||null
-  }).eq('id',id);
-  if(error){toast('Error: '+error.message);return;}
+  }});
+  if(r.error){toast(r.error);return;}
   toast('Vehicle updated.');
   closeModal('modal-edit-vehicle');
   await loadUnitData();
 }
 async function deleteVehicle(id,plate){
   if(!confirm(`Remove ${plate} from My Vehicles?`))return;
-  const {error}=await sb.from('unit_vehicles').delete().eq('id',id);
-  if(error){toast('Error: '+error.message);return;}
+  const r=await api('deleteVehicle',{id});
+  if(r.error){toast(r.error);return;}
   toast(`${plate} removed.`);
   await loadUnitData();
 }
@@ -802,84 +803,12 @@ async function doSwap(slotId){
 
   const btn=document.getElementById('swap-btn-'+slotId);
   btn.disabled=true;btn.textContent='Saving…';
-
-  // 1. Void existing unit_permit
-  const existing=unitPermits[slotId];
-  if(existing){
-    await sb.from('unit_permits').update({void_at:new Date().toISOString()}).eq('id',existing.id);
-    if(existing.permit_id){
-      await sb.from('permits').update({status:'revoked'}).eq('id',existing.permit_id);
-    }
-  }
-
-  // 2. Build vehicle description
-  const vehicleDesc=[vehicle.year,vehicle.make,vehicle.model,vehicle.color].filter(Boolean).join(' ');
-  const plate=vehicle.plate;
-
-  // 3. Look for an existing active permit for this unit to update, or create one
-  const {data:existingPermit}=await sb.from('permits')
-    .select('id')
-    .eq('property_id',session.propertyId)
-    .eq('unit_number',session.unitNumber)
-    .eq('status','active')
-    .limit(1)
-    .single();
-
-  let permitId=null;
-  if(existingPermit){
-    await sb.from('permits').update({
-      plate,
-      plate_state:vehicle.plate_state||null,
-      vehicle:vehicleDesc||null,
-      vehicle_make:vehicle.make||null,
-      vehicle_model:vehicle.model||null,
-      vehicle_year:vehicle.year||null,
-      vehicle_color:vehicle.color||null,
-      vin_last6:vehicle.vin_last6||null,
-      status:'active'
-    }).eq('id',existingPermit.id);
-    permitId=existingPermit.id;
-  } else {
-    const today=new Date().toISOString().split('T')[0];
-    const future=new Date();future.setFullYear(future.getFullYear()+1);
-    const {data:np}=await sb.from('permits').insert({
-      property_id:session.propertyId,
-      unit_number:session.unitNumber,
-      plate,
-      plate_state:vehicle.plate_state||null,
-      vehicle:vehicleDesc||null,
-      vehicle_make:vehicle.make||null,
-      vehicle_model:vehicle.model||null,
-      vehicle_year:vehicle.year||null,
-      vehicle_color:vehicle.color||null,
-      vin_last6:vehicle.vin_last6||null,
-      permit_type:'Resident — Monthly',
-      status:'active',
-      plan:'monthly',
-      source:'unit-self',
-      start_date:today,
-      end_date:future.toISOString().split('T')[0]
-    }).select().single();
-    permitId=np?.id||null;
-  }
-
-  // 4. Insert new unit_permit row
-  const {error}=await sb.from('unit_permits').insert({
-    unit_slot_id:slotId,
-    permit_id:permitId,
-    plate,
-    vehicle_desc:vehicleDesc||null,
-    vin_last6:vehicle.vin_last6||null,
-    assigned_by:'tenant'
-  });
-
-  if(error){
-    toast('Error: '+error.message);
-    btn.disabled=false;btn.textContent='Assign to This Spot →';
+  const r=await api('assign',{slotId,vehicleId});
+  if(r.error){
+    if(!r.signedOut){toast(r.error);btn.disabled=false;btn.textContent='Assign to This Spot →';}
     return;
   }
-
-  toast('✅ '+plate+' assigned to this spot.');
+  toast('✅ '+vehicle.plate+' assigned to this spot.');
   closePicker(slotId);
   await loadUnitData();
 }
@@ -909,10 +838,7 @@ function populateAccountModal(){
   if(propEl) propEl.textContent=session.propertyName;
   // Pre-fill email from the loaded unit data
   const emailInput=document.getElementById('acct-email-input');
-  if(emailInput && unitSlots.length){
-    const email=unitSlots[0]?.tenant_email||'';
-    emailInput.value=email;
-  }
+  if(emailInput) emailInput.value=session?.tenantEmail||'';
 }
 
 function openModal(id){
@@ -931,13 +857,10 @@ async function saveEmail(){
   const err=document.getElementById('email-err');
   err.classList.remove('show');
   if(!email||!email.includes('@')){err.textContent='Enter a valid email address.';err.classList.add('show');return;}
-  const {error}=await sb.from('property_units')
-    .update({tenant_email:email})
-    .eq('property_id',session.propertyId)
-    .eq('unit_number',session.unitNumber);
-  if(error){err.textContent='Error: '+error.message;err.classList.add('show');return;}
-  // Update local cache
-  unitSlots.forEach(s=>s.tenant_email=email);
+  const r=await api('saveEmail',{email});
+  if(r.error){err.textContent=r.error;err.classList.add('show');return;}
+  session.tenantEmail=email.toLowerCase();
+  sessionStorage.setItem('unit_session',JSON.stringify(session));
   toast('✅ Email saved.');
 }
 
@@ -948,11 +871,10 @@ async function savePassword(){
   err.classList.remove('show');
   if(!pw||pw.length<6){err.textContent='Password must be at least 6 characters.';err.classList.add('show');return;}
   if(pw!==pw2){err.textContent='Passwords do not match.';err.classList.add('show');return;}
-  const {error}=await sb.from('property_units')
-    .update({unit_password:pw})
-    .eq('property_id',session.propertyId)
-    .eq('unit_number',session.unitNumber);
-  if(error){err.textContent='Error: '+error.message;err.classList.add('show');return;}
+  const r=await api('changePassword',{password:pw});
+  if(r.error){err.textContent=r.error;err.classList.add('show');return;}
+  session.token=r.token;
+  sessionStorage.setItem('unit_session',JSON.stringify(session));
   toast('✅ Password updated. Use it next time you log in.');
   closeModal('modal-account');
 }
@@ -979,12 +901,6 @@ function showLogin(){
   document.getElementById('gate').style.display='flex';
 }
 
-function generatePassword(){
-  const chars='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  let p='';for(let i=0;i<10;i++) p+=chars[Math.floor(Math.random()*chars.length)];
-  return p;
-}
-
 async function doForgot(){
   const propertyId=document.getElementById('forgot-property').value;
   const unitNumber=document.getElementById('forgot-unit').value.trim();
@@ -998,56 +914,11 @@ async function doForgot(){
   if(!unitNumber){err.textContent='Please enter your unit number.';err.classList.add('show');return;}
   if(!email||!email.includes('@')){err.textContent='Please enter a valid email address.';err.classList.add('show');return;}
   btn.disabled=true;btn.textContent='Sending…';
-
-  // Look up unit
-  const {data:slots,error}=await sb.from('property_units').select('*').eq('property_id',propertyId).eq('unit_number',unitNumber).limit(1);
-  if(error||!slots||!slots.length){
-    err.textContent='Unit not found for this property.';err.classList.add('show');
-    btn.disabled=false;btn.textContent='Send New Password →';return;
-  }
-  const slot=slots[0];
-  const storedEmail=(slot.tenant_email||'').toLowerCase();
-  if(!storedEmail){
-    err.textContent='No email address is on file for this unit. Contact your property manager.';err.classList.add('show');
-    btn.disabled=false;btn.textContent='Send New Password →';return;
-  }
-  if(storedEmail!==email){
-    err.textContent='That email does not match what we have on file for this unit.';err.classList.add('show');
-    btn.disabled=false;btn.textContent='Send New Password →';return;
-  }
-
-  // Generate new password and save it
-  const newPassword=generatePassword();
-  const {error:upErr}=await sb.from('property_units').update({unit_password:newPassword}).eq('id',slot.id);
-  if(upErr){
-    err.textContent='Error resetting password. Please try again.';err.classList.add('show');
-    btn.disabled=false;btn.textContent='Send New Password →';return;
-  }
-
-  // Send email via Netlify function
-  const {data:prop}=await sb.from('properties').select('name').eq('id',propertyId).single();
-  const res=await fetch('/.netlify/functions/send-email',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      type:'passwordReset',
-      email:slot.tenant_email,
-      name:slot.tenant_name||'Resident',
-      password:newPassword,
-      propertyName:prop?.name||'Your Property',
-      unitNumber
-    })
-  });
-
+  const r=await api('forgot',{propertyId,unitNumber,email});
   btn.disabled=false;btn.textContent='Send New Password →';
-  if(res.ok){
-    ok.textContent='✅ A new temporary password has been sent to '+slot.tenant_email+'. Check your inbox.';
-    ok.classList.add('show');
-  } else {
-    // Password was reset even if email failed — tell them to contact manager
-    ok.textContent='✅ Password reset. If you don\'t receive an email shortly, contact your property manager.';
-    ok.classList.add('show');
-  }
+  if(r.error){err.textContent=r.error;err.classList.add('show');return;}
+  ok.textContent='✅ A new temporary password has been sent to '+r.sentTo+'. Check your inbox.';
+  ok.classList.add('show');
 }
 
 boot();
