@@ -10,14 +10,34 @@
 --     Managers can still create residents.
 --  3. Replaces the rule that let ANY logged-in user edit ANY
 --     user's row with one that only lets managers/admins do it.
+--  4. Self sign-ups can only create a resident ('holder') or a
+--     manager access request ('manager_pending'). An admin approves
+--     requests in the admin portal.
+--  5. Works for brand-new sign-ups who haven't confirmed their email
+--     yet (not logged in): only for their own just-created account.
 -- Admins, your server functions and the Supabase dashboard
 -- are not restricted.
 -- ============================================================
+
+-- Stores the optional answers from the manager access request form
+alter table public.users add column if not exists access_request jsonb;
 
 -- Is the person making this request an admin?
 create or replace function public.is_admin()
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.users where id = auth.uid() and role = 'admin');
+$$;
+
+-- Was this account created in the last 30 minutes with this email and
+-- no profile yet? (A fresh sign-up whose email isn't confirmed.)
+create or replace function public.is_fresh_signup(uid uuid, addr text)
+returns boolean language sql stable security definer set search_path = public, auth as $$
+  select exists (
+    select 1 from auth.users au
+    where au.id = uid
+      and lower(au.email) = lower(addr)
+      and au.created_at > now() - interval '30 minutes'
+  ) and not exists (select 1 from public.users pu where pu.id = uid);
 $$;
 
 create or replace function public.is_manager_or_admin()
@@ -39,9 +59,9 @@ begin
   end if;
 
   if tg_op = 'INSERT' then
-    if new.id = auth.uid() then
-      -- Creating your own profile at sign-up: resident or manager only
-      if coalesce(new.role, 'holder') not in ('holder', 'manager') then
+    if new.id = auth.uid() or (auth.uid() is null and public.is_fresh_signup(new.id, new.email)) then
+      -- Creating your own profile at sign-up: resident or manager request only
+      if coalesce(new.role, 'holder') not in ('holder', 'manager_pending') then
         raise exception 'Not allowed to create an account with role %', new.role;
       end if;
     else

@@ -154,8 +154,8 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
       <div id="panel-signup" style="display:none;">
         <div style="display:inline-flex;align-items:center;gap:7px;background:var(--bluelight);border:1px solid rgba(26,111,255,.2);border-radius:20px;padding:4px 12px;font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin-bottom:16px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 21V9h6v12"/><path d="M3 9h18"/></svg> Property Manager</div>
-        <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Create your account</div>
-        <div style="font-size:13px;color:var(--text2);margin-bottom:24px;">Start managing your parking properties today</div>
+        <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Request manager access</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:24px;">Tell us about you and your properties. Our team reviews every request and will email you once you're approved.</div>
         <div class="err-msg" id="su-err"></div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">First Name</label><input class="form-input" id="su-fname" type="text" placeholder="Jane"></div>
@@ -168,11 +168,32 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
           <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="su-pass" type="password" placeholder="••••••••"></div>
           <div class="form-group"><label class="form-label">Confirm</label><input class="form-input" id="su-pass2" type="password" placeholder="••••••••"></div>
         </div>
-        <button class="btn btn-primary btn-full" style="font-size:15px;padding:13px;" id="su-btn" onclick="handleSignUp()">Create Account →</button>
+        <div style="font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:18px 0 10px;">About your properties (optional)</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Number of properties</label><select class="form-input" id="su-props"><option value="">Select</option><option>1</option><option>2–5</option><option>6–20</option><option>20+</option></select></div>
+          <div class="form-group"><label class="form-label">Approx. total units</label><select class="form-input" id="su-units"><option value="">Select</option><option>Under 50</option><option>50–200</option><option>200–1,000</option><option>1,000+</option></select></div>
+        </div>
+        <div class="form-group"><label class="form-label">Parking you manage (check any)</label>
+          <div id="su-types" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:13px;color:var(--text2);">
+            <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" value="Pay to Park"> Pay to Park</label>
+            <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" value="Lot / space management"> Lot / spaces</label>
+            <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" value="Permits by plate"> Permits by plate</label>
+            <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" value="Unit-based parking"> Unit-based</label>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">Anything else we should know?</label><textarea class="form-input" id="su-notes" rows="2" maxlength="1000" placeholder="Property types, current parking challenges, timing…"></textarea></div>
+        <button class="btn btn-primary btn-full" style="font-size:15px;padding:13px;" id="su-btn" onclick="handleSignUp()">Request Access →</button>
         <div class="divider">or</div>
         <button class="btn btn-ghost btn-full" onclick="toast('🔗 Google coming soon')">Continue with Google</button>
         <div class="modal-switch" style="margin-top:16px;">Already have an account? <a onclick="switchPanel('signin')">Sign in</a></div>
         <div style="text-align:center;margin-top:10px;"><a href="index.html" style="font-size:12px;color:var(--text3);text-decoration:none;">← Back to Home</a></div>
+      </div>
+
+      <div id="panel-requested" style="display:none;text-align:center;">
+        <div style="font-size:40px;margin-bottom:8px;">✅</div>
+        <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:8px;">Request received</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px;">First, <strong>confirm your email</strong> using the link we just sent. Our team will then review your request and email you once your access is approved.</div>
+        <button class="btn btn-ghost btn-full" onclick="switchPanel('signin')">Back to Sign In</button>
       </div>
 
       <div id="panel-signin">
@@ -186,7 +207,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         <div style="text-align:center;margin-top:10px;"><a onclick="handleForgotPassword()" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline;">Forgot password?</a></div>
         <div class="divider">or</div>
         <button class="btn btn-ghost btn-full" onclick="toast('🔗 Google coming soon')">Continue with Google</button>
-        <div class="modal-switch" style="margin-top:16px;">New here? <a onclick="switchPanel('signup')">Create an account</a></div>
+        <div class="modal-switch" style="margin-top:16px;">New property manager? <a onclick="switchPanel('signup')">Request access</a></div>
         <div style="text-align:center;margin-top:10px;"><a href="index.html" style="font-size:12px;color:var(--text3);text-decoration:none;">← Back to Home</a></div>
       </div>
     </div>
@@ -1175,12 +1196,13 @@ let allViolations=[];
 function switchPanel(p){
   document.getElementById('panel-signup').style.display=p==='signup'?'block':'none';
   document.getElementById('panel-signin').style.display=p==='signin'?'block':'none';
+  document.getElementById('panel-requested').style.display=p==='requested'?'block':'none';
 }
 
 async function handleSignUp(){
   const fname=document.getElementById('su-fname').value.trim();
   const lname=document.getElementById('su-lname').value.trim();
-  const email=document.getElementById('su-email').value.trim();
+  const email=document.getElementById('su-email').value.trim().toLowerCase();
   const company=document.getElementById('su-company').value.trim();
   const phone=document.getElementById('su-phone').value.trim();
   const pass=document.getElementById('su-pass').value;
@@ -1188,17 +1210,30 @@ async function handleSignUp(){
   const err=document.getElementById('su-err');
   const btn=document.getElementById('su-btn');
   err.classList.remove('show');
-  if(!fname||!email||!pass){err.textContent='Please fill in all required fields.';err.classList.add('show');return;}
+  if(!fname||!lname||!email||!company||!pass){err.textContent='Please fill in your name, company, email and password.';err.classList.add('show');return;}
   if(pass!==pass2){err.textContent='Passwords do not match.';err.classList.add('show');return;}
-  if(pass.length<6){err.textContent='Password must be at least 6 characters.';err.classList.add('show');return;}
-  btn.disabled=true;btn.textContent='Creating account...';
-  const {data,error}=await sb.auth.signUp({email,password:pass});
-  if(error){err.textContent=error.message;err.classList.add('show');btn.disabled=false;btn.textContent='Create Account →';return;}
-  // Save profile
-  await sb.from('users').insert({id:data.user.id,email,full_name:fname+' '+lname,phone,company,role:'manager'});
-  toast('✅ Account created! Check your email to confirm.');
-  btn.disabled=false;btn.textContent='Create Account →';
-  switchPanel('signin');
+  if(pass.length<8){err.textContent='Password must be at least 8 characters.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Sending request...';
+  const reset=()=>{btn.disabled=false;btn.textContent='Request Access →';};
+  const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:window.location.origin+'/manager.html'}});
+  if(error){err.textContent=error.message;err.classList.add('show');reset();return;}
+  const access_request={
+    properties:document.getElementById('su-props').value||null,
+    units:document.getElementById('su-units').value||null,
+    parking_types:[...document.querySelectorAll('#su-types input:checked')].map(c=>c.value),
+    notes:document.getElementById('su-notes').value.trim()||null,
+    requested_at:new Date().toISOString()
+  };
+  // Account starts as a pending request; an admin must approve it
+  const {error:pErr}=await sb.from('users').insert({id:data.user.id,email,full_name:(fname+' '+lname).trim(),phone,company,role:'manager_pending',access_request});
+  if(pErr){
+    console.error('access request profile error',pErr);
+    err.textContent='We couldn\'t submit your request. If you already have an account, sign in instead, or email sales@myspotparking.com.';
+    err.classList.add('show');reset();return;
+  }
+  fetch('/.netlify/functions/manager-access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'requested',userId:data.user.id})}).catch(()=>{});
+  reset();
+  switchPanel('requested');
 }
 
 async function handleSignIn(){
@@ -1212,6 +1247,13 @@ async function handleSignIn(){
   const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
   if(error){err.textContent=error.message;err.classList.add('show');btn.disabled=false;btn.textContent='Sign In →';return;}
   const {data:profile}=await sb.from('users').select('*').eq('id',data.user.id).single();
+  if(profile?.role==='manager_pending'||profile?.role==='manager_declined'){
+    err.textContent=profile.role==='manager_pending'
+      ?'Your access request is still being reviewed. We\'ll email you as soon as you\'re approved.'
+      :'Your access request wasn\'t approved. Questions? Email sales@myspotparking.com.';
+    err.classList.add('show');
+    await sb.auth.signOut();btn.disabled=false;btn.textContent='Sign In →';return;
+  }
   if(!profile||profile.role!=='manager'){
     err.textContent='This account is not a Property Manager account.';err.classList.add('show');
     await sb.auth.signOut();btn.disabled=false;btn.textContent='Sign In →';return;
