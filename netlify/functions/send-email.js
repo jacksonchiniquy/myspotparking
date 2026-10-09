@@ -253,8 +253,12 @@ exports.handler = async (event) => {
   }
 };
 
+// Raw sender + logo header for functions that build their own email (e.g. pricing-inquiry.js)
+exports.sendRaw = sendViaSES;
+exports.logoHeader = logoHeader;
+
 // Export for use by other functions (e.g. stripe-webhook.js)
-exports.send = async ({ type, to, data }) => {
+exports.send =async ({ type, to, data }) => {
   let template;
   switch (type) {
     case 'welcome':         template = welcomeEmail(data); break;
