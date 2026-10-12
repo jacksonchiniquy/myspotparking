@@ -28,7 +28,7 @@ exports.handler = async (event) => {
   if (!process.env.STRIPE_SECRET_KEY) return reply(500, { error: 'Payments are not set up yet. Please contact the property manager.' });
 
   try {
-    const [property] = await sb('GET', `properties?id=eq.${propertyId}&select=id,name,transient_rates`);
+    const [property] = await sb('GET', `properties?id=eq.${propertyId}&select=*`);
     if (!property) return reply(404, { error: 'Property not found.' });
 
     const rates = ratesFor(property);
