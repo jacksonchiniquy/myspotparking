@@ -89,6 +89,9 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .plate-input:focus{border-color:var(--amber);}
 .plate-input::placeholder{color:#94a3b8;}
 .result-valid{background:rgba(0,200,122,.06);border:1px solid rgba(0,200,122,.25);border-radius:14px;padding:24px;animation:fadeUp .3s ease;}
+.result-possible{background:rgba(217,119,6,.06);border:1px solid rgba(217,119,6,.3);border-left:3px solid #d97706;border-radius:14px;padding:24px;animation:fadeUp .3s ease;}
+.pm-card{background:#fff;border:1px solid rgba(217,119,6,.25);border-radius:12px;padding:16px;margin-top:12px;}
+.pm-diff{background:rgba(217,119,6,.22);color:#92400e;border-radius:4px;padding:0 2px;}
 .result-violation{background:rgba(255,77,77,.06);border:1px solid rgba(255,77,77,.25);border-left:3px solid var(--red);border-radius:14px;padding:24px;animation:fadeUp .3s ease;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 .v-card{background:#ffffff;border:1px solid rgba(15,23,42,0.10);border-left:3px solid var(--red);border-radius:12px;padding:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;}
@@ -390,6 +393,13 @@ async function lookupPlate(){
       resultEl.innerHTML=resultCard('valid','VALID — GUEST PASS','Resident guest · '+where,raw,[
         ['Property',r.property],['Guest',r.guest_name],['Hosted By',[r.host_name,r.host_unit?'Unit '+r.host_unit:''].filter(Boolean).join(' · ')||'Resident'],['Pass',`${fmtDate(r.visit_date)} · ${r.duration||''}`],['Valid Until',fmtTime(r.ends_at)]]);
     }
+  }else if(r.result==='possible'){
+    // Look-alike or typo: nothing is logged until the officer decides
+    pendingPossible={raw,r,time};
+    patrolLog.unshift({plate:raw,result:'Possible Match',time});
+    resultEl.innerHTML=renderPossible(raw,r,time);
+    updateStats();renderSummary();
+    return;
   }else{
     // Expired permit or nothing valid at this property → log a violation for this property
     stats.violations++;updateStats();
@@ -412,6 +422,78 @@ async function lookupPlate(){
 }
 
 function formatPlate(p){return p.length>=6?p.slice(0,-3)+' · '+p.slice(-3):p;}
+
+// ── POSSIBLE MATCHES (look-alike characters / one-character typos) ──
+let pendingPossible=null;
+function highlightDiff(typed,registered){
+  const reg=String(registered||'').toUpperCase(), clean=reg.replace(/[^A-Z0-9]/g,'');
+  if(clean.length!==typed.length) return esc(reg);
+  let i=0;
+  return [...reg].map(ch=>{
+    if(!/[A-Z0-9]/.test(ch)) return esc(ch);
+    const diff=ch!==typed[i++];
+    return diff?`<span class="pm-diff">${esc(ch)}</span>`:esc(ch);
+  }).join('');
+}
+function renderPossible(raw,r,time){
+  const cards=r.matches.map((m,i)=>{
+    const kind=m.kind==='guest'?'Guest pass':m.kind==='session'?'Paid session':'Permit';
+    const why=m.match==='look-alike'?'Look-alike characters':'One character different';
+    const details=[
+      ['Type',kind+(m.permit_type?' · '+m.permit_type:'')],
+      ['Vehicle',m.vehicle||(m.guest_name?'Guest: '+m.guest_name:'')],
+      ['Unit',m.unit_number||(m.host_unit?'Host unit '+m.host_unit:'')],
+      ['VIN (last 6)',m.vin_last6],
+      ['Valid until',m.end_date?fmtDate(m.end_date):m.expires_at?fmtTime(m.expires_at):'']
+    ].filter(d=>d[1]).map(([k,v])=>`<div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:3px;">${k}</div><div style="font-size:13px;font-weight:600;">${esc(v)}</div></div>`).join('');
+    return `<div class="pm-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div><div style="font-size:11px;color:#b45309;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">${why}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:24px;letter-spacing:.12em;margin-top:2px;">${highlightDiff(raw,m.plate)}</div></div>
+        <button class="btn btn-amber btn-sm" onclick="confirmPossible(${i})">Confirmed — same vehicle</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:12px;">${details}</div>
+    </div>`;}).join('');
+  return `<div class="result-possible">
+    <div style="font-size:18px;font-weight:800;color:#b45309;">POSSIBLE MATCH — VERIFY BEFORE CITING</div>
+    <div style="font-size:12px;color:var(--slate2);margin-top:2px;">${esc(r.property||patrolProperty?.name||'')} · ${time} · No exact match for <strong style="font-family:'JetBrains Mono',monospace;">${formatPlate(raw)}</strong></div>
+    <div style="font-size:13px;color:var(--slate2);margin-top:10px;">Compare the vehicle, unit and VIN with the car in front of you. Highlighted characters differ from what was typed.</div>
+    ${cards}
+    <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+      <button class="btn btn-sm" style="background:rgba(255,77,77,.1);color:var(--red);border:1px solid rgba(255,77,77,.2);" onclick="rejectPossible()">Not a match — log violation</button>
+    </div>
+  </div>`;
+}
+async function confirmPossible(i){
+  if(!pendingPossible) return;
+  const {raw,r,time}=pendingPossible; const m=r.matches[i]; pendingPossible=null;
+  stats.valid++;updateStats();
+  patrolLog[0]={plate:raw,result:'Valid (look-alike)',time};
+  // Flag for the property manager so the plate on file can be corrected
+  await sb.from('violations').insert({officer_id:currentUser.id,property_id:patrolProperty.id,plate:m.plate,
+    reason:`Plate mismatch: officer saw ${raw}, system has ${m.plate}. Vehicle verified, no citation. Please correct the plate on file.`,status:'Plate Mismatch'});
+  document.getElementById('lookup-result').innerHTML=resultCard('valid','VALID — VERIFIED LOOK-ALIKE',`${esc(r.property||'')} · ${time} · Manager notified to correct plate`,raw,[
+    ['Registered Plate',m.plate],['Vehicle',m.vehicle||m.guest_name||'—'],['Unit',m.unit_number||m.host_unit||'']]);
+  renderSummary();
+  document.getElementById('plate-input').focus();
+}
+async function rejectPossible(){
+  if(!pendingPossible) return;
+  const {raw,r,time}=pendingPossible; pendingPossible=null;
+  stats.violations++;updateStats();
+  const reason='No valid permit found for this property (possible look-alike rejected by officer)';
+  const vid='C-'+Date.now().toString().slice(-6);
+  await sb.from('violations').insert({officer_id:currentUser.id,property_id:patrolProperty.id,plate:raw,reason,status:'Open'});
+  sessionViolations.unshift({id:vid,plate:raw,reason,time,status:'Open'});
+  patrolLog[0]={plate:raw,result:'Violation',time};
+  renderViolationsLog();renderSummary();
+  document.getElementById('lookup-result').innerHTML=resultCard('violation','VIOLATION — NO VALID PERMIT',`Logged at ${esc(r.property||'')} · ${time} · Citation ${vid}`,raw,[['Property',r.property]],
+    `<div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-sm" style="background:rgba(255,77,77,.1);color:var(--red);border:1px solid rgba(255,77,77,.2);" onclick="toast('🖨 Printing citation ${vid}')">Print Citation</button>
+      <button class="btn btn-ghost btn-sm" onclick="toast('📷 Photo logged')">Log Photo</button>
+    </div>`);
+  document.getElementById('plate-input').focus();
+}
 
 function renderViolationsLog(){
   const log=document.getElementById('violations-log');
