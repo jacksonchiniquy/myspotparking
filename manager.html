@@ -1879,7 +1879,7 @@ async function issuePermit(){
     // Linked — try to connect to holder account by email
     holderEmail=document.getElementById('ip-holder-email').value.trim().toLowerCase()||null;
     if(holderEmail){
-      const {data:hUser}=await sb.from('users').select('id').eq('email',holderEmail).eq('role','holder').single();
+      const hUser=await findHolderByEmail(holderEmail);
       if(hUser) holderId=hUser.id;
     }
   }
@@ -1925,10 +1925,20 @@ async function issuePermit(){
   toast(msg);
 }
 
+// Find a resident account by email (managers can only see their own residents'
+// details, so this asks the database for just the account id).
+async function findHolderByEmail(addr){
+  const {data,error}=await sb.rpc('holder_id_for_email',{addr});
+  if(!error) return data?{id:data}:null;
+  // Database helper not installed yet: fall back to the old lookup
+  const {data:u}=await sb.from('users').select('id').eq('email',addr).eq('role','holder').maybeSingle();
+  return u||null;
+}
+
 async function assignPermit(permitId,holderEmail){
   if(!holderEmail){toast('⚠️ Enter the resident email');return;}
   holderEmail=holderEmail.trim().toLowerCase();
-  const {data:hUser}=await sb.from('users').select('id').eq('email',holderEmail).eq('role','holder').single();
+  const hUser=await findHolderByEmail(holderEmail);
   if(!hUser){toast('⚠️ No holder account found for '+holderEmail+'. They need to sign up first.');return;}
   const {error}=await sb.from('permits').update({holder_id:hUser.id,holder_email:holderEmail}).eq('id',permitId);
   if(error){toast('Error: '+error.message);return;}
@@ -2108,7 +2118,7 @@ async function doAssignPermit(){
   const permitId=document.getElementById('assign-permit-id').value;
   const email=document.getElementById('assign-email').value.trim().toLowerCase();
   if(!email){toast('⚠️ Enter the resident email');return;}
-  const {data:hUser}=await sb.from('users').select('id').eq('email',email).eq('role','holder').single();
+  const hUser=await findHolderByEmail(email);
   if(!hUser){
     // Store the email for when they sign up — permit will auto-link
     await sb.from('permits').update({holder_email:email}).eq('id',permitId);
@@ -4496,24 +4506,17 @@ async function sendFlyerEmail(){
   btn.disabled=true;btn.textContent='Sending…';
   const {_flyerData}=window;
   if(!_flyerData){err.textContent='Missing unit data. Close and try again.';err.classList.add('show');btn.disabled=false;btn.textContent='Send Invite →';return;}
-  // Get property name
-  const {data:prop}=await sb.from('properties').select('name').eq('id',_flyerData.propertyId).single();
-  const inviteLink=`${window.location.origin}/signup.html?code=${encodeURIComponent(_flyerData.inviteCode)}`;
-  const res=await fetch('/.netlify/functions/send-email',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      type:'invite_flyer',
-      to:email,
-      data:{
-        email,
-        propertyName:prop?.name||'Your Property',
-        unitNumber:_flyerData.unitNumber,
-        inviteCode:_flyerData.inviteCode,
-        inviteLink
-      }
-    })
-  });
+  // The server looks up the invite code and property itself and checks this is your unit
+  const {data:{session}}=await sb.auth.getSession();
+  let res,resBody={};
+  try{
+    res=await fetch('/.netlify/functions/send-email',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body:JSON.stringify({type:'invite_flyer',to:email,propertyId:_flyerData.propertyId,unitNumber:_flyerData.unitNumber})
+    });
+    resBody=await res.json().catch(()=>({}));
+  }catch(e){res={ok:false};}
   btn.disabled=false;btn.textContent='Send Invite →';
   if(res.ok){
     ok.textContent='✅ Invite sent to '+email;
@@ -4525,7 +4528,7 @@ async function sendFlyerEmail(){
       .eq('property_id',_flyerData.propertyId)
       .eq('unit_number',_flyerData.unitNumber);
   } else {
-    err.textContent='Failed to send email. Check your email settings.';err.classList.add('show');
+    err.textContent=resBody.error||'Failed to send email. Please try again.';err.classList.add('show');
   }
 }
 

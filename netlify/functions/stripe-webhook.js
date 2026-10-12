@@ -1,6 +1,7 @@
 // stripe-webhook.js — handles all Stripe webhook events
 // Events handled:
 //   checkout.session.completed    → create permit, generate password, send welcome email
+//                                   (or activate a Pay to Park session)
 //   invoice.paid                  → keep permit active, send receipt
 //   invoice.payment_failed        → warn tenant + manager
 //   customer.subscription.deleted → suspend permit, notify manager
@@ -8,6 +9,7 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { hashPassword } = require('./lib/unit-password');
 const { send } = require('./send-email');
+const { activateSession } = require('./lib/parking');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY; // service role key for server-side writes
@@ -75,6 +77,13 @@ async function getBillingPortalUrl(customerId) {
 
 async function handleCheckoutCompleted(session) {
   const meta = session.metadata || {};
+
+  // Pay to Park: payment confirmed → session becomes active and visible to enforcement
+  if (meta.kind === 'parking_session') {
+    const row = await activateSession(session);
+    console.log('Pay to Park session', row ? `activated: ${row.plate}` : 'not found', session.id);
+    return;
+  }
   const {
     invite_code, property_id, unit_number,
     tenant_name, tenant_email, billing_interval,

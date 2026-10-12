@@ -116,6 +116,12 @@ exports.handler = async (event) => {
     const body = JSON.parse(event.body);
     const { propertyName, propertyAddress, unitNumber, inviteCode, slotLabel, slotType, emailTo, action } = body;
 
+    // Emailing from this function was removed: it let anyone send email with any
+    // text to any address. Invites are emailed by send-email.js (manager-verified).
+    if (action === 'email') {
+      return { statusCode: 403, body: JSON.stringify({ error: 'Email from this endpoint is disabled' }) };
+    }
+
     if (!propertyName || !unitNumber || !inviteCode) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Missing required fields' }) };
     }
@@ -125,7 +131,7 @@ exports.handler = async (event) => {
 
     // If emailTo provided, send the flyer as an email attachment note
     // (SES doesn't support attachments easily — we include the signup URL prominently instead)
-    if (action === 'email' && emailTo) {
+    if (false) { // (old email code, disabled above)
       const signupUrl = `${SITE}/signup.html?invite=${inviteCode}`;
       const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
       const ses = new SESClient({

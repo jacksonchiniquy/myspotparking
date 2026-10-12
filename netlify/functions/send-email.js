@@ -221,35 +221,64 @@ function managerAlertEmail({ managerEmail, eventType, tenantName, tenantEmail, p
   };
 }
 
-// ── Lambda handler (called directly or via other functions) ──
+// ── Public endpoint ──────────────────────────────────────────
+// The browser may ONLY ask for one thing: a unit invite email, sent by a
+// logged-in manager (or admin) for a unit at a property they manage.
+// The server looks up the invite code, property name and link itself, so
+// nobody can use this to send arbitrary text to arbitrary addresses.
+// All other emails are sent only by server functions via exports.send().
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function reply(statusCode, body) {
+  return { statusCode, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+}
+async function sbGet(path) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
+  if (!res.ok) throw new Error(`Supabase ${res.status}`);
+  return res.json();
+}
+
 exports.handler = async (event) => {
-  if (event.httpMethod && event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method not allowed' };
-  }
-
+  if (event.httpMethod !== 'POST') return reply(405, { error: 'Method not allowed' });
   try {
-    const body = typeof event.body === 'string' ? JSON.parse(event.body) : event;
-    const { type, to, data } = body;
+    const body = JSON.parse(event.body || '{}');
+    if (body.type !== 'invite_flyer') return reply(403, { error: 'Not allowed' });
 
-    let template;
-    switch (type) {
-      case 'welcome':         template = welcomeEmail(data); break;
-      case 'payment_failed':  template = paymentFailedEmail(data); break;
-      case 'suspended':       template = permitSuspendedEmail(data); break;
-      case 'renewal':         template = renewalReminderEmail(data); break;
-      case 'manager_alert':   template = managerAlertEmail(data); break;
-      case 'invite_flyer':    template = inviteFlyerEmail(data); break;
-      case 'passwordReset':   template = passwordResetEmail(data); break;
-      default:
-        return { statusCode: 400, body: JSON.stringify({ error: 'Unknown email type: ' + type }) };
-    }
+    // 1. Who is asking?
+    const jwt = String(event.headers?.authorization || event.headers?.Authorization || '').replace(/^Bearer\s+/i, '');
+    if (!jwt) return reply(401, { error: 'Please sign in again.' });
+    const who = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${jwt}` } });
+    if (!who.ok) return reply(401, { error: 'Please sign in again.' });
+    const { id: userId } = await who.json();
+    const [me] = await sbGet(`users?id=eq.${userId}&select=role`);
 
+    // 2. Is this their unit?
+    const to = String(body.to || '').trim().toLowerCase();
+    const { propertyId } = body;
+    const unitNumber = String(body.unitNumber || '').trim();
+    if (!EMAIL_RE.test(to)) return reply(400, { error: 'Enter a valid email address.' });
+    if (!UUID_RE.test(String(propertyId || '')) || !unitNumber) return reply(400, { error: 'Missing unit.' });
+    const [prop] = await sbGet(`properties?id=eq.${propertyId}&select=name,manager_id`);
+    if (!prop) return reply(404, { error: 'Property not found.' });
+    const allowed = me?.role === 'admin' || (me?.role === 'manager' && prop.manager_id === userId);
+    if (!allowed) return reply(403, { error: 'Not allowed' });
+    const slots = await sbGet(`property_units?property_id=eq.${propertyId}&unit_number=eq.${encodeURIComponent(unitNumber)}&select=invite_code`);
+    const inviteCode = slots.find(s => s.invite_code)?.invite_code;
+    if (!inviteCode) return reply(400, { error: 'This unit has no invite code yet. Generate one first.' });
+
+    // 3. Send, using only server-side data
+    const template = inviteFlyerEmail({
+      email: to, propertyName: prop.name || 'Your Property', unitNumber, inviteCode,
+      inviteLink: `${SITE}/signup.html?code=${encodeURIComponent(inviteCode)}`,
+    });
     await sendViaSES({ to, ...template });
-    return { statusCode: 200, body: JSON.stringify({ ok: true }) };
-
+    return reply(200, { ok: true });
   } catch (err) {
     console.error('send-email error:', err);
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return reply(500, { error: 'Could not send the email. Please try again.' });
   }
 };
 

@@ -233,6 +233,7 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
 
 let currentProperty=null;
 let selectedRate=null;
+let selectedRateIndex=0;
 
 // Get property ID from URL
 const params=new URLSearchParams(window.location.search);
@@ -291,7 +292,8 @@ async function init(){
   `).join('');
 
   // Default select second option (or first)
-  selectedRate=rates[rates.length>1?1:0];
+  selectedRateIndex=rates.length>1?1:0;
+  selectedRate=rates[selectedRateIndex];
   updateSummary();
   showScreen('form');
 }
@@ -304,6 +306,7 @@ function selectRate(idx){
     {id:'day',name:'Full Day',minutes:480,amount:1200}
   ];
   selectedRate=rates[idx];
+  selectedRateIndex=idx;
   document.querySelectorAll('.rate-option').forEach((el,i)=>{
     el.classList.toggle('selected',i===idx);
   });
@@ -346,16 +349,13 @@ async function startPayment(){
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
+        // The server looks up the price and duration for this rate itself
         propertyId:currentProperty.id,
-        propertyName:currentProperty.name,
         plate,
         vehicleDesc:desc,
         email:email||null,
-        rateName:selectedRate.name,
-        amount:selectedRate.amount,
-        durationMinutes:selectedRate.minutes,
-        successUrl:window.location.origin+window.location.pathname+'?lot='+(currentProperty.id)+'&session_id={CHECKOUT_SESSION_ID}',
-        cancelUrl:window.location.href
+        rateId:selectedRate.id||null,
+        rateIndex:selectedRateIndex
       })
     });
 
@@ -384,33 +384,25 @@ async function startPayment(){
 }
 
 async function handlePaymentReturn(sessionId){
-  // Look up the parking session by stripe session ID
-  const {data:session}=await sb.from('parking_sessions')
-    .select('*')
-    .eq('stripe_session_id',sessionId)
-    .single();
-
-  if(!session){
-    // Session might still be creating — wait and retry
+  // Ask the server to confirm the payment with Stripe (retries briefly while it settles)
+  for(let attempt=0;attempt<5;attempt++){
+    try{
+      const res=await fetch('/.netlify/functions/parking-session-status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId})});
+      const s=await res.json().catch(()=>({}));
+      if(res.ok&&s.status==='active'){showSuccessScreen(s);return;}
+      if(res.status===404||res.status===400)break;
+    }catch(e){}
     await new Promise(r=>setTimeout(r,2000));
-    const {data:session2}=await sb.from('parking_sessions')
-      .select('*')
-      .eq('stripe_session_id',sessionId)
-      .single();
-    if(!session2){showScreen('notfound');return;}
-    showSuccessScreen(session2);
-  } else {
-    showSuccessScreen(session);
   }
+  document.querySelector('#screen-notfound .notfound-h').textContent='Confirming your payment';
+  document.querySelector('#screen-notfound .notfound-sub').textContent="We couldn't confirm your payment yet. If you were charged, refresh this page in a minute. Your receipt from Stripe is also proof of payment.";
+  showScreen('notfound');
 }
 
-async function showSuccessScreen(session){
-  // Get property name
-  const {data:prop}=await sb.from('properties').select('name').eq('id',session.property_id).single();
-
+function showSuccessScreen(session){
   document.getElementById('ss-plate').textContent=session.plate;
   document.getElementById('ss-vehicle').textContent=session.vehicle_desc||'';
-  document.getElementById('ss-prop').textContent=prop?.name||'—';
+  document.getElementById('ss-prop').textContent=session.property_name||'—';
   document.getElementById('ss-duration').textContent=formatMinutes(session.duration_minutes);
   document.getElementById('ss-start').textContent=formatTime(session.started_at);
   document.getElementById('ss-expires').textContent=formatTime(session.expires_at);
