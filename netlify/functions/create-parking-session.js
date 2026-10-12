@@ -63,11 +63,15 @@ exports.handler = async (event) => {
       property_id: property.id, plate, vehicle_desc: vehicleDesc || null, email,
       rate_name: rate.name || null, amount_paid: amount / 100, duration_minutes: minutes,
       stripe_session_id: checkout.id, status: 'pending',
+      // Placeholder; replaced with the real times when payment is confirmed.
+      // (Enforcement only counts sessions marked 'active'.)
+      started_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + minutes * 60000).toISOString(),
     });
 
     return reply(200, { url: checkout.url });
   } catch (err) {
-    console.error('create-parking-session error:', err);
+    console.error('create-parking-session error:', err && (err.raw?.message || err.message), err);
     return reply(500, { error: 'Something went wrong starting your payment. Please try again.' });
   }
 };
