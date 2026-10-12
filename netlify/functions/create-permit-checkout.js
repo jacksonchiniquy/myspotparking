@@ -1,7 +1,8 @@
 // create-permit-checkout.js — creates a Stripe Checkout Session for permit signup
 // Called from signup.html after the tenant fills in their info.
-// The PRICE is looked up on the server from the invite's property — the
-// browser only says which billing cycle it wants.
+// The PRICE is worked out on the server from the paid spots the resident
+// picked (each spot's own price) — the browser only sends which spots and
+// which billing cycle.
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const SITE = process.env.SITE_URL || 'https://myspotparking.com';
@@ -9,23 +10,13 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Billing interval → Stripe interval mapping
-const INTERVALS = {
+const { CYCLES, cycleCents, spotMonthlyCents, unitSpots, chosenPaidSpots } = require('./lib/spot-pricing');
+
+const STRIPE_INTERVALS = {
   monthly:   { interval: 'month', interval_count: 1 },
   quarterly: { interval: 'month', interval_count: 3 },
   yearly:    { interval: 'year',  interval_count: 1 },
 };
-
-// Same math signup.html shows the tenant (amounts in cents)
-function priceFor(property, interval) {
-  const monthly = Number(property?.monthly_rate) || 5000;
-  const prices = {
-    monthly,
-    quarterly: Number(property?.quarterly_rate) || Math.round(monthly * 3 * 0.95),
-    yearly: Number(property?.yearly_rate) || Math.round(monthly * 12 * 0.85),
-  };
-  return Math.round(prices[interval]);
-}
 
 function reply(statusCode, body) {
   return { statusCode, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
@@ -39,7 +30,7 @@ exports.handler = async (event) => {
     const inviteCode = String(body.inviteCode || '').trim().toUpperCase();
     const tenantEmail = String(body.tenantEmail || '').trim().toLowerCase();
     const tenantName = String(body.tenantName || '').trim().slice(0, 120);
-    const billingInterval = INTERVALS[body.billingInterval] ? body.billingInterval : 'monthly';
+    const billingInterval = CYCLES[body.billingInterval] ? body.billingInterval : 'monthly';
 
     if (!/^[A-Z0-9-]{4,20}$/.test(inviteCode) || !EMAIL_RE.test(tenantEmail)) {
       return reply(400, { error: 'Missing required fields' });
@@ -54,13 +45,21 @@ exports.handler = async (event) => {
     const [unit] = await res.json();
     if (!unit) return reply(400, { error: 'Invite code not found.' });
     if (unit.invite_used) return reply(400, { error: 'This invite code has already been used.' });
-    if (!unit.billing_type || unit.billing_type === 'free') {
-      return reply(400, { error: 'This spot is free — no payment needed. Please refresh and try again.' });
-    }
 
+    // The paid spots the resident ticked, each at its own price
     const property = unit.properties || {};
-    const amount = priceFor(property, billingInterval);
+    const spots = await unitSpots(unit);
+    const chosen = chosenPaidSpots(spots, body.spotIds).slice(0, 10);
+    if (!chosen.length) {
+      return reply(400, { error: 'Pick at least one paid spot, or continue without paid spots.' });
+    }
+    const monthlyCents = chosen.reduce((t, s) => t + spotMonthlyCents(s, property), 0);
+    if (chosen.some(s => !(spotMonthlyCents(s, property) > 0))) {
+      return reply(400, { error: 'Pricing is not set up for this spot. Contact your property manager.' });
+    }
+    const amount = cycleCents(monthlyCents, billingInterval);
     if (!(amount >= 50)) return reply(400, { error: 'Pricing is not set up for this property. Contact your property manager.' });
+    const spotNames = chosen.map(s => s.slot_label || 'Spot').join(', ');
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -70,10 +69,10 @@ exports.handler = async (event) => {
         price_data: {
           currency: 'usd',
           unit_amount: amount,
-          recurring: INTERVALS[billingInterval],
+          recurring: STRIPE_INTERVALS[billingInterval],
           product_data: {
             name: `Parking Permit — ${property.name || 'Your Property'}`,
-            description: `Unit ${unit.unit_number} · ${billingInterval} billing`,
+            description: `Unit ${unit.unit_number} · ${spotNames} · ${billingInterval} billing`.slice(0, 500),
           },
         },
         quantity: 1,
@@ -85,6 +84,7 @@ exports.handler = async (event) => {
         tenant_name: tenantName,
         tenant_email: tenantEmail,
         billing_interval: billingInterval,
+        spot_ids: chosen.map(s => s.id).join(','),
       },
       success_url: `${SITE}/signup.html?signup=success`,
       cancel_url: `${SITE}/signup.html?invite=${encodeURIComponent(inviteCode)}&cancelled=true`,

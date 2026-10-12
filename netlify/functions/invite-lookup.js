@@ -1,6 +1,8 @@
 // invite-lookup.js — used by signup.html to look up an invite code.
 // Returns only what the sign-up page needs (never passwords, emails or other units).
 
+const { unitSpots, publicSpot } = require('./lib/spot-pricing');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
@@ -23,12 +25,15 @@ exports.handler = async (event) => {
     const [u] = await res.json();
     if (!u) return reply(200, { unit: null });
     const p = u.properties || {};
+    // Every spot in this unit, with its price, so the resident can pick paid ones
+    const spots = u.invite_used ? [] : (await unitSpots(u)).map(s => publicSpot(s, p));
     return reply(200, {
       unit: {
         invite_code: u.invite_code, invite_used: !!u.invite_used,
         property_id: u.property_id, unit_number: u.unit_number, slot_label: u.slot_label,
         billing_type: u.billing_type, monthly_amount: u.monthly_amount,
-        properties: { name: p.name, monthly_rate: p.monthly_rate, quarterly_rate: p.quarterly_rate, yearly_rate: p.yearly_rate },
+        properties: { name: p.name },
+        spots,
       },
     });
   } catch (err) {

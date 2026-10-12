@@ -57,6 +57,17 @@ main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:9
 .billing-price{font-size:18px;font-weight:800;color:var(--blue);margin:4px 0;}
 .billing-save{font-size:10px;color:#00a063;font-weight:600;}
 .billing-note{font-size:10px;color:var(--text3);}
+.spot-list{display:flex;flex-direction:column;gap:8px;margin-bottom:18px;}
+.spot-row{display:flex;align-items:center;gap:12px;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;font-size:14px;}
+.spot-row.paid{cursor:pointer;}
+.spot-row.paid.on{border-color:var(--blue);background:#f0f6ff;}
+.spot-row input{width:18px;height:18px;accent-color:var(--blue);flex-shrink:0;}
+.spot-check{width:18px;text-align:center;color:#00a063;font-weight:800;flex-shrink:0;}
+.spot-name{font-weight:700;}
+.spot-type{font-size:11px;color:var(--text3);}
+.spot-price{margin-left:auto;font-weight:700;white-space:nowrap;}
+.spot-price.free{color:#00a063;}
+.spot-total{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin:-8px 2px 16px;}
 
 /* Buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;border:none;cursor:pointer;transition:all .2s;text-decoration:none;}
@@ -139,6 +150,11 @@ footer{padding:20px;text-align:center;font-size:11px;color:var(--text3);}
         <input class="form-input" id="tenant-email" type="email" placeholder="you@example.com">
         <div class="form-hint">Your login credentials will be sent here</div>
       </div>
+      <div id="spots-section" style="display:none;">
+        <label class="form-label">Your Parking Spots</label>
+        <div class="spot-list" id="spot-list"></div>
+        <div class="spot-total" id="spot-total"></div>
+      </div>
       <div id="billing-section">
         <div class="form-group">
           <label class="form-label">Choose Billing Cycle</label>
@@ -148,7 +164,7 @@ footer{padding:20px;text-align:center;font-size:11px;color:var(--text3);}
         </div>
       </div>
       <div id="free-parking-notice" style="display:none;background:rgba(0,200,122,0.08);border:1px solid rgba(0,200,122,0.25);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:13px;color:#007a4a;">
-        ✅ <strong>Free parking included</strong> — no payment required for this spot.
+        ✅ <strong>Free parking included</strong> — <span id="free-notice-text">no payment required for this spot.</span>
       </div>
       <button class="btn btn-primary" id="btn-to-pay" onclick="goToPayment()">Continue to Payment →</button>
     </div>
@@ -255,18 +271,11 @@ async function lookupInvite() {
 
     // Populate step 2
     document.getElementById('banner-prop-name').textContent = _property?.name || 'Your Property';
-    document.getElementById('banner-unit').textContent = `Unit ${unit.unit_number}${unit.slot_label ? ' · ' + unit.slot_label : ''}`;
-
-    // Build billing options from property rate or defaults
-    const isFree = !_unit.billing_type || _unit.billing_type === 'free';
-    document.getElementById('billing-section').style.display = isFree ? 'none' : '';
-    document.getElementById('free-parking-notice').style.display = isFree ? '' : 'none';
-    document.getElementById('step-2-sub').textContent = isFree
-      ? 'Fill in your details to complete your signup.'
-      : 'Fill in your details and choose your billing cycle.';
-    document.getElementById('btn-to-pay').textContent = isFree ? 'Complete Signup →' : 'Continue to Payment →';
-
-    if (!isFree) buildBillingOptions(_property);
+    document.getElementById('banner-unit').textContent = `Unit ${unit.unit_number}`;
+    _spots = Array.isArray(unit.spots) && unit.spots.length ? unit.spots
+      : [{ id: null, slot_label: unit.slot_label, slot_type: '', billing_type: unit.billing_type === 'monthly' ? 'monthly' : 'free', monthly_cents: 0 }];
+    _chosen = new Set(_spots.filter(sp => sp.billing_type === 'monthly' && sp.id).map(sp => sp.id)); // paid spots start ticked
+    renderSpots();
 
     goToStep(2);
 
@@ -277,35 +286,79 @@ async function lookupInvite() {
   btn.disabled = false; btn.textContent = 'Continue →';
 }
 
-// ── Billing options ──────────────────────────────────────────
-function buildBillingOptions(property) {
-  // Use property's configured rates or defaults
-  const monthly = property?.monthly_rate || 5000;   // cents
-  const quarterly = property?.quarterly_rate || (monthly * 3 * 0.95);
-  const yearly = property?.yearly_rate || (monthly * 12 * 0.85);
+// ── Spots + billing options ───────────────────────────────
+let _spots = [], _chosen = new Set();
+const CYCLES = { monthly: [1, 0], quarterly: [3, 0.05], yearly: [12, 0.15] }; // same math as the server
+const money = c => '$' + (c / 100).toFixed(2);
+const escH = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const typeName = t => String(t || '').replace(/^(stall|zone)-/, '').replace(/\b\w/g, c => c.toUpperCase());
 
-  const opts = [
-    { id: 'monthly', label: 'Monthly', price: monthly, save: '', note: 'billed monthly' },
-    { id: 'quarterly', label: 'Quarterly', price: quarterly, save: 'Save 5%', note: 'billed every 3 mo' },
-    { id: 'yearly', label: 'Yearly', price: yearly, save: 'Save 15%', note: 'billed annually' },
-  ];
-
-  const grid = document.getElementById('billing-grid');
-  grid.innerHTML = opts.map(o => `
-    <label class="billing-opt${o.id === _selectedBilling ? ' selected' : ''}" onclick="selectBilling('${o.id}')">
-      <input type="radio" name="billing" value="${o.id}" ${o.id === _selectedBilling ? 'checked' : ''}>
-      <div class="billing-interval">${o.label}</div>
-      <div class="billing-price">$${(o.price / 100).toFixed(0)}</div>
-      ${o.save ? `<div class="billing-save">${o.save}</div>` : '<div style="height:14px;"></div>'}
-      <div class="billing-note">${o.note}</div>
-    </label>
-  `).join('');
+function chosenMonthlyCents() {
+  return _spots.filter(sp => sp.billing_type === 'monthly' && _chosen.has(sp.id)).reduce((t, sp) => t + (sp.monthly_cents || 0), 0);
 }
 
-function selectBilling(id) {
+function renderSpots() {
+  const paid = _spots.filter(sp => sp.billing_type === 'monthly');
+  const hasFree = _spots.some(sp => sp.billing_type !== 'monthly');
+  const showList = _spots.length > 1 || paid.length > 0;
+  document.getElementById('spots-section').style.display = showList ? '' : 'none';
+  document.getElementById('spot-list').innerHTML = _spots.map(sp => {
+    const label = `<div><div class="spot-name">${escH(sp.slot_label || 'Spot')}</div>${sp.slot_type ? `<div class="spot-type">${escH(typeName(sp.slot_type))}</div>` : ''}</div>`;
+    if (sp.billing_type !== 'monthly') {
+      return `<div class="spot-row"><span class="spot-check">✓</span>${label}<span class="spot-price free">Free · included</span></div>`;
+    }
+    const on = _chosen.has(sp.id);
+    return `<label class="spot-row paid${on ? ' on' : ''}"><input type="checkbox" ${on ? 'checked' : ''} onchange="toggleSpot('${sp.id}', this.checked)">${label}<span class="spot-price">${sp.monthly_cents ? money(sp.monthly_cents) + '/mo' : 'Paid'}</span></label>`;
+  }).join('');
+
+  const monthly = chosenMonthlyCents();
+  const paying = monthly > 0;
+  document.getElementById('spot-total').innerHTML = paid.length
+    ? `<span>${paying ? 'Paid spots selected' : 'No paid spots selected'}</span><strong>${paying ? money(monthly) + '/mo' : '$0'}</strong>` : '';
+  document.getElementById('billing-section').style.display = paying ? '' : 'none';
+  document.getElementById('free-parking-notice').style.display = !paying && hasFree ? '' : 'none';
+  document.getElementById('free-notice-text').textContent = paid.length
+    ? 'no payment needed. Skipped paid spots can be added later by your property manager.'
+    : `no payment required for ${_spots.length > 1 ? 'these spots' : 'this spot'}.`;
+  document.getElementById('step-2-sub').textContent = paying
+    ? 'Fill in your details, pick your spots and choose your billing cycle.'
+    : 'Fill in your details to complete your signup.';
+  const btn = document.getElementById('btn-to-pay');
+  btn.textContent = paying ? 'Continue to Payment →' : 'Complete Signup →';
+  btn.disabled = !paying && !hasFree;
+  if (!paying && !hasFree) btn.textContent = 'Pick at least one spot';
+  if (paying) buildBillingOptions(monthly);
+}
+
+function toggleSpot(id, on) {
+  if (on) _chosen.add(id); else _chosen.delete(id);
+  renderSpots();
+}
+
+function buildBillingOptions(monthly) {
+  const price = id => Math.round(monthly * CYCLES[id][0] * (1 - CYCLES[id][1]));
+  const opts = [
+    { id: 'monthly', label: 'Monthly', save: '', note: 'billed monthly' },
+    { id: 'quarterly', label: 'Quarterly', save: 'Save 5%', note: 'billed every 3 mo' },
+    { id: 'yearly', label: 'Yearly', save: 'Save 15%', note: 'billed annually' },
+  ];
+  document.getElementById('billing-grid').innerHTML = opts.map(o => {
+    const c = price(o.id);
+    return `
+    <label class="billing-opt${o.id === _selectedBilling ? ' selected' : ''}" onclick="selectBilling('${o.id}', this)">
+      <input type="radio" name="billing" value="${o.id}" ${o.id === _selectedBilling ? 'checked' : ''}>
+      <div class="billing-interval">${o.label}</div>
+      <div class="billing-price">$${(c / 100).toFixed(c % 100 ? 2 : 0)}</div>
+      ${o.save ? `<div class="billing-save">${o.save}</div>` : '<div style="height:14px;"></div>'}
+      <div class="billing-note">${o.note}</div>
+    </label>`;
+  }).join('');
+}
+
+function selectBilling(id, el) {
   _selectedBilling = id;
-  document.querySelectorAll('.billing-opt').forEach(el => el.classList.remove('selected'));
-  event.currentTarget.classList.add('selected');
+  document.querySelectorAll('.billing-opt').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
 }
 
 // ── Step 2 → Payment (or free signup) ────────────────────────
@@ -318,7 +371,7 @@ async function goToPayment() {
   hideErr('err-2');
 
   const btn = document.getElementById('btn-to-pay');
-  const isFree = !_unit.billing_type || _unit.billing_type === 'free';
+  const isFree = chosenMonthlyCents() <= 0;
 
   // ── FREE PATH ──────────────────────────────────────────────
   if (isFree) {
@@ -354,13 +407,6 @@ async function goToPayment() {
   // ── PAID PATH (Stripe) ────────────────────────────────────
   btn.disabled = true; btn.textContent = 'Redirecting to payment…';
 
-  const property = _property || {};
-  const monthly = property.monthly_rate || 5000;
-  const quarterly = property.quarterly_rate || Math.round(monthly * 3 * 0.95);
-  const yearly = property.yearly_rate || Math.round(monthly * 12 * 0.85);
-  const amounts = { monthly, quarterly, yearly };
-  const amount = amounts[_selectedBilling];
-
   try {
     sessionStorage.setItem('msp_signup_email', email);
 
@@ -375,7 +421,8 @@ async function goToPayment() {
         tenantName: name,
         tenantEmail: email,
         billingInterval: _selectedBilling,
-        // price is set by the server from the property's rates
+        spotIds: [..._chosen],
+        // price is worked out by the server from each chosen spot's price
       }),
     });
     const data = await res.json();

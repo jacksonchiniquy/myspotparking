@@ -90,6 +90,7 @@ function publicSlot(s) {
   return {
     id: s.id, slot_label: s.slot_label, slot_type: s.slot_type, managed_by: s.managed_by,
     max_vehicles: s.max_vehicles, billing_type: s.billing_type, monthly_amount: s.monthly_amount,
+    needs_payment: s.billing_type === 'monthly' && s.spot_paid === false,
   };
 }
 
@@ -247,6 +248,9 @@ const actions = {
     const slot = u.slots.find(s => s.id === slotId);
     if (!slot) throw new UserError('That parking spot is not part of this unit.', 403);
     if (slot.managed_by === 'manager') throw new UserError('This spot is manager-assigned. Contact your property manager.', 403);
+    if (slot.billing_type === 'monthly' && slot.spot_paid === false) {
+      throw new UserError('This is a paid spot that isn\'t paid for yet. Contact your property manager to add it.', 403);
+    }
     if (!UUID_RE.test(String(vehicleId || ''))) throw new UserError('Select a vehicle first.');
     const veh = await sb('GET', `unit_vehicles?id=eq.${vehicleId}&property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}&select=*`);
     if (!veh?.length) throw new UserError('Vehicle not found.', 404);

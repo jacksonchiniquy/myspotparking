@@ -101,6 +101,14 @@ async function handleCheckoutCompleted(session) {
     `invite_code=eq.${invite_code}`
   );
 
+  // 1b. Mark the paid spots the resident paid for (older checkouts: the invite spot)
+  try {
+    const unitFilter = `property_id=eq.${property_id}&unit_number=eq.${encodeURIComponent(unit_number)}&billing_type=eq.monthly`;
+    const ids = String(meta.spot_ids || '').split(',').filter(id => /^[0-9a-f-]{36}$/i.test(id));
+    await sbUpdate('property_units', { spot_paid: true },
+      ids.length ? `${unitFilter}&id=in.(${ids.join(',')})` : `${unitFilter}&invite_code=eq.${encodeURIComponent(invite_code)}`);
+  } catch (e) { console.error('Marking paid spots failed (non-fatal):', e.message); }
+
   // 2. Generate password and save to ALL slots for this unit (some slots have null invite_code)
   const password = generatePassword();
   await sbUpdate(
@@ -288,6 +296,12 @@ async function handleSubscriptionDeleted(subscription) {
   const permits = await sbSelect('permits', `stripe_subscription_id=eq.${subscriptionId}&select=*`);
   const permit = permits?.[0];
   if (!permit) return;
+
+  // Paid spots for this unit are no longer paid for
+  try {
+    await sbUpdate('property_units', { spot_paid: false },
+      `property_id=eq.${permit.property_id}&unit_number=eq.${encodeURIComponent(permit.unit_number || '')}&billing_type=eq.monthly`);
+  } catch (e) { console.error('Clearing paid spots failed (non-fatal):', e.message); }
 
   const propertyResult3 = await sbSelect('properties', `id=eq.${permit.property_id}&select=name,manager_email`);
   const property = Array.isArray(propertyResult3) ? propertyResult3[0] : null;

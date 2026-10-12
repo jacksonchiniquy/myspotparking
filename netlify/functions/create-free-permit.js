@@ -1,8 +1,10 @@
-// create-free-permit.js — completes unit signup for slots with billing_type = 'free'
+// create-free-permit.js — completes unit signup when the resident isn't paying for any spot
+// (the unit has at least one free spot)
 // No Stripe involved. Mirrors what stripe-webhook does after checkout.session.completed.
 
 const { send } = require('./send-email');
 const { hashPassword } = require('./lib/unit-password');
+const { unitSpots, isPaid } = require('./lib/spot-pricing');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -62,8 +64,11 @@ exports.handler = async (event) => {
     if (unit.invite_used) {
       return { statusCode: 400, body: JSON.stringify({ error: 'This invite has already been used' }) };
     }
-    if (unit.billing_type === 'monthly') {
-      return { statusCode: 400, body: JSON.stringify({ error: 'This slot requires payment — use the payment flow' }) };
+    // Signing up without paying is allowed when the unit has at least one free spot
+    // (the resident can skip paid spots; those stay unusable until paid for)
+    const spots = await unitSpots(unit);
+    if (!spots.some(sp => !isPaid(sp))) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'This unit requires payment — please choose a paid spot.' }) };
     }
 
     // Get property name
