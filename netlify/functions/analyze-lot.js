@@ -1,11 +1,50 @@
+// Only logged-in managers/admins may use the AI helper (it runs on your AI bill).
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const DAILY_LIMIT = 20;                 // imports per user per day
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_DESCRIPTION = 4000;            // characters
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+function deny(statusCode, error) {
+  return { statusCode, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error }) };
+}
+async function sbFetch(path, opts = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...opts, headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, ...(opts.headers || {}) },
+  });
+  if (!res.ok) throw new Error(`Supabase ${res.status}: ${await res.text()}`);
+  const t = await res.text(); return t ? JSON.parse(t) : null;
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method not allowed' };
   }
 
   try {
-    const body = JSON.parse(event.body);
+    // 1. Who is asking?
+    const jwt = String(event.headers?.authorization || event.headers?.Authorization || '').replace(/^Bearer\s+/i, '');
+    if (!jwt) return deny(401, 'Please sign in again.');
+    const who = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${jwt}` } });
+    if (!who.ok) return deny(401, 'Please sign in again.');
+    const { id: userId } = await who.json();
+    const [me] = await sbFetch(`users?id=eq.${userId}&select=role`);
+    if (!['manager', 'admin'].includes(me?.role)) return deny(403, 'Not allowed');
+
+    const body = JSON.parse(event.body || '{}');
     const { imageData, mediaType, textOnly, description } = body;
+
+    // 2. Size limits
+    if (imageData && (typeof imageData !== 'string' || imageData.length * 0.75 > MAX_IMAGE_BYTES)) return deny(413, 'Image is too large (max 5 MB).');
+    if (imageData && mediaType && !IMAGE_TYPES.includes(mediaType)) return deny(400, 'Please upload a JPG, PNG, WEBP or GIF image.');
+    if (description && String(description).length > MAX_DESCRIPTION) return deny(400, 'Description is too long.');
+
+    // 3. Daily limit per user
+    const since = new Date(Date.now() - 24 * 3600e3).toISOString();
+    const used = await sbFetch(`ai_usage?user_id=eq.${userId}&created_at=gte.${encodeURIComponent(since)}&select=id`);
+    if ((used || []).length >= DAILY_LIMIT) return deny(429, `Daily limit reached (${DAILY_LIMIT} lot imports per day). Try again tomorrow.`);
+    await sbFetch('ai_usage', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ user_id: userId, feature: 'analyze-lot' }) });
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {

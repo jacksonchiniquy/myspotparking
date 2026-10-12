@@ -1116,15 +1116,14 @@ async function removeSelfPermit(id){
 // ── BILLING / STRIPE ──────────────────────────────────────────────────────────────
 
 async function manageBilling(){
-  const customerId=activeBillingPermit?.stripe_customer_id;
-  if(!customerId){toast('⚠️ No billing info found. Contact your manager.');return;}
+  const {data:{session}}=await sb.auth.getSession();
   const btn=document.getElementById('btn-manage-billing');
   if(btn){btn.disabled=true;btn.textContent='Opening...';}
   try{
     const res=await fetch('/.netlify/functions/billing-portal',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({customerId}),
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body:'{}',
     });
     const data=await res.json();
     if(data.url) window.location.href=data.url;

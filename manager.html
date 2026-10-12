@@ -2857,9 +2857,10 @@ async function runLotImport(){
       if(!description){toast('⚠️ Please describe your lot first');btn.disabled=false;return;}
       btn.textContent='Generating...';
       // Text-only request — no image needed, call API directly
+      const {data:{session:aiSession}}=await sb.auth.getSession();
       const response=await fetch('/.netlify/functions/analyze-lot',{
         method:'POST',
-        headers:{'Content-Type':'application/json'},
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+(aiSession?.access_token||'')},
         body:JSON.stringify({
           textOnly:true,
           description
@@ -2884,9 +2885,10 @@ async function runLotImport(){
       btn.textContent='Analyzing image...';
       const base64=lotImportImageData.split(',')[1];
       const mediaType=lotImportImageData.split(';')[0].split(':')[1]||'image/jpeg';
+      const {data:{session:aiSession}}=await sb.auth.getSession();
       const response=await fetch('/.netlify/functions/analyze-lot',{
         method:'POST',
-        headers:{'Content-Type':'application/json'},
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+(aiSession?.access_token||'')},
         body:JSON.stringify({imageData:base64,mediaType})
       });
       const data=await response.json();

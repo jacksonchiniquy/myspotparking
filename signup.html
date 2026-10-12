@@ -375,7 +375,7 @@ async function goToPayment() {
         tenantName: name,
         tenantEmail: email,
         billingInterval: _selectedBilling,
-        amount,
+        // price is set by the server from the property's rates
       }),
     });
     const data = await res.json();
