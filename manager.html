@@ -1302,7 +1302,9 @@ async function signOut(){
 
 // -- DATA LOADING --
 async function loadAllData(){
-  await Promise.all([loadProperties(),loadPermits(),loadResidents(),loadViolations()]);
+  // Properties first: permits and violations are loaded per property
+  await loadProperties();
+  await Promise.all([loadPermits(),loadResidents(),loadViolations()]);
   renderDashboard();
   initCharts();
   restoreFromHash();
@@ -1705,7 +1707,8 @@ async function saveEditResident(){
   closeModal('modal-edit-resident');
 
   // Reload fresh data
-  await Promise.all([loadProperties(), loadPermits(), loadResidents()]);
+  await loadProperties();
+  await Promise.all([loadPermits(), loadResidents()]);
 
   // Sync stall to lot map only if both stall and property are explicitly selected
   if(stall && propId){
@@ -2448,7 +2451,7 @@ function setPDTab(name){
     lotSelectedSet=new Set();
     lotBgImage=null;
     lotBgDataUrl=null;
-    Promise.all([loadProperties(),loadPermits(),loadResidents()]).then(()=>{
+    loadProperties().then(()=>Promise.all([loadPermits(),loadResidents()])).then(()=>{
       initLotMap();
     });
   }
