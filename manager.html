@@ -2624,7 +2624,7 @@ function copyPayLink(){
 
 function loadTransientRates(){
   const prop=allProperties.find(p=>p.id===currentPropertyId);
-  transientRates=(prop?.transient_rates)||[
+  transientRates=(prop?.transient_rates&&prop.transient_rates.length)?prop.transient_rates:[
     {id:'1h',name:'1 Hour',minutes:60,amount:300,desc:'Short stay'},
     {id:'2h',name:'2 Hours',minutes:120,amount:500,desc:'Most popular'},
     {id:'4h',name:'4 Hours',minutes:240,amount:800,desc:'Half day'},

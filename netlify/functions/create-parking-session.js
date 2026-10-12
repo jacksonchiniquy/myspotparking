@@ -61,7 +61,7 @@ exports.handler = async (event) => {
 
     await sb('POST', 'parking_sessions', {
       property_id: property.id, plate, vehicle_desc: vehicleDesc || null, email,
-      rate_name: rate.name || null, amount_paid: amount / 100, duration_minutes: minutes,
+      rate_name: rate.name || null, amount_paid: amount /* cents */, duration_minutes: minutes,
       stripe_session_id: checkout.id, status: 'pending',
       // Placeholder; replaced with the real times when payment is confirmed.
       // (Enforcement only counts sessions marked 'active'.)

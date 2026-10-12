@@ -387,7 +387,7 @@ async function lookupPlate(){
       patrolLog.unshift({plate:raw,result:'Paid Session',time});
       const mins=Math.round((new Date(r.expires_at)-new Date())/60000);
       resultEl.innerHTML=resultCard('valid','PAID PARKING SESSION',`${mins} min remaining · ${where}`,raw,[
-        ['Property',r.property],['Vehicle',r.vehicle||'—'],['Amount Paid',r.amount_paid!=null?'$'+Number(r.amount_paid).toFixed(2):''],['Expires',fmtTime(r.expires_at)]]);
+        ['Property',r.property],['Vehicle',r.vehicle||'—'],['Amount Paid',r.amount_paid!=null?'$'+(Number(r.amount_paid)/100).toFixed(2):''],['Expires',fmtTime(r.expires_at)]]);
     }else{
       patrolLog.unshift({plate:raw,result:'Guest Pass',time});
       resultEl.innerHTML=resultCard('valid','VALID — GUEST PASS','Resident guest · '+where,raw,[

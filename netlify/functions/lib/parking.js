@@ -47,7 +47,7 @@ async function activateSession(checkout) {
     status: 'active',
     started_at: startedAt.toISOString(),
     expires_at: new Date(startedAt.getTime() + minutes * 60000).toISOString(),
-    amount_paid: (checkout.amount_total ?? Math.round(Number(row.amount_paid || 0) * 100)) / 100,
+    amount_paid: checkout.amount_total ?? row.amount_paid, // cents
   });
   if (updated && updated[0]) {
     // First (and only) activation: send the driver a receipt
@@ -69,7 +69,7 @@ const fmtDuration = m => m >= 480 ? 'Full Day' : m >= 60 ? `${m / 60} Hour${m > 
 async function sendReceipt(row, to) {
   const [property] = await sb('GET', `properties?id=eq.${row.property_id}&select=name,address`);
   const name = property?.name || 'Parking';
-  const amount = `$${Number(row.amount_paid || 0).toFixed(2)}`;
+  const amount = `$${(Number(row.amount_paid || 0) / 100).toFixed(2)}`;
   const rows = [
     ['Plate', row.plate], ['Vehicle', row.vehicle_desc || '—'], ['Location', name + (property?.address ? ` — ${property.address}` : '')],
     ['Duration', fmtDuration(Number(row.duration_minutes) || 0)], ['Started', fmtTime(row.started_at)],
