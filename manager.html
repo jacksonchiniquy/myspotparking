@@ -2404,7 +2404,9 @@ function renderPropertyDetail(propId){
     <td><strong style="font-family:'JetBrains Mono',monospace">${v.plate}</strong></td>
     <td style="font-size:12px">${v.reason||'—'}</td>
     <td style="font-size:12px;color:var(--text3)">${new Date(v.noted_at).toLocaleDateString()}</td>
-    <td><span class="pill ${v.status==='Open'?'pill-expired':'pill-active'}">${v.status}</span></td>
+    <td>${v.status==='Plate Mismatch'
+      ?'<span class="pill" style="background:rgba(217,119,6,.12);color:#b45309;border:1px solid rgba(217,119,6,.3);" title="Officer verified the vehicle but the plate on file looks wrong. Please correct it.">Fix Plate</span>'
+      :`<span class="pill ${v.status==='Open'?'pill-expired':'pill-active'}">${v.status}</span>`}</td>
   </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--text3)">No violations for this property.</td></tr>';
 }
 
