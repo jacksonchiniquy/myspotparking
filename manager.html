@@ -754,10 +754,10 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
 <!-- MODAL: Bulk Add Units -->
 <div class="modal-overlay" id="modal-bulk-units">
-  <div class="modal" style="width:560px;">
+  <div class="modal" style="width:640px;max-width:calc(100vw - 32px);max-height:calc(100vh - 40px);overflow-y:auto;">
     <button class="modal-close" onclick="closeModal('modal-bulk-units')">✕</button>
     <div class="modal-title">Bulk Add Units</div>
-    <div class="modal-sub">Create many units at once. Each gets its own invite code. Units that already exist are skipped.</div>
+    <div class="modal-sub">Create many units at once, with one or more spots each. Each new unit gets its own invite code.</div>
     <div style="display:flex;gap:6px;margin:6px 0 14px;">
       <button class="btn btn-primary btn-sm" id="bu-tab-range" onclick="setBulkMode('range')">Number range</button>
       <button class="btn btn-ghost btn-sm" id="bu-tab-list" onclick="setBulkMode('list')">Paste a list</button>
@@ -777,28 +777,15 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div class="form-group"><label class="form-label">Unit numbers, one per line (or separated by commas)</label>
         <textarea class="form-input" id="bu-paste" rows="6" placeholder="101&#10;102&#10;103A&#10;Penthouse 1" oninput="updateBulkPreview()"></textarea></div>
     </div>
-    <div style="font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:4px 0 8px;">Settings for every new unit</div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Slot Label</label><input class="form-input" id="bu-label" type="text" value="Spot 1"></div>
-      <div class="form-group"><label class="form-label">Slot Type</label>
-        <select class="form-select" id="bu-type">
-          <option value="stall-standard">Standard Stall</option><option value="stall-reserved">Reserved</option><option value="stall-handicap">Handicap</option>
-          <option value="stall-ev">EV</option><option value="stall-guest">Guest</option><option value="stall-moto">Moto</option>
-          <option value="zone-carport">Carport</option><option value="zone-garage">Garage</option><option value="zone-yard">Yard</option>
-          <option value="zone-storage">Storage</option><option value="zone-loading">Loading</option>
-        </select></div>
-    </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Managed By</label>
         <select class="form-select" id="bu-managed"><option value="tenant">Tenant (self-service swap)</option><option value="manager">Manager (locked)</option></select></div>
-      <div class="form-group"><label class="form-label">Max Vehicles</label><input class="form-input" id="bu-max" type="number" min="1" max="10" value="1"></div>
+      <div class="form-group"><label class="form-label">Max Vehicles per Spot</label><input class="form-input" id="bu-max" type="number" min="1" max="10" value="1"></div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Billing</label>
-        <select class="form-select" id="bu-billing" onchange="document.getElementById('bu-amount-wrap').style.display=this.value==='monthly'?'':'none'">
-          <option value="free">Free — no payment required</option><option value="monthly">Monthly — tenant pays per month</option></select></div>
-      <div class="form-group" id="bu-amount-wrap" style="display:none;"><label class="form-label">Monthly Amount ($)</label><input class="form-input" id="bu-amount" type="number" min="0" step="0.01" placeholder="e.g. 75.00"></div>
-    </div>
+    <div style="font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:4px 0 8px;">Spots for each unit</div>
+    <div id="bu-spots"></div>
+    <button class="btn btn-ghost btn-sm" type="button" onclick="addBulkSpot()" style="margin:2px 0 12px;">+ Add another spot</button>
+    <div style="font-size:11px;color:var(--text3);margin:-4px 0 10px;">Units that already exist get any spot they don't have yet (matched by spot name).</div>
     <div id="bu-preview" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--text2);margin:6px 0 12px;">Enter a range or list to see a preview.</div>
     <div class="err-msg" id="bu-err"></div>
     <button class="btn btn-primary btn-full" id="bu-btn" onclick="saveBulkUnits()" disabled>Create Units</button>
@@ -4444,17 +4431,56 @@ function renderUnitVehicleRoster(unitNum, slots){
 
 
 // ── BULK ADD UNITS ──
-let _bulkMode='range',_bulkExisting=new Set(),_bulkPlan=[];
-const BULK_MAX=2000;
+// Each unit can get several spots (e.g. Spot 1 free, Spot 2 $50/mo).
+// New units: all listed spots are created; the first one holds the invite code.
+// Existing units: only spots they don't have yet (same name) are added.
+let _bulkMode='range',_bulkExisting=new Map(),_bulkPlan=[],_bulkRows=[];
+const BULK_MAX=2000, BULK_SPOTS_MAX=6;
+const BULK_TYPES=[['stall-standard','Standard Stall'],['stall-reserved','Reserved'],['stall-handicap','Handicap'],['stall-ev','EV'],['stall-guest','Guest'],['stall-moto','Moto'],['zone-carport','Carport'],['zone-garage','Garage'],['zone-yard','Yard'],['zone-storage','Storage'],['zone-loading','Loading']];
+function bulkSpotRowHtml(i,s){
+  return `<div class="bu-spot" style="display:grid;grid-template-columns:1.1fr 1fr 1fr .8fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+    <input class="form-input bu-s-label" placeholder="Spot name" value="${escHtml(s.label)}" oninput="updateBulkPreview()" style="padding:8px 10px;">
+    <select class="form-select bu-s-type" style="padding:8px 10px;">${BULK_TYPES.map(([v,l])=>`<option value="${v}"${v===s.type?' selected':''}>${l}</option>`).join('')}</select>
+    <select class="form-select bu-s-billing" onchange="this.closest('.bu-spot').querySelector('.bu-s-amount').style.visibility=this.value==='monthly'?'visible':'hidden';updateBulkPreview()" style="padding:8px 10px;">
+      <option value="free"${s.billing==='free'?' selected':''}>Free</option><option value="monthly"${s.billing==='monthly'?' selected':''}>Monthly</option></select>
+    <input class="form-input bu-s-amount" type="number" min="0" step="0.01" placeholder="$ / mo" value="${s.amount??''}" oninput="updateBulkPreview()" style="padding:8px 10px;visibility:${s.billing==='monthly'?'visible':'hidden'};">
+    <button type="button" class="btn btn-ghost btn-sm" title="Remove spot" onclick="removeBulkSpot(${i})" style="padding:4px 0;${i===0?'visibility:hidden;':''}">✕</button>
+  </div>`;
+}
+function readBulkSpots(){
+  return [...document.querySelectorAll('#bu-spots .bu-spot')].map(r=>({
+    label:r.querySelector('.bu-s-label').value.trim(), type:r.querySelector('.bu-s-type').value,
+    billing:r.querySelector('.bu-s-billing').value, amount:r.querySelector('.bu-s-amount').value,
+  }));
+}
+function renderBulkSpots(spots){
+  document.getElementById('bu-spots').innerHTML=spots.map((s,i)=>bulkSpotRowHtml(i,s)).join('');
+  updateBulkPreview();
+}
+function addBulkSpot(){
+  const s=readBulkSpots();
+  if(s.length>=BULK_SPOTS_MAX){toast(`Up to ${BULK_SPOTS_MAX} spots per unit`);return;}
+  s.push({label:'Spot '+(s.length+1),type:'stall-standard',billing:'free',amount:''});
+  renderBulkSpots(s);
+}
+function removeBulkSpot(i){const s=readBulkSpots();s.splice(i,1);renderBulkSpots(s);}
+async function loadBulkExisting(){
+  const {data}=await sb.from('property_units').select('unit_number,slot_label').eq('property_id',currentPropertyId);
+  _bulkExisting=new Map();
+  (data||[]).forEach(u=>{
+    const k=String(u.unit_number||'').trim().toLowerCase();
+    if(!_bulkExisting.has(k))_bulkExisting.set(k,new Set());
+    _bulkExisting.get(k).add(String(u.slot_label||'').trim().toLowerCase());
+  });
+}
 async function openBulkUnits(){
   if(!currentPropertyId){toast('Open a property first');return;}
   ['bu-prefix','bu-suffix','bu-from','bu-to','bu-paste'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('bu-err').classList.remove('show');
-  document.getElementById('bu-amount-wrap').style.display=document.getElementById('bu-billing').value==='monthly'?'':'none';
+  renderBulkSpots([{label:'Spot 1',type:'stall-standard',billing:'free',amount:''}]);
   setBulkMode('range');
   openModal('modal-bulk-units');
-  const {data}=await sb.from('property_units').select('unit_number').eq('property_id',currentPropertyId);
-  _bulkExisting=new Set((data||[]).map(u=>String(u.unit_number||'').trim().toLowerCase()));
+  await loadBulkExisting();
   updateBulkPreview();
 }
 function setBulkMode(m){
@@ -4478,42 +4504,73 @@ function bulkUnitNumbers(){
   const out=[];for(let n=a;n<=b;n++) out.push(pre+(pad?String(n).padStart(pad,'0'):String(n))+suf);
   return out;
 }
+function bulkSpotProblem(spots){
+  if(!spots.length) return 'Add at least one spot.';
+  const names=new Set();
+  for(const s of spots){
+    if(!s.label) return 'Give every spot a name.';
+    const k=s.label.toLowerCase();
+    if(names.has(k)) return `Two spots are both named "${s.label}". Use different names.`;
+    names.add(k);
+    if(s.billing==='monthly'&&!(parseFloat(s.amount)>0)) return `Enter the monthly price for "${s.label}".`;
+  }
+  return '';
+}
 function updateBulkPreview(){
   const el=document.getElementById('bu-preview'), btn=document.getElementById('bu-btn');
+  if(!el||!btn) return;
   const nums=bulkUnitNumbers();
-  btn.disabled=true;_bulkPlan=[];
+  const spots=readBulkSpots();
+  btn.disabled=true;_bulkPlan=[];_bulkRows=[];btn.textContent='Create Spots';
   if(nums&&!Array.isArray(nums)){
     el.innerHTML=nums.backwards?'"To" must be the same as or higher than "From".':`That's ${nums.tooMany.toLocaleString()} units — please add at most ${BULK_MAX.toLocaleString()} at a time.`;return;
   }
   if(!nums||!nums.length){el.textContent='Enter a range or list to see a preview.';return;}
-  const seen=new Set(),dupes=[],exists=[];
-  nums.forEach(n=>{const k=n.toLowerCase();if(seen.has(k)){dupes.push(n);return;}seen.add(k);if(_bulkExisting.has(k))exists.push(n);else _bulkPlan.push(n);});
+  const seen=new Set(); let dupes=0;
+  nums.forEach(n=>{const k=n.toLowerCase();if(seen.has(k)){dupes++;return;}seen.add(k);_bulkPlan.push(n);});
   if(_bulkPlan.length>BULK_MAX){el.textContent=`Please add at most ${BULK_MAX.toLocaleString()} units at a time.`;_bulkPlan=[];return;}
-  const sample=_bulkPlan.length?_bulkPlan.slice(0,3).join(', ')+(_bulkPlan.length>4?' … '+_bulkPlan[_bulkPlan.length-1]:_bulkPlan.length===4?', '+_bulkPlan[3]:''):'';
-  el.innerHTML=`<strong style="color:var(--text1);">${_bulkPlan.length} new unit${_bulkPlan.length===1?'':'s'}</strong>${sample?': '+escHtml(sample):''}`
-    +(exists.length?`<br><span style="color:#b45309;">${exists.length} already exist${exists.length===1?"s":""} and will be skipped${exists.length<=5?': '+escHtml(exists.join(', ')):''}</span>`:'')
-    +(dupes.length?`<br><span style="color:#b45309;">${dupes.length} duplicate${dupes.length===1?'':'s'} in your list ignored</span>`:'');
-  btn.disabled=!_bulkPlan.length;
-  btn.textContent=_bulkPlan.length?`Create ${_bulkPlan.length} Unit${_bulkPlan.length===1?'':'s'}`:'Create Units';
+  const problem=bulkSpotProblem(spots);
+  let newUnits=0,touched=0,skippedSpots=0,newSpots=0;
+  if(!problem){
+    _bulkPlan.forEach(n=>{
+      const have=_bulkExisting.get(n.toLowerCase());
+      let first=!have;
+      if(!have)newUnits++;
+      let added=0;
+      spots.forEach(s=>{
+        if(have&&have.has(s.label.toLowerCase())){skippedSpots++;return;}
+        _bulkRows.push({unit_number:n,slot_label:s.label,slot_type:s.type,billing_type:s.billing,
+          monthly_amount:s.billing==='monthly'?Math.round(parseFloat(s.amount)*100)/100:null,invite:first});
+        first=false;added++;newSpots++;
+      });
+      if(have&&added)touched++;
+    });
+  }
+  const spotSummary=spots.filter(s=>s.label).map(s=>escHtml(s.label)+' ('+(s.billing==='monthly'?'$'+(parseFloat(s.amount)||0).toFixed(2)+'/mo':'free')+')').join(', ');
+  const sample=_bulkPlan.slice(0,3).join(', ')+(_bulkPlan.length>4?' … '+_bulkPlan[_bulkPlan.length-1]:_bulkPlan.length===4?', '+_bulkPlan[3]:'');
+  el.innerHTML=`<div><strong style="color:var(--text1);">${_bulkPlan.length} unit${_bulkPlan.length===1?'':'s'}</strong>: ${escHtml(sample)}</div>`
+    +(spotSummary?`<div style="margin-top:4px;">Each unit: ${spotSummary}</div>`:'')
+    +(problem?`<div style="margin-top:6px;color:#b45309;">${escHtml(problem)}</div>`
+      :`<div style="margin-top:6px;color:var(--text1);"><strong>${newSpots} spot${newSpots===1?'':'s'} will be created</strong>`
+        +` — ${newUnits} new unit${newUnits===1?'':'s'}${touched?`, ${touched} existing unit${touched===1?' gets':'s get'} new spots`:''}</div>`
+        +(skippedSpots?`<div style="color:#b45309;">${skippedSpots} spot${skippedSpots===1?'':'s'} already exist${skippedSpots===1?'s':''} and will be skipped</div>`:''))
+    +(dupes?`<div style="color:#b45309;">${dupes} duplicate${dupes===1?'':'s'} in your list ignored</div>`:'');
+  btn.disabled=!!problem||!_bulkRows.length;
+  if(!problem&&_bulkRows.length) btn.textContent=`Create ${_bulkRows.length} Spot${_bulkRows.length===1?'':'s'}`;
 }
 function escHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 async function saveBulkUnits(){
   const err=document.getElementById('bu-err'),btn=document.getElementById('bu-btn');
   err.classList.remove('show');
-  if(!_bulkPlan.length) return;
-  const billing=document.getElementById('bu-billing').value;
-  const amt=parseFloat(document.getElementById('bu-amount').value);
-  if(billing==='monthly'&&!(amt>0)){err.textContent='Enter the monthly amount.';err.classList.add('show');return;}
-  const base={
-    property_id:currentPropertyId,
-    slot_label:document.getElementById('bu-label').value.trim()||'Spot 1',
-    slot_type:document.getElementById('bu-type').value,
-    managed_by:document.getElementById('bu-managed').value,
-    max_vehicles:parseInt(document.getElementById('bu-max').value)||1,
-    billing_type:billing,
-    monthly_amount:billing==='monthly'?amt:null,
-  };
-  const rows=_bulkPlan.map(n=>({...base,unit_number:n,invite_code:makeInviteCode()}));
+  updateBulkPreview();
+  if(!_bulkRows.length) return;
+  const managed=document.getElementById('bu-managed').value;
+  const maxV=parseInt(document.getElementById('bu-max').value)||1;
+  const rows=_bulkRows.map(r=>({
+    property_id:currentPropertyId, unit_number:r.unit_number, slot_label:r.slot_label, slot_type:r.slot_type,
+    managed_by:managed, max_vehicles:maxV, billing_type:r.billing_type, monthly_amount:r.monthly_amount,
+    invite_code:r.invite?makeInviteCode():null,
+  }));
   btn.disabled=true;
   let done=0;
   for(let i=0;i<rows.length;i+=200){
@@ -4521,24 +4578,19 @@ async function saveBulkUnits(){
     btn.textContent=`Creating… ${done}/${rows.length}`;
     let {error}=await sb.from('property_units').insert(batch);
     if(error&&/duplicate|unique/i.test(error.message)){ // rare invite-code collision: new codes, try once more
-      batch=batch.map(r=>({...r,invite_code:makeInviteCode()}));
+      batch=batch.map(r=>r.invite_code?{...r,invite_code:makeInviteCode()}:r);
       ({error}=await sb.from('property_units').insert(batch));
     }
     if(error){
-      err.textContent=`Stopped after ${done} unit${done===1?'':'s'}: ${error.message}`;err.classList.add('show');
-      btn.disabled=false;btn.textContent='Try Again';
-      await openBulkUnitsRefresh();loadUnitsTab(currentPropertyId);return;
+      err.textContent=`Stopped after ${done} spot${done===1?'':'s'}: ${error.message}`;err.classList.add('show');
+      await loadBulkExisting();updateBulkPreview();loadUnitsTab(currentPropertyId);
+      btn.textContent='Try Again (skips what was saved)';btn.disabled=!_bulkRows.length;return;
     }
     done+=batch.length;
   }
   closeModal('modal-bulk-units');
-  toast(`✅ ${done} unit${done===1?'':'s'} created`);
+  toast(`✅ ${done} spot${done===1?'':'s'} created`);
   loadUnitsTab(currentPropertyId);
-}
-async function openBulkUnitsRefresh(){
-  const {data}=await sb.from('property_units').select('unit_number').eq('property_id',currentPropertyId);
-  _bulkExisting=new Set((data||[]).map(u=>String(u.unit_number||'').trim().toLowerCase()));
-  updateBulkPreview();
 }
 
 function makeInviteCode(){
