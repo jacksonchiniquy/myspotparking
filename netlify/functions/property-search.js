@@ -1,5 +1,5 @@
 // property-search.js — "type your property" box on the unit login page.
-// Returns at most 8 matching properties (only ones with units), never the
+// Returns at most 8 matching properties, never the
 // whole list, so the public page can't download every customer.
 //
 // POST { q }   → { results: [{ id, name, place }] }   (q = 2+ characters)
@@ -39,21 +39,19 @@ exports.handler = async (event) => {
     }
     const q = String(body.q || '').replace(/[^\p{L}\p{N}\s'&.-]/gu, ' ').trim().slice(0, 60);
     if (q.length < 2) return reply(200, { results: [] });
-    const props = await sb(`properties?name=ilike.${encodeURIComponent('*' + q + '*')}&select=id,name,address&order=name&limit=25`);
-    // Only properties that actually use unit parking (same lookup the unit portal uses)
-    const problems = [];
-    const hasUnits = await Promise.all(props.map(p =>
-      sb(`property_units?property_id=eq.${p.id}&select=id&limit=1`)
-        .then(r => Array.isArray(r) && r.length > 0)
-        .catch(e => { problems.push(String(e.message || e).slice(0, 160)); return false; })));
-    const results = props.filter((p, i) => hasUnits[i])
-      .slice(0, 8).map(p => ({ id: p.id, name: p.name, place: place(p.address) }));
+    const props = await sb(`properties?name=ilike.${encodeURIComponent('*' + q + '*')}&select=id,name,address&order=name&limit=8`);
+    const results = props.map(p => ({ id: p.id, name: p.name, place: place(p.address) }));
     if (event.queryStringParameters?.check === '1') {
-      // Troubleshooting only: how many names matched and which have units (no names returned)
-      const sample = await sb('property_units?select=property_id&limit=500').catch(e => [{ property_id: 'ERR ' + e.message.slice(0, 80) }]);
-      const unitProps = [...new Set(sample.map(r => String(r.property_id).slice(0, 8)))];
-      return reply(200, { matched: props.length, matchedIds: props.map(p => String(p.id).slice(0, 8)), unitPropertyIds: unitProps, hasUnits, results: results.length, problems,
-        keyType: (() => { try { return JSON.parse(Buffer.from(String(SUPABASE_KEY).split('.')[1], 'base64url').toString()).role; } catch { return 'unknown'; } })() });
+      // Troubleshooting only (counts and the first 8 characters of ids — nothing private)
+      const counts = await Promise.all(props.map(async p => {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/property_units?property_id=eq.${p.id}&select=id`, {
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'count=exact', Range: '0-0' } });
+        return { id: String(p.id).slice(0, 8), status: r.status, range: r.headers.get('content-range') };
+      }));
+      const all = await fetch(`${SUPABASE_URL}/rest/v1/property_units?select=property_id`, {
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'count=exact', Range: '0-0' } });
+      return reply(200, { matched: props.length, counts, allUnits: all.headers.get('content-range'),
+        host: String(SUPABASE_URL || '').replace(/^https?:\/\//, '').split('.')[0] });
     }
     return reply(200, { results });
   } catch (err) {
