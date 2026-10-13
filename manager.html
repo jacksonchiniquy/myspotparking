@@ -4433,7 +4433,7 @@ function renderUnitsTab(){
               <span style="font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--blue);">${inviteCode}</span>
             </div>
             <button class="btn ${inviteUsed?'btn-ghost':'btn-primary'} btn-sm" onclick="copyInviteLink('${inviteLink}','${unitNum}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> ${inviteUsed?'View Invite':'Invite Tenant'}</button>
-            ${inviteUsed?`<button class="btn btn-ghost btn-sm" title="Tenant turnover: removes the current tenant and gets the unit ready for the next one" onclick="openMoveOut('${inv.id}','${unitNum}')">Move Out Tenant</button>`:''}
+            ${inviteUsed||hasPassword||slots.some(x=>x.spot_paid&&(x.paid_via||'card')==='card')?`<button class="btn btn-ghost btn-sm" title="Tenant turnover: removes the current tenant and gets the unit ready for the next one" onclick="openMoveOut('${inv.id}','${unitNum}')">Move Out Tenant</button>`:''}
           `:`<button class="btn btn-ghost btn-sm" onclick="generateInviteCodeForUnit('${inv.id}','${unitNum}')">Generate Invite</button>`}
           ${(_tenanciesByUnit[unitNum]||[]).length?`<button class="btn btn-ghost btn-sm" onclick="openPastTenants('${escHtml(unitNum)}')">🕘 Past Tenants (${_tenanciesByUnit[unitNum].length})</button>`:''}
           <button class="btn btn-ghost btn-sm" onclick="openAddUnitSlot('${unitNum}')">+ Slot</button>
@@ -4952,6 +4952,7 @@ function spotPayButtons(s){
       +(prop.outside_billing?`<button class="btn btn-ghost btn-sm" onclick="markSpotPaid('${s.id}',true)">Mark as Paid</button>`:'');
   }
   if(s.paid_via==='manual') return `<button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="markSpotPaid('${s.id}',false)">Mark Not Paid</button>`;
+  if((s.paid_via||'card')==='card') return `<button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="cancelPaidSpot('${s.id}')">Cancel Paid Spot</button>`;
   return '';
 }
 let _spotLinkId=null;
@@ -4981,6 +4982,20 @@ async function markSpotPaid(slotId,paid){
   const r=await unitService(paid?'managerMarkPaid':'managerMarkUnpaid',{slotId});
   if(r.error){toast('❌ '+r.error);return;}
   toast(paid?'Spot marked as paid':'Spot marked as not paid');
+  loadUnitsTab(currentPropertyId);
+}
+
+async function cancelPaidSpot(slotId){
+  const p=await unitService('managerCancelSpotPreview',{slotId});
+  if(p.error){alert(p.error);return;}
+  const me=p.spots.find(x=>x.id===slotId)||p.spots[0]||{};
+  const msg=p.shared
+    ?`${me.label} is on the same card bill as ${p.spots.filter(x=>x.id!==slotId).map(x=>x.label).join(', ')} ($${Number(p.total).toFixed(2)}/mo total).\n\nCancelling stops billing for ALL of them, and they all go back to Not Paid. The tenant keeps their account and free spots.\n\nCancel this bill?`
+    :`Cancel card billing for ${me.label}${me.amount?' ($'+Number(me.amount).toFixed(2)+'/mo)':''}?\n\nThe resident stops being charged and the spot goes back to Not Paid. They keep their account and other spots.`;
+  if(!confirm(msg)) return;
+  const r=await unitService('managerCancelSpot',{slotId});
+  if(r.error){alert(r.error);return;}
+  toast('Billing cancelled for '+r.spots.join(', '));
   loadUnitsTab(currentPropertyId);
 }
 

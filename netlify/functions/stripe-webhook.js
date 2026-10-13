@@ -433,7 +433,7 @@ async function handleSubscriptionDeleted(subscription) {
   const subscriptionId = subscription.id;
 
   // Cancelled by a manager's "Move Out Tenant": everything was already cleaned up
-  if (subscription.metadata?.moved_out === '1') {
+  if (subscription.metadata?.moved_out === '1' || subscription.metadata?.manager_cancelled === '1') {
     console.log(`Subscription ${subscriptionId} ended by tenant move-out`);
     return;
   }

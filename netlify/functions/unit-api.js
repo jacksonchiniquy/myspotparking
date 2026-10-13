@@ -246,6 +246,22 @@ async function moveOutSummary(u) {
   };
 }
 
+// Which spots stop being paid if this spot's card billing is cancelled
+async function cancelSpotPlan(u) {
+  const slot = u.slot;
+  if (!slot?.spot_paid || (slot.paid_via || 'card') !== 'card') throw new UserError('This spot isn\'t paid by card.');
+  let subscription = slot.spot_subscription_id || null;
+  if (!subscription) {
+    // Older sign-ups didn't record it: use the unit's sign-up plan
+    const [p] = await sb('GET', `permits?property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}&stripe_subscription_id=not.is.null&select=stripe_subscription_id&order=created_at.desc&limit=1`);
+    subscription = p?.stripe_subscription_id || null;
+  }
+  const spots = u.slots.filter(x => x.spot_paid && (x.paid_via || 'card') === 'card' &&
+    (x.id === slot.id || (subscription && (x.spot_subscription_id === subscription || (!x.spot_subscription_id && !slot.spot_subscription_id)))));
+  const total = spots.reduce((t, x) => t + (Number(x.monthly_amount) || 0), 0);
+  return { subscription, spots: spots.map(x => ({ id: x.id, label: x.slot_label || 'Spot', amount: x.monthly_amount })), total, shared: spots.length > 1 };
+}
+
 // ── Actions ──────────────────────────────────────────────────
 const actions = {
   async login({ propertyId, unitNumber, password }, event, ctx = {}) {
@@ -509,6 +525,35 @@ const actions = {
     return { ok: true, inviteCode: code, cancelFailed };
   },
 
+  // ── Cancel one card-paid spot (tenant stays) ───────────────
+  async managerCancelSpotPreview({ slotId }, event, ctx = {}) {
+    const u = await authManagerForSlot(event, slotId);
+    return cancelSpotPlan(u);
+  },
+
+  async managerCancelSpot({ slotId }, event, ctx = {}) {
+    const u = ctx.u = await authManagerForSlot(event, slotId);
+    const plan = await cancelSpotPlan(u);
+    ctx.u.cancelPlan = plan;
+    if (plan.subscription) {
+      try {
+        const st = stripe();
+        await st.subscriptions.update(plan.subscription, { metadata: { manager_cancelled: '1' } });
+        await st.subscriptions.cancel(plan.subscription);
+      } catch (e) {
+        if (!/No such subscription|canceled/i.test(e.message || '')) {
+          console.error('Cancel spot failed', plan.subscription, e.message);
+          throw new UserError('Stripe couldn\'t cancel this billing right now, so nothing was changed. Please try again.', 502);
+        }
+      }
+      // If this was the sign-up plan, the tenant keeps their permit; only the billing ends
+      await sb('PATCH', `permits?stripe_subscription_id=eq.${q(plan.subscription)}`, { billing_status: 'free' });
+    }
+    const ids = plan.spots.map(x => x.id);
+    await sb('PATCH', `property_units?id=in.(${ids.join(',')})`, { spot_paid: false, paid_via: null, spot_subscription_id: null });
+    return { ok: true, spots: plan.spots.map(x => x.label) };
+  },
+
   async managerVoid({ slotId }, event, ctx = {}) {
     const u = ctx.u = await authManagerForSlot(event, slotId);
     const ups = await sb('PATCH', `unit_permits?unit_slot_id=eq.${slotId}&void_at=is.null`, { void_at: new Date().toISOString() });
@@ -535,6 +580,7 @@ const LOG = {
   managerSendSpotLink: (b, r, u) => ['billing.payment_link_sent', `Sent a payment link for ${slotName(u, b.slotId)} to ${r.sentTo}`],
   managerMarkPaid:   (b, r, u) => ['billing.marked_paid', `Marked ${slotName(u, b.slotId)} as paid outside the app`],
   managerMarkUnpaid: (b, r, u) => ['billing.marked_unpaid', `Marked ${slotName(u, b.slotId)} as not paid`],
+  managerCancelSpot: (b, r, u) => ['billing.spot_cancelled', `Cancelled card billing for ${(r.spots || []).join(', ')}`, { subscription: u?.cancelPlan?.subscription || null }],
   managerMoveOut:    (b, r, u) => ['unit.moved_out', `Moved out ${u?.moveOut?.tenantName || u?.moveOut?.tenantEmail || 'the tenant'}`
     + (u?.moveOut?.plates?.length ? ` · voided ${u.moveOut.plates.join(', ')}` : '')
     + (u?.moveOut?.cardBilling ? ` · cancelled ${u.moveOut.cardBilling} card subscription${u.moveOut.cardBilling === 1 ? '' : 's'}` : '')
