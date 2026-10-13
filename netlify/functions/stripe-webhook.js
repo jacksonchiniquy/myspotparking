@@ -219,6 +219,7 @@ async function handleCheckoutCompleted(session) {
         password,
         propertyName,
         unitNumber: unit_number,
+        propertyId: property_id,
       },
     });
   } catch (emailErr) {

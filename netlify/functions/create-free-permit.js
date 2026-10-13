@@ -141,7 +141,7 @@ exports.handler = async (event) => {
           password,
           propertyName,
           unitNumber,
-          loginUrl: `${SITE}/holder.html`,
+          propertyId,
         },
       });
     } catch (e) {

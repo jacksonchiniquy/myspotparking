@@ -8,7 +8,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Unit Login — My Spot Parking</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --bg:#f4f7ff;--surface:#ffffff;--surface2:#f0f4ff;--border:rgba(15,23,42,0.09);
@@ -38,6 +37,15 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 .gate-sub{font-size:13px;color:var(--text2);margin-bottom:24px;}
 .form-group{margin-bottom:16px;}
 .form-label{display:block;font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
+.prop-pick{position:relative;}
+.prop-results{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 32px rgba(15,23,42,.12);z-index:50;overflow:hidden;display:none;}
+.prop-results.show{display:block;}
+.prop-opt{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);}
+.prop-opt:last-child{border-bottom:none;}
+.prop-opt:hover,.prop-opt.on{background:rgba(26,111,255,.07);}
+.prop-opt b{display:block;font-size:14px;color:var(--text);}
+.prop-opt span{font-size:12px;color:var(--text3);}
+.prop-empty{padding:12px 14px;font-size:13px;color:var(--text3);}
 .form-input,.form-select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:9px;font-family:'Bricolage Grotesque',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;}
 .form-input:focus,.form-select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,111,255,.1);background:#fff;}
 .form-input::placeholder{color:var(--text3);}
@@ -199,9 +207,11 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div class="err-msg" id="gate-err"></div>
     <div class="form-group">
       <label class="form-label">Property</label>
-      <select class="form-select" id="gate-property">
-        <option value="">Loading properties…</option>
-      </select>
+<div class="prop-pick">
+        <input class="form-input" id="gate-property-q" type="text" placeholder="Start typing your property name" autocomplete="off" oninput="propSearch('gate-property')" onfocus="propSearch('gate-property')" onkeydown="propKey(event,'gate-property')">
+        <input type="hidden" id="gate-property">
+        <div class="prop-results" id="gate-property-list"></div>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">Unit Number</label>
@@ -226,9 +236,11 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div class="err-msg" id="forgot-ok" style="background:rgba(0,200,122,.08);border-color:rgba(0,200,122,.3);color:#007a4a;"></div>
     <div class="form-group">
       <label class="form-label">Property</label>
-      <select class="form-select" id="forgot-property">
-        <option value="">— Select your property —</option>
-      </select>
+<div class="prop-pick">
+        <input class="form-input" id="forgot-property-q" type="text" placeholder="Start typing your property name" autocomplete="off" oninput="propSearch('forgot-property')" onfocus="propSearch('forgot-property')" onkeydown="propKey(event,'forgot-property')">
+        <input type="hidden" id="forgot-property">
+        <div class="prop-results" id="forgot-property-list"></div>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">Unit Number</label>
@@ -413,12 +425,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div id="toast"></div>
 
 <script>
-const SUPABASE_URL='https://ajadbfojccztiauxyxos.supabase.co';
-const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYWRiZm9qY2N6dGlhdXh5eG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTU1NDcsImV4cCI6MjA5MjM3MTU0N30.dHMc-kGb0YFHnTfxnwGYfikmKZBLPzS5lfe6SyRsguU';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON,{
-  auth:{storageKey:'msp-auth-unit',persistSession:false},
-  global:{headers:{'x-msp-portal':'unit'}},
-});
+// Everything goes through the private unit service (unit-api) and property search.
 
 let session=null;
 let unitSlots=[];
@@ -486,20 +493,63 @@ async function boot(){
     }catch(e){}
     session=null;sessionStorage.removeItem('unit_session');
   }
-  await loadPropertyDropdown();
   const params=new URLSearchParams(window.location.search);
   const pId=params.get('property')||params.get('lot');
   const uNum=params.get('unit');
-  if(pId){document.getElementById('gate-property').value=pId;}
+  if(pId){await prefillProperty(pId);}
   if(uNum){document.getElementById('gate-unit').value=uNum;}
 }
 
-async function loadPropertyDropdown(){
-  const {data}=await sb.from('properties').select('id,name,address').order('name');
-  const sel=document.getElementById('gate-property');
-  if(!data||!data.length){sel.innerHTML='<option value="">No properties found</option>';return;}
-  sel.innerHTML='<option value="">— Select your property —</option>'+
-    data.map(p=>`<option value="${p.id}">${p.name}${p.address?' — '+p.address:''}</option>`).join('');
+// ── Property search (type to find; never lists every property) ──
+const _ps={};
+async function propSearch(pid){
+  const qEl=document.getElementById(pid+'-q'),list=document.getElementById(pid+'-list');
+  const q=qEl.value.trim();
+  document.getElementById(pid).value='';            // typing again clears the choice
+  clearTimeout((_ps[pid]=_ps[pid]||{}).t);
+  if(q.length<2){list.classList.remove('show');return;}
+  _ps[pid].t=setTimeout(async()=>{
+    let results=[];
+    try{
+      const r=await fetch('/.netlify/functions/property-search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q})});
+      results=(await r.json()).results||[];
+    }catch(e){}
+    if(qEl.value.trim()!==q) return;                // a newer search is on its way
+    _ps[pid].results=results;_ps[pid].on=-1;
+    list.innerHTML=results.length
+      ?results.map((p,i)=>`<div class="prop-opt" onmousedown="event.preventDefault();pickProp('${pid}',${i})"><b>${escapeHtml(p.name)}</b>${p.place?`<span>${escapeHtml(p.place)}</span>`:''}</div>`).join('')
+      :'<div class="prop-empty">No properties found. Check the welcome email from your property manager.</div>';
+    list.classList.add('show');
+  },250);
+}
+function pickProp(pid,i){
+  const p=(_ps[pid]&&_ps[pid].results||[])[i];if(!p) return;
+  setProp(pid,p);
+  const next=document.getElementById(pid==='gate-property'?'gate-unit':'forgot-unit');
+  if(next) next.focus();
+}
+function setProp(pid,p){
+  document.getElementById(pid).value=p.id;
+  document.getElementById(pid+'-q').value=p.name+(p.place?' · '+p.place:'');
+  document.getElementById(pid+'-list').classList.remove('show');
+}
+function propKey(e,pid){
+  const st=_ps[pid]||{},n=(st.results||[]).length,list=document.getElementById(pid+'-list');
+  if(!n||!list.classList.contains('show')) return;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();st.on=((st.on??-1)+(e.key==='ArrowDown'?1:-1)+n)%n;
+    [...list.children].forEach((c,i)=>c.classList.toggle('on',i===st.on));}
+  else if(e.key==='Enter'&&st.on>=0){e.preventDefault();pickProp(pid,st.on);}
+  else if(e.key==='Escape'){list.classList.remove('show');}
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.prop-pick'))document.querySelectorAll('.prop-results').forEach(l=>l.classList.remove('show'));});
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+// Pre-filled from a sign-in link (?property=…&unit=…)
+async function prefillProperty(id){
+  try{
+    const r=await fetch('/.netlify/functions/property-search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+    const p=(await r.json()).result;
+    if(p){setProp('gate-property',p);setProp('forgot-property',p);}
+  }catch(e){}
 }
 
 async function doLogin(){
@@ -509,7 +559,7 @@ async function doLogin(){
   const err=document.getElementById('gate-err');
   const btn=document.getElementById('gate-btn');
   err.classList.remove('show');
-  if(!propertyId){err.textContent='Please select your property.';err.classList.add('show');return;}
+  if(!propertyId){err.textContent='Start typing your property name, then pick it from the list.';err.classList.add('show');return;}
   if(!unitNumber){err.textContent='Please enter your unit number.';err.classList.add('show');return;}
   if(!password){err.textContent='Please enter your password.';err.classList.add('show');return;}
   btn.disabled=true;btn.textContent='Signing in…';
@@ -933,11 +983,11 @@ function showForgot(){
   document.getElementById('gate').style.display='none';
   const fg=document.getElementById('forgot-gate');
   fg.style.display='flex';
-  // Copy property options if not already populated
-  const src=document.getElementById('gate-property');
-  const dst=document.getElementById('forgot-property');
-  if(dst.options.length<=1 && src.options.length>1){
-    dst.innerHTML=src.innerHTML;
+  // Carry over the property already chosen on the sign-in screen
+  const chosen=document.getElementById('gate-property').value;
+  if(chosen&&!document.getElementById('forgot-property').value){
+    document.getElementById('forgot-property').value=chosen;
+    document.getElementById('forgot-property-q').value=document.getElementById('gate-property-q').value;
   }
   document.getElementById('forgot-err').classList.remove('show');
   document.getElementById('forgot-ok').classList.remove('show');
@@ -959,7 +1009,7 @@ async function doForgot(){
   const btn=document.getElementById('forgot-btn');
   err.classList.remove('show');
   ok.classList.remove('show');
-  if(!propertyId){err.textContent='Please select your property.';err.classList.add('show');return;}
+  if(!propertyId){err.textContent='Start typing your property name, then pick it from the list.';err.classList.add('show');return;}
   if(!unitNumber){err.textContent='Please enter your unit number.';err.classList.add('show');return;}
   if(!email||!email.includes('@')){err.textContent='Please enter a valid email address.';err.classList.add('show');return;}
   btn.disabled=true;btn.textContent='Sending…';

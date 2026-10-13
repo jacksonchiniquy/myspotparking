@@ -366,7 +366,7 @@ const actions = {
     // Email first, so a failed email never leaves the resident locked out
     await send({
       type: 'passwordReset', to: onFile,
-      data: { name: slots.find(s => s.tenant_name)?.tenant_name || 'Resident', password, propertyName: await propertyName(propertyId), unitNumber },
+      data: { name: slots.find(s => s.tenant_name)?.tenant_name || 'Resident', password, propertyName: await propertyName(propertyId), unitNumber, propertyId },
     });
     await sb('PATCH', `property_units?property_id=eq.${q(propertyId)}&unit_number=eq.${q(unitNumber)}`, { unit_password: hashPassword(password) });
     return { ok: true, sentTo: onFile };

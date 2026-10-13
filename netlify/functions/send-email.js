@@ -68,8 +68,12 @@ async function sendViaSES({ to, subject, html, text }) {
 
 // ── Email templates ──────────────────────────────────────────
 
-function welcomeEmail({ name, email, password, propertyName, unitNumber, plate }) {
-  const loginUrl = `${SITE}/unit.html`;
+// Sign-in link with the property and unit already filled in
+const unitLoginUrl = (propertyId, unitNumber) => `${SITE}/unit.html` +
+  (propertyId ? `?property=${encodeURIComponent(propertyId)}${unitNumber ? '&unit=' + encodeURIComponent(unitNumber) : ''}` : '');
+
+function welcomeEmail({ name, email, password, propertyName, unitNumber, plate, propertyId }) {
+  const loginUrl = unitLoginUrl(propertyId, unitNumber);
   return {
     subject: `Your parking permit is active — ${propertyName}`,
     html: `
@@ -165,8 +169,8 @@ function inviteFlyerEmail({ email, propertyName, unitNumber, inviteCode, inviteL
   };
 }
 
-function passwordResetEmail({ name, password, propertyName, unitNumber }) {
-  const loginUrl = `${SITE}/unit.html`;
+function passwordResetEmail({ name, password, propertyName, unitNumber, propertyId }) {
+  const loginUrl = unitLoginUrl(propertyId, unitNumber);
   return {
     subject: `Your new temporary password — ${propertyName}`,
     html: `
