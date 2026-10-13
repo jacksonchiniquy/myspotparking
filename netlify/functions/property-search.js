@@ -4,6 +4,7 @@
 //
 // POST { q }   → { results: [{ id, name, place }] }   (q = 2+ characters)
 // POST { id }  → { result: { id, name, place } }       (pre-filled sign-in links)
+// GET ?q=… works too (handy for checking it in a browser)
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -25,9 +26,11 @@ function place(address) {
 }
 
 exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST') return reply(405, { error: 'Method not allowed' });
   let body;
-  try { body = JSON.parse(event.body || '{}'); } catch { return reply(400, { error: 'Invalid request' }); }
+  if (event.httpMethod === 'GET') body = { q: event.queryStringParameters?.q, id: event.queryStringParameters?.id };
+  else if (event.httpMethod === 'POST') {
+    try { body = JSON.parse(event.body || '{}'); } catch { return reply(400, { error: 'Invalid request' }); }
+  } else return reply(405, { error: 'Method not allowed' });
   try {
     if (body.id) {
       if (!UUID_RE.test(String(body.id))) return reply(200, { result: null });
@@ -36,15 +39,14 @@ exports.handler = async (event) => {
     }
     const q = String(body.q || '').replace(/[^\p{L}\p{N}\s'&.-]/gu, ' ').trim().slice(0, 60);
     if (q.length < 2) return reply(200, { results: [] });
-    const props = await sb(`properties?name=ilike.${encodeURIComponent('*' + q + '*')}&select=id,name,address&order=name&limit=25`);
-    if (!props.length) return reply(200, { results: [] });
-    // Only properties that actually use unit parking
-    const withUnits = await sb(`property_units?property_id=in.(${props.map(p => p.id).join(',')})&select=property_id&limit=1000`);
-    const ok = new Set(withUnits.map(r => r.property_id));
-    const results = props.filter(p => ok.has(p.id)).slice(0, 8).map(p => ({ id: p.id, name: p.name, place: place(p.address) }));
+    // Only properties that actually use unit parking (count of their unit spots)
+    const props = await sb(`properties?name=ilike.${encodeURIComponent('*' + q + '*')}&select=id,name,address,property_units(count)&order=name&limit=25`);
+    const results = props
+      .filter(p => (p.property_units?.[0]?.count || 0) > 0)
+      .slice(0, 8).map(p => ({ id: p.id, name: p.name, place: place(p.address) }));
     return reply(200, { results });
   } catch (err) {
     console.error('property-search error:', err);
-    return reply(500, { error: 'Search is unavailable right now. Please try again.' });
+    return reply(500, { error: 'Search is unavailable right now. Please try again.', code: String(err.message || '').slice(0, 40) });
   }
 };

@@ -509,14 +509,15 @@ async function propSearch(pid){
   clearTimeout((_ps[pid]=_ps[pid]||{}).t);
   if(q.length<2){list.classList.remove('show');return;}
   _ps[pid].t=setTimeout(async()=>{
-    let results=[];
+    let results=[],failed=false;
     try{
       const r=await fetch('/.netlify/functions/property-search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q})});
-      results=(await r.json()).results||[];
-    }catch(e){}
+      const body=await r.json();
+      if(!r.ok) failed=true; else results=body.results||[];
+    }catch(e){failed=true;}
     if(qEl.value.trim()!==q) return;                // a newer search is on its way
     _ps[pid].results=results;_ps[pid].on=-1;
-    list.innerHTML=results.length
+    list.innerHTML=failed?'<div class="prop-empty">Search isn\'t working right now. Please try again in a moment.</div>':results.length
       ?results.map((p,i)=>`<div class="prop-opt" onmousedown="event.preventDefault();pickProp('${pid}',${i})"><b>${escapeHtml(p.name)}</b>${p.place?`<span>${escapeHtml(p.place)}</span>`:''}</div>`).join('')
       :'<div class="prop-empty">No properties found. Check the welcome email from your property manager.</div>';
     list.classList.add('show');
