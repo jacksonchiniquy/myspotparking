@@ -67,7 +67,7 @@ exports.handler = async (event) => {
     // Signing up without paying is allowed when the unit has at least one free spot
     // (the resident can skip paid spots; those stay unusable until paid for)
     const spots = await unitSpots(unit);
-    if (!spots.some(sp => !isPaid(sp))) {
+    if (!spots.some(sp => !isPaid(sp) || sp.spot_paid)) {
       return { statusCode: 400, body: JSON.stringify({ error: 'This unit requires payment — please choose a paid spot.' }) };
     }
 

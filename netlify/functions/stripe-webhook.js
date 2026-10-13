@@ -268,6 +268,13 @@ async function spotAddedEmails(meta, session) {
   const slot = first(await sbSelect('property_units', `id=eq.${meta.slot_id}&select=*`));
   const unitRow = first(await sbSelect('property_units', `property_id=eq.${meta.property_id}&unit_number=eq.${encodeURIComponent(meta.unit_number)}&tenant_email=not.is.null&select=tenant_email,tenant_name&limit=1`));
   const property = await propertyContact(meta.property_id);
+  const unitAll = await sbSelect('property_units', `property_id=eq.${meta.property_id}&unit_number=eq.${encodeURIComponent(meta.unit_number)}&select=invite_used,unit_password,invite_code`);
+  const unitSlots = Array.isArray(unitAll) ? unitAll : [];
+  const signedUp = unitSlots.some(r => r.invite_used || r.unit_password);
+  const inviteCode = unitSlots.find(r => r.invite_code)?.invite_code;
+  const nextStep = signedUp || !inviteCode
+    ? { button: ['Open My Unit →', `${SITE}/unit.html`], line: 'You can assign a vehicle to it in your unit portal now.' }
+    : { button: ['Finish Signing Up →', `${SITE}/signup.html?code=${encodeURIComponent(inviteCode)}`], line: 'Next, finish signing up for your unit. This spot will show as already paid, so you won\'t be charged for it again.' };
   const spot = slot?.slot_label || 'Your new spot';
   const price = session.amount_total != null ? `$${(session.amount_total / 100).toFixed(2)} / month` : '';
   const propertyName = property?.name || 'your property';
@@ -281,10 +288,10 @@ async function spotAddedEmails(meta, session) {
       to: residentEmail,
       subject: `${spot} is now active — Unit ${meta.unit_number}`,
       html: emailShell('#059669', `${spot} is now active`,
-        `Thanks! Your payment went through and ${escH(spot)} has been added to Unit ${escH(meta.unit_number)}. You can assign a vehicle to it in your unit portal now.`,
-        rows, ['Open My Unit →', `${SITE}/unit.html`],
+        `Thanks! Your payment went through and ${escH(spot)} has been added to Unit ${escH(meta.unit_number)}. ${escH(nextStep.line)}`,
+        rows, nextStep.button,
         'Billed monthly by card. To update your card or cancel this spot, open Account → Manage Billing in your unit portal.'),
-      text: `${spot} is now active on Unit ${meta.unit_number} at ${propertyName} (${price}).\n\nAssign a vehicle: ${SITE}/unit.html\nTo update your card or cancel, open Account → Manage Billing in your unit portal.`,
+      text: `${spot} is now active on Unit ${meta.unit_number} at ${propertyName} (${price}).\n\n${nextStep.line} ${nextStep.button[1]}\nTo update your card or cancel, open Account → Manage Billing in your unit portal.`,
     }); console.log('Spot added email sent to resident', residentEmail); }
     catch (e) { console.error('Resident spot email failed:', e.message); }
   } else console.log('Spot added: no resident email on file');

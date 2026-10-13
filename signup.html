@@ -305,7 +305,7 @@ function renderSpots() {
   document.getElementById('spot-list').innerHTML = _spots.map(sp => {
     const label = `<div><div class="spot-name">${escH(sp.slot_label || 'Spot')}</div>${sp.slot_type ? `<div class="spot-type">${escH(typeName(sp.slot_type))}</div>` : ''}</div>`;
     if (sp.billing_type !== 'monthly') {
-      return `<div class="spot-row"><span class="spot-check">✓</span>${label}<span class="spot-price free">Free · included</span></div>`;
+      return `<div class="spot-row"><span class="spot-check">✓</span>${label}<span class="spot-price free">${sp.billing_type === 'prepaid' ? 'Paid · included' : 'Free · included'}</span></div>`;
     }
     const on = _chosen.has(sp.id);
     return `<label class="spot-row paid${on ? ' on' : ''}"><input type="checkbox" ${on ? 'checked' : ''} onchange="toggleSpot('${sp.id}', this.checked)">${label}<span class="spot-price">${sp.monthly_cents ? money(sp.monthly_cents) + '/mo' : 'Paid'}</span></label>`;

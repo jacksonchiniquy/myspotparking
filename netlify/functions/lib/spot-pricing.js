@@ -44,18 +44,21 @@ async function unitSpots(inviteSpot) {
 }
 
 // What the sign-up page may see about each spot
+// A paid spot that's already paid for (card or outside billing) is shown as
+// 'prepaid' and is never charged again at sign-up.
 function publicSpot(s, property) {
+  const prepaid = isPaid(s) && !!s.spot_paid;
   return {
     id: s.id, slot_label: s.slot_label, slot_type: s.slot_type,
-    billing_type: isPaid(s) ? 'monthly' : 'free',
-    monthly_cents: isPaid(s) ? spotMonthlyCents(s, property) : 0,
+    billing_type: prepaid ? 'prepaid' : isPaid(s) ? 'monthly' : 'free',
+    monthly_cents: isPaid(s) && !prepaid ? spotMonthlyCents(s, property) : 0,
   };
 }
 
 // Which paid spots the resident picked (only real paid spots of this unit count)
 function chosenPaidSpots(spots, spotIds) {
   const want = new Set(Array.isArray(spotIds) ? spotIds.map(String) : []);
-  return spots.filter(s => isPaid(s) && want.has(String(s.id)));
+  return spots.filter(s => isPaid(s) && !s.spot_paid && want.has(String(s.id)));
 }
 
 module.exports = { CYCLES, isPaid, spotMonthlyCents, cycleCents, unitSpots, publicSpot, chosenPaidSpots };

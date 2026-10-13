@@ -343,6 +343,9 @@ const actions = {
     const u = await authManagerForSlot(event, slotId);
     const problem = spotProblem(u.slot);
     if (problem) throw new UserError(problem);
+    if (!u.slots.some(x => x.invite_used || x.unit_password)) {
+      throw new UserError('This unit hasn\'t signed up yet. Send them the invite instead — they can choose paid spots when they sign up.');
+    }
     const to = String(email || u.slots.find(x => x.tenant_email)?.tenant_email || '').trim().toLowerCase();
     if (!EMAIL_RE.test(to)) throw new UserError('Enter the resident\'s email address.');
     const property = await propertyRow(u.propertyId);

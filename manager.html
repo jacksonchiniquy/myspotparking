@@ -4664,7 +4664,10 @@ function spotPayButtons(s){
   const prop=(typeof allProperties!=='undefined'?allProperties:[]).find(p=>p.id===s.property_id)||{};
   const label=escHtml(s.slot_label||'Spot');
   if(!s.spot_paid){
-    return `<button class="btn btn-primary btn-sm" onclick="openSpotLink('${s.id}','${escHtml(s.unit_number)}','${label}')">Send Payment Link</button>`
+    const signedUp=((window._unitInvites||{})[s.unit_number]||{}).used;
+    return (signedUp
+      ?`<button class="btn btn-primary btn-sm" onclick="openSpotLink('${s.id}','${escHtml(s.unit_number)}','${label}')">Send Payment Link</button>`
+      :`<span title="This unit hasn't signed up yet. Use Invite Tenant — they can choose paid spots during sign-up." style="font-size:11px;color:var(--text3);padding:0 4px;">Invite tenant first</span>`)
       +(prop.outside_billing?`<button class="btn btn-ghost btn-sm" onclick="markSpotPaid('${s.id}',true)">Mark as Paid</button>`:'');
   }
   if(s.paid_via==='manual') return `<button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="markSpotPaid('${s.id}',false)">Mark Not Paid</button>`;

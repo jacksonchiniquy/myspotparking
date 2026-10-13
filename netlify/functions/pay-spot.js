@@ -26,6 +26,10 @@ exports.handler = async (event) => {
     const [slot] = await sbGet(`property_units?id=eq.${encodeURIComponent(link.s)}&select=*,properties(*)`);
     const problem = spotProblem(slot);
     if (problem) return page(slot?.spot_paid ? 'Already paid' : 'Nothing to pay', problem);
+    const unitRows = await sbGet(`property_units?property_id=eq.${encodeURIComponent(slot.property_id)}&unit_number=eq.${encodeURIComponent(slot.unit_number)}&select=invite_used,unit_password`);
+    if (!unitRows.some(r => r.invite_used || r.unit_password)) {
+      return page('Finish signing up first', 'Your unit isn\'t set up yet. Use the invite from your property manager to sign up — you can add paid spots during sign-up.');
+    }
     const checkout = await createSpotCheckout(stripe, {
       slot, property: slot.properties || {}, email: slot.tenant_email || null,
       successUrl: `${SITE}/unit.html?spot_added=1`, cancelUrl: `${SITE}/unit.html`,
