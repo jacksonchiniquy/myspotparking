@@ -415,7 +415,10 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <script>
 const SUPABASE_URL='https://ajadbfojccztiauxyxos.supabase.co';
 const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYWRiZm9qY2N6dGlhdXh5eG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTU1NDcsImV4cCI6MjA5MjM3MTU0N30.dHMc-kGb0YFHnTfxnwGYfikmKZBLPzS5lfe6SyRsguU';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON,{
+  auth:{storageKey:'msp-auth-unit',persistSession:false},
+  global:{headers:{'x-msp-portal':'unit'}},
+});
 
 let session=null;
 let unitSlots=[];

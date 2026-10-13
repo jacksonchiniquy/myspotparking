@@ -10,6 +10,8 @@
 --     move-outs, payments, emails, admin switches).
 --   • Sign-ins and enforcement plate checks are recorded by the portals.
 --
+-- Each entry also records which portal it came from (Manager, Admin, …).
+--
 -- Only admins can read it. Nobody can edit or delete entries — not even
 -- the server. Unit passwords are never written to the log.
 -- A logging problem can never block the change itself.
@@ -50,6 +52,15 @@ create policy "activity: admins read" on public.activity_log for select using (p
 create policy "activity: signed-in users add their own" on public.activity_log for insert
   with check (auth.uid() is not null and actor_id = auth.uid() and source = 'app');
 
+-- Which portal a request came from (each portal page sends it with every request)
+create or replace function public.request_portal()
+returns text language plpgsql stable as $$
+begin
+  return nullif(current_setting('request.headers', true)::json->>'x-msp-portal', '');
+exception when others then
+  return null;
+end $$;
+
 -- Fill in who did it from the account (portal entries)
 create or replace function public.activity_fill_actor()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -60,6 +71,7 @@ begin
     new.actor_id   := auth.uid();
     new.actor_name := coalesce(u->>'full_name', u->>'name', u->>'email', new.actor_name);
     new.actor_role := coalesce(u->>'role', new.actor_role);
+    new.portal     := coalesce(public.request_portal(), new.portal);
   end if;
   new.created_at := now();
   return new;
@@ -128,7 +140,7 @@ begin
     uid,
     coalesce(who->>'full_name', who->>'name', who->>'email', case when r = '' then 'Database (SQL editor)' else 'Not signed in' end),
     coalesce(who->>'role', case when r = '' then 'database' else 'anonymous' end),
-    null,
+    public.request_portal(),
     tg_table_name || '.' || lower(tg_op),
     pid, tgt,
     case when tg_op = 'UPDATE' then jsonb_build_object('changes', changes) else jsonb_build_object('row', rowj) end,

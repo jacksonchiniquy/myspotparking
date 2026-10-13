@@ -573,7 +573,12 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <script>
 const SUPABASE_URL='https://ajadbfojccztiauxyxos.supabase.co';
 const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYWRiZm9qY2N6dGlhdXh5eG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTU1NDcsImV4cCI6MjA5MjM3MTU0N30.dHMc-kGb0YFHnTfxnwGYfikmKZBLPzS5lfe6SyRsguU';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
+// Each portal keeps its own sign-in, so being signed in to one portal never
+// carries over to another tab (e.g. admin and manager open side by side).
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON,{
+  auth:{storageKey:'msp-auth-admin'},
+  global:{headers:{'x-msp-portal':'admin'}},
+});
 
 let currentAdmin=null;
 let allManagers=[];
@@ -880,6 +885,7 @@ function renderProperties(data){
 let actRows=[],actPage=0;const ACT_PAGE=200;
 const ACT_THINGS={permits:'permit',property_units:'spot',properties:'property',violations:'violation',users:'user account',vehicles:'vehicle',unit_vehicles:'unit vehicle',unit_permits:'spot assignment',guest_passes:'guest pass',enforcement_assignments:'enforcement assignment',parking_sessions:'parking session',manager_features:'plan & features'};
 const ACT_ROLES={admin:['ADMIN','#a371f7'],manager:['MANAGER','#79c0ff'],enforcer:['ENFORCEMENT','#e3b341'],holder:['RESIDENT','#56d364'],unit:['UNIT PORTAL','#56d364'],driver:['PAY TO PARK','#56d364'],system:['SYSTEM','#8b949e'],database:['DATABASE','#8b949e'],visitor:['WEBSITE','#8b949e'],manager_pending:['APPLICANT','#79c0ff'],anonymous:['NOT SIGNED IN','#ff7b72']};
+const ACT_PORTALS={admin:'Admin portal',manager:'Manager portal',enforcement:'Enforcement portal',resident:'Resident portal',unit:'Unit portal',signup:'Sign-up page',pay:'Pay to Park page',website:'Website'};
 const actEsc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function actVal(v){
   if(v===null||v===undefined||v==='') return '—';
@@ -953,7 +959,7 @@ function renderActivity(){
     const prop=r.property_id?(allProperties.find(p=>p.id===r.property_id)?.name||'—'):'—';
     return head+`<div onclick="${det?`this.querySelector('.act-det').style.display=this.querySelector('.act-det').style.display==='none'?'block':'none'`:''}" style="display:grid;grid-template-columns:72px 190px 1fr 160px;gap:14px;align-items:start;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:6px;font-size:13px;${det?'cursor:pointer;':''}">
       <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);padding-top:2px;">${d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</div>
-      <div style="min-width:0;"><div style="font-weight:600;overflow-wrap:anywhere;">${actEsc(r.actor_name||'—')}</div><span style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:1px 6px;border-radius:10px;background:${color}22;color:${color};">${tag}</span></div>
+      <div style="min-width:0;"><div style="font-weight:600;overflow-wrap:anywhere;">${actEsc(r.actor_name||'—')}</div><span style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:1px 6px;border-radius:10px;background:${color}22;color:${color};">${tag}</span>${r.portal&&!['system','database'].includes(r.portal)?`<div style="font-size:10px;color:var(--text3);margin-top:3px;">in ${actEsc(ACT_PORTALS[r.portal]||r.portal)}</div>`:''}</div>
       <div style="min-width:0;line-height:1.45;">${actSummary(r)}${det?` <span style="color:var(--text3);font-size:11px;">▾</span>`:''}<div class="act-det" style="display:none;margin-top:8px;background:var(--surface2);border-radius:8px;padding:9px 12px;font-size:12px;line-height:1.6;overflow-wrap:anywhere;">${det}</div></div>
       <div style="font-size:12px;color:var(--text2);text-align:right;">${actEsc(prop)}</div></div>`;
   }).join('');
