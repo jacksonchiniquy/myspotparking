@@ -462,6 +462,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         <div class="inner-tab" id="pdit-expired" onclick="setPDTab('expired')">Expired / Revoked</div>
         <div class="inner-tab" id="pdit-map" onclick="setPDTab('map')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg> Lot Map</div>
         <div class="inner-tab" id="pdit-pay" onclick="setPDTab('pay')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Pay to Park</div>
+        <div class="inner-tab" id="pdit-history" onclick="setPDTab('history');loadTenancies(currentPropertyId).then(renderTenantHistory)" style="order:99;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg> Tenant History</div>
         <div class="inner-tab" id="pdit-units" onclick="setPDTab('units')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Units</div>
       </div>
       <div id="pdip-all" class="inner-panel active">
@@ -681,6 +682,14 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       </div>
 
       <!-- UNITS PANEL -->
+      <div id="pdip-history" class="inner-panel">
+        <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+          <input class="form-input" id="th-search" type="search" placeholder="Search by name, email, unit or plate" oninput="renderTenantHistory()" style="flex:1;min-width:200px;">
+          <button class="btn btn-ghost btn-sm" onclick="exportTenancies(null)">Export CSV</button>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Every tenant who moved out of this property, kept permanently. Tip: search a plate to see whose car it was.</div>
+        <div id="th-list"></div>
+      </div>
       <div id="pdip-units" class="inner-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
           <div>
@@ -789,6 +798,17 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div class="form-group"><label class="form-label">Resident Email</label>
       <input class="form-input" id="sl-email" type="email" placeholder="tenant@example.com" onkeydown="if(event.key==='Enter')sendSpotLink()"></div>
     <button class="btn btn-primary" id="sl-btn" style="width:100%;" onclick="sendSpotLink()">Send Payment Link →</button>
+  </div>
+</div>
+
+<!-- MODAL: Past Tenants (one unit) -->
+<div class="modal-overlay" id="modal-past-tenants">
+  <div class="modal" style="width:580px;max-height:calc(100vh - 40px);overflow-y:auto;">
+    <button class="modal-close" onclick="closeModal('modal-past-tenants')">✕</button>
+    <div class="modal-title" id="pt-title">Past Tenants</div>
+    <div class="modal-sub">Saved each time you use Move Out Tenant. Kept permanently.</div>
+    <div id="pt-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;"><button class="btn btn-ghost btn-sm" id="pt-export">Export CSV</button><span style="flex:1"></span><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-past-tenants')">Close</button></div>
   </div>
 </div>
 
@@ -2504,7 +2524,7 @@ function renderPropertyDetail(propId){
 }
 
 function setPDTab(name){
-  ['all','active','expired','map','pay','units'].forEach(n=>{
+  ['all','active','expired','map','pay','units','history'].forEach(n=>{
     document.getElementById('pdit-'+n)?.classList.remove('active');
     document.getElementById('pdip-'+n)?.classList.remove('active');
   });
@@ -4320,6 +4340,7 @@ async function loadUnitsTab(propId){
   _unitSlots = slots||[];
   _unitPermits = permits||[];
   _allUnitPermits = allPermits||[];
+  await loadTenancies(propId);
   renderUnitsTab();
 }
 
@@ -4369,6 +4390,7 @@ function renderUnitsTab(){
             <button class="btn ${inviteUsed?'btn-ghost':'btn-primary'} btn-sm" onclick="copyInviteLink('${inviteLink}','${unitNum}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> ${inviteUsed?'View Invite':'Invite Tenant'}</button>
             ${inviteUsed?`<button class="btn btn-ghost btn-sm" title="Tenant turnover: removes the current tenant and gets the unit ready for the next one" onclick="openMoveOut('${slots[0].id}','${unitNum}')">Move Out Tenant</button>`:''}
           `:`<button class="btn btn-ghost btn-sm" onclick="generateInviteCodeForUnit('${slots[0].id}','${unitNum}')">Generate Invite</button>`}
+          ${(_tenanciesByUnit[unitNum]||[]).length?`<button class="btn btn-ghost btn-sm" onclick="openPastTenants('${escHtml(unitNum)}')">🕘 Past Tenants (${_tenanciesByUnit[unitNum].length})</button>`:''}
           <button class="btn btn-ghost btn-sm" onclick="openAddUnitSlot('${unitNum}')">+ Slot</button>
         </div>
       </div>
@@ -4433,7 +4455,9 @@ function renderUnitVehicleRoster(unitNum, slots){
   // Gather all slot IDs for this unit
   const slotIds=new Set(slots.map(s=>s.id));
   // All permits (including voided) linked to this unit's slots
-  const allVehicles=_allUnitPermits.filter(p=>slotIds.has(p.unit_slot_id));
+  // Only this tenancy: cars assigned since the unit was last moved out (older ones are in Past Tenants)
+  const since=lastMoveOut(unitNum);
+  const allVehicles=_allUnitPermits.filter(p=>slotIds.has(p.unit_slot_id)&&(!p.void_at||!since||new Date(p.created_at)>since));
   if(!allVehicles.length) return '';
   // Active (non-voided) permits keyed by slot
   const activeBySlot={};
@@ -4663,6 +4687,80 @@ async function generateInviteCodeForUnit(slotId,unitNum){
   await sb.from('property_units').update({invite_code:code,invite_used:false}).eq('property_id',currentPropertyId).eq('unit_number',unitNum);
   toast('✅ Invite code generated for Unit '+unitNum);
   loadUnitsTab(currentPropertyId);
+}
+
+// ── Tenant history ──
+let _tenancies=[],_tenanciesByUnit={};
+async function loadTenancies(propId){
+  const {data,error}=await sb.from('unit_tenancies').select('*').eq('property_id',propId).order('moved_out_at',{ascending:false});
+  _tenancies=error?[]:(data||[]);
+  _tenanciesByUnit={};
+  _tenancies.forEach(t=>{(_tenanciesByUnit[t.unit_number]=_tenanciesByUnit[t.unit_number]||[]).push(t);});
+}
+function lastMoveOut(unitNum){const t=(_tenanciesByUnit[unitNum]||[])[0];return t?new Date(t.moved_out_at):null;}
+const fmtD=d=>d?new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+function stayLength(a,b){
+  if(!a||!b) return '';
+  const days=Math.max(0,Math.round((new Date(b)-new Date(a))/864e5));
+  if(days<60) return days+' day'+(days===1?'':'s');
+  const mo=Math.round(days/30.44),y=Math.floor(mo/12),m=mo%12;
+  return (y?y+' yr'+(m?' ':''):'')+(m?m+' mo':'');
+}
+const platePill=p=>`<span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;background:#fff;border:1px solid var(--border);border-radius:6px;padding:2px 7px;">${escHtml(p)}</span>`;
+function spotsText(t){
+  const sp=Array.isArray(t.spots)?t.spots:[];
+  const free=sp.filter(x=>x.billing!=='monthly').map(x=>escHtml(x.label));
+  const paid=sp.filter(x=>x.billing==='monthly').map(x=>escHtml(x.label)+(x.amount?' — $'+Number(x.amount).toFixed(0)+'/mo':'')+(x.paid?(x.via==='manual'?', paid outside the app':', paid by card'):', not paid'));
+  return (free.length?free.join(', ')+' (free)':'')+(free.length&&paid.length?' · ':'')+paid.join(' · ')||'—';
+}
+function tenancyCard(t){
+  const veh=(Array.isArray(t.vehicles)?t.vehicles:[]);
+  return `<div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:#fff;">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <div><div style="font-weight:700;font-size:14px;">${escHtml(t.tenant_name||t.tenant_email||'Unknown tenant')}</div>${t.tenant_email&&t.tenant_name?`<div style="font-size:12px;color:var(--text3);">${escHtml(t.tenant_email)}</div>`:''}</div>
+      <div style="font-size:12px;color:var(--text2);text-align:right;">${fmtD(t.moved_in_at)} → ${fmtD(t.moved_out_at)}${t.moved_in_at?`<br><span style="color:var(--text3)">${stayLength(t.moved_in_at,t.moved_out_at)}</span>`:''}</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center;"><span style="font-size:11px;color:var(--text3);margin-right:2px;">Vehicles</span>${veh.length?veh.map(v=>platePill(v.plate)).join(''):'<span style="font-size:12px;color:var(--text3);">None on file</span>'}</div>
+    <div style="font-size:12px;color:var(--text2);margin-top:8px;">Spots: ${spotsText(t)}</div>
+    ${t.moved_out_by_name?`<div style="font-size:11px;color:var(--text3);margin-top:6px;">Moved out by ${escHtml(t.moved_out_by_name)}</div>`:''}
+  </div>`;
+}
+function openPastTenants(unitNum){
+  document.getElementById('pt-title').textContent='Past Tenants · Unit '+unitNum;
+  document.getElementById('pt-list').innerHTML=(_tenanciesByUnit[unitNum]||[]).map(tenancyCard).join('')||'<div style="color:var(--text3);font-size:13px;">No past tenants yet.</div>';
+  document.getElementById('pt-export').onclick=()=>exportTenancies(unitNum);
+  openModal('modal-past-tenants');
+}
+function renderTenantHistory(){
+  const el=document.getElementById('th-list');if(!el) return;
+  const qv=(document.getElementById('th-search').value||'').trim().toLowerCase().replace(/[\s-]/g,'');
+  const list=_tenancies.filter(t=>{
+    if(!qv) return true;
+    const hay=[t.unit_number,t.tenant_name,t.tenant_email,...(t.vehicles||[]).map(v=>v.plate)].join('|').toLowerCase().replace(/[\s-]/g,'');
+    return hay.includes(qv);
+  });
+  if(!_tenancies.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px;">No tenant history yet. It\'s saved each time you use <strong>Move Out Tenant</strong> on the Units tab.</div>';return;}
+  if(!list.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px;">No matches.</div>';return;}
+  el.innerHTML=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Unit</th><th>Tenant</th><th>Dates</th><th>Vehicles</th><th>Spots</th></tr></thead><tbody>${list.map(t=>`<tr>
+    <td style="font-weight:700;">Unit ${escHtml(t.unit_number)}</td>
+    <td><div style="font-weight:600;">${escHtml(t.tenant_name||t.tenant_email||'—')}</div>${t.tenant_name&&t.tenant_email?`<div style="font-size:11px;color:var(--text3);">${escHtml(t.tenant_email)}</div>`:''}</td>
+    <td style="font-size:12px;white-space:nowrap;">${fmtD(t.moved_in_at)} – ${fmtD(t.moved_out_at)}</td>
+    <td><div style="display:flex;gap:4px;flex-wrap:wrap;">${(t.vehicles||[]).map(v=>platePill(v.plate)).join('')||'—'}</div></td>
+    <td style="font-size:12px;color:var(--text2);">${spotsText(t)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function exportTenancies(unitNum){
+  const rows=unitNum?(_tenanciesByUnit[unitNum]||[]):_tenancies;
+  if(!rows.length){toast('No tenant history to export');return;}
+  const c=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const csv=['Unit,Tenant,Email,Moved In,Moved Out,Vehicles,Spots,Moved Out By',...rows.map(t=>[
+    t.unit_number,t.tenant_name,t.tenant_email,fmtD(t.moved_in_at),fmtD(t.moved_out_at),
+    (t.vehicles||[]).map(v=>v.plate+(v.desc?' ('+v.desc+')':'')).join('; '),
+    spotsText(t).replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>'),
+    t.moved_out_by_name].map(c).join(','))].join('\n');
+  const name=(propName?propName(currentPropertyId):'property')||'property';
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=(String(name).replace(/[^a-z0-9]+/gi,'-')+(unitNum?'-unit-'+unitNum:'')+'-tenant-history.csv').toLowerCase();a.click();
+  toast('📁 Tenant history exported');
 }
 
 // ── Move Out Tenant (turnover) ──

@@ -193,7 +193,7 @@ async function authManagerForSlot(event, slotId) {
   const [prop] = await sb('GET', `properties?id=eq.${slot.property_id}&select=manager_id`);
   if (me?.role !== 'admin' && !(me?.role === 'manager' && prop?.manager_id === userId)) throw new UserError('Not allowed.', 403);
   const slots = await getSlots(slot.property_id, slot.unit_number);
-  return { propertyId: slot.property_id, unitNumber: slot.unit_number, slots, slot: slots.find(x => x.id === slotId) };
+  return { propertyId: slot.property_id, unitNumber: slot.unit_number, slots, slot: slots.find(x => x.id === slotId), userId };
 }
 
 async function propertyRow(propertyId) {
@@ -212,20 +212,33 @@ function newInviteCode() {
 async function moveOutSummary(u) {
   const slotIds = u.slots.map(x => x.id);
   const [vehicles, ups, permits] = await Promise.all([
-    sb('GET', `unit_vehicles?property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}&select=plate`),
-    sb('GET', `unit_permits?unit_slot_id=in.(${slotIds.join(',')})&void_at=is.null&select=plate`),
+    sb('GET', `unit_vehicles?property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}&select=plate,make,model,year,color`),
+    sb('GET', `unit_permits?unit_slot_id=in.(${slotIds.join(',')})&select=plate,vehicle_desc,created_at,void_at`),
     sb('GET', `permits?property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}&status=eq.active&select=id,plate,stripe_subscription_id`),
   ]);
   const subs = new Set();
   u.slots.forEach(x => { if (x.spot_subscription_id) subs.add(x.spot_subscription_id); });
   permits.forEach(p => { if (p.stripe_subscription_id) subs.add(p.stripe_subscription_id); });
   const tenant = u.slots.find(x => x.tenant_name || x.tenant_email) || {};
-  const plates = [...new Set([...vehicles, ...ups, ...permits].map(v => String(v.plate || '').toUpperCase()).filter(Boolean))];
+  // Cars from this tenancy: saved vehicles, active spot assignments, and any spot
+  // assignment made since the unit was last moved out
+  const [last] = await sb('GET', `unit_tenancies?property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}&select=moved_out_at&order=moved_out_at.desc&limit=1`).catch(() => []);
+  const since = last ? new Date(last.moved_out_at) : null;
+  const byPlate = new Map();
+  const add = (plate, desc) => {
+    const p = String(plate || '').toUpperCase(); if (!p) return;
+    if (!byPlate.has(p) || (!byPlate.get(p) && desc)) byPlate.set(p, desc || null);
+  };
+  vehicles.forEach(v => add(v.plate, [v.year, v.make, v.model, v.color].filter(Boolean).join(' ')));
+  ups.filter(up => !up.void_at || !since || new Date(up.created_at) > since).forEach(up => add(up.plate, up.vehicle_desc));
+  permits.forEach(p => add(p.plate, null));
+  const plates = [...byPlate.keys()];
   return {
     unitNumber: u.unitNumber,
     tenantName: tenant.tenant_name || null, tenantEmail: tenant.tenant_email || null,
     signedUp: u.slots.some(x => x.invite_used || x.unit_password),
     plates,
+    vehicles: [...byPlate].map(([plate, desc]) => ({ plate, desc })),
     paidSpots: u.slots.filter(x => x.spot_paid).map(x => ({ label: x.slot_label || 'Spot', via: x.paid_via || 'card', amount: x.monthly_amount })),
     cardBilling: subs.size,
     _subscriptions: [...subs],
@@ -431,7 +444,7 @@ const actions = {
   // ── Tenant move-out (turnover) ─────────────────────────────
   async managerMoveOutPreview({ slotId }, event) {
     const u = await authManagerForSlot(event, slotId);
-    const { _subscriptions, ...summary } = await moveOutSummary(u);
+    const { _subscriptions, vehicles, ...summary } = await moveOutSummary(u);
     return summary;
   },
 
@@ -439,6 +452,26 @@ const actions = {
     const u = await authManagerForSlot(event, slotId);
     const sum = await moveOutSummary(u);
     const st = stripe();
+
+    // 0. Save the tenant's record first. If it can't be saved, nothing is cleared.
+    const [me] = await sb('GET', `users?id=eq.${u.userId}&select=*`);
+    const movedIn = u.slots.map(x => x.invite_used_at).filter(Boolean).sort()[0] || null;
+    try {
+      await sb('POST', 'unit_tenancies', {
+        property_id: u.propertyId, unit_number: u.unitNumber,
+        tenant_name: sum.tenantName, tenant_email: sum.tenantEmail,
+        moved_in_at: movedIn, moved_out_at: new Date().toISOString(),
+        vehicles: sum.vehicles,
+        spots: u.slots.map(x => ({
+          label: x.slot_label || 'Spot', type: x.slot_type || null, billing: x.billing_type || 'free',
+          amount: x.monthly_amount ?? null, paid: !!x.spot_paid, via: x.spot_paid ? (x.paid_via || 'card') : null,
+        })),
+        moved_out_by: u.userId, moved_out_by_name: me?.full_name || me?.name || me?.email || null,
+      });
+    } catch (e) {
+      console.error('Saving tenant history failed:', e.message);
+      throw new UserError('Couldn\'t save the tenant history, so nothing was changed. Please try again.', 500);
+    }
 
     // 1. Stop the old tenant's card billing (marked so the webhook doesn't send "suspended" emails)
     const cancelFailed = [];
