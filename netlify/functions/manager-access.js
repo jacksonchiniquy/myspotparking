@@ -107,8 +107,8 @@ function declinedEmail(u) {
     html: shell('#475569', `
   <h2 style="margin:0 0 8px;">Thanks for your interest, ${esc(first)}</h2>
   <p style="color:#475569;margin:0 0 16px;">We weren't able to activate a manager account from this request. A member of our team will be in touch if we need more information.</p>
-  <p style="color:#475569;margin:0;">Questions? Email <a href="mailto:sales@myspotparking.com">sales@myspotparking.com</a> or call (801) 374-8487.</p>`),
-    text: `Thanks for your interest, ${first}. We weren't able to activate a manager account from this request. Questions? sales@myspotparking.com or (801) 374-8487.`,
+  <p style="color:#475569;margin:0;">Questions? Email <a href="mailto:sales@myspotparking.com">sales@myspotparking.com</a>.</p>`),
+    text: `Thanks for your interest, ${first}. We weren't able to activate a manager account from this request. Questions? sales@myspotparking.com.`,
   };
 }
 
