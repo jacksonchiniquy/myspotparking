@@ -5060,9 +5060,19 @@ async function sendFlyerEmail(){
 }
 
 async function deleteUnitSlot(id){
-  if(!confirm('Delete this slot? This cannot be undone.')) return;
-  await sb.from('property_units').delete().eq('id',id);
-  toast('Slot deleted');
+  const s=_unitSlots.find(x=>x.id===id)||{};
+  const unit=_unitSlots.filter(x=>x.unit_number===s.unit_number);
+  // Same rules the database enforces, checked here first for a clearer message
+  if(s.spot_paid&&(s.paid_via||'card')==='card'){
+    alert('This spot is paid by card. Use Move Out Tenant (or the resident cancels it in Manage Billing) before deleting it, so they stop being charged.');return;
+  }
+  if(unit.length===1&&(unit[0].unit_password||unit.some(x=>x.invite_used))){
+    alert('Unit '+s.unit_number+' has a current tenant. Use Move Out Tenant first so their history is saved and their billing stops.');return;
+  }
+  if(!confirm('Delete '+(s.slot_label||'this spot')+(s.unit_number?' from Unit '+s.unit_number:'')+'? This cannot be undone.')) return;
+  const {error}=await sb.from('property_units').delete().eq('id',id);
+  if(error){alert(error.message.replace(/^.*?:\s*/,'')||'Could not delete this spot.');return;}
+  toast('Spot deleted');
   loadUnitsTab(currentPropertyId);
 }
 // Slot assignments go through the unit service so the permit enforcement sees
