@@ -7,7 +7,6 @@
 select
   p.name                                                         as property,
   coalesce(u.full_name, u.email, '—')                            as manager,
-  to_char(p.created_at, 'Mon DD, YYYY')                          as created,
   (select count(*) from public.property_units x where x.property_id = p.id)   as unit_spots,
   (select count(*) from public.permits x where x.property_id = p.id)          as permits,
   (select count(*) from public.violations x where x.property_id = p.id)       as violations,
@@ -15,4 +14,7 @@ select
   left(p.id::text, 8)                                            as id_starts_with
 from public.properties p
 left join public.users u on u.id = p.manager_id
-order by p.created_at;
+order by p.name;
+
+-- Also: violations saved before properties were recorded on them
+select count(*) as violations_with_no_property from public.violations where property_id is null;
