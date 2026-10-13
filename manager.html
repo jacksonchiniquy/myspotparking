@@ -1268,7 +1268,7 @@ async function handleSignUp(){
   const {error:pErr}=await sb.from('users').insert({id:data.user.id,email,full_name:(fname+' '+lname).trim(),phone,company,role:'manager_pending',access_request});
   if(pErr){
     console.error('access request profile error',pErr);
-    err.textContent='We couldn\'t submit your request. If you already have an account, sign in instead, or email sales@myspotparking.com.';
+    err.textContent='We couldn\'t submit your request. If you already have an account, sign in instead, or email support@myspotparking.com.';
     err.classList.add('show');reset();return;
   }
   fetch('/.netlify/functions/manager-access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'requested',userId:data.user.id})}).catch(()=>{});
@@ -1290,7 +1290,7 @@ async function handleSignIn(){
   if(profile?.role==='manager_pending'||profile?.role==='manager_declined'){
     err.textContent=profile.role==='manager_pending'
       ?'Your access request is still being reviewed. We\'ll email you as soon as you\'re approved.'
-      :'Your access request wasn\'t approved. Questions? Email sales@myspotparking.com.';
+      :'Your access request wasn\'t approved. Questions? Email support@myspotparking.com.';
     err.classList.add('show');
     await sb.auth.signOut();btn.disabled=false;btn.textContent='Sign In →';return;
   }
