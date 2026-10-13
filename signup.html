@@ -195,7 +195,7 @@ let _selectedBilling = 'monthly';
 
 // ── URL params ───────────────────────────────────────────────
 const params = new URLSearchParams(location.search);
-const inviteParam = params.get('invite');
+const inviteParam = params.get('invite') || params.get('code'); // emails use ?code=, flyers use ?invite=
 const signupSuccess = params.get('signup') === 'success';
 const cancelled = params.get('cancelled') === 'true';
 

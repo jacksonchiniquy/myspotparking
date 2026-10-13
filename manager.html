@@ -752,6 +752,20 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
   </div>
 </div>
 
+<!-- MODAL: Unit signup link -->
+<div class="modal-overlay" id="modal-invite-link">
+  <div class="modal" style="width:480px;">
+    <button class="modal-close" onclick="closeModal('modal-invite-link')">✕</button>
+    <div class="modal-title" id="il-title">Signup link</div>
+    <div class="modal-sub">Send this link to the resident. Opening it shows the same signup page they'll see.</div>
+    <input class="form-input" id="il-link" type="text" readonly onclick="this.select()" style="font-family:'JetBrains Mono',monospace;font-size:12px;margin-bottom:14px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="copyLinkText('il-link')">Copy Link</button>
+      <a class="btn btn-ghost" id="il-open" href="#" target="_blank" rel="noopener">Open Signup Page ↗</a>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Bulk Add Units -->
 <div class="modal-overlay" id="modal-bulk-units">
   <div class="modal" style="width:640px;max-width:calc(100vw - 32px);max-height:calc(100vh - 40px);overflow-y:auto;">
@@ -2236,9 +2250,7 @@ async function generateInviteFromModal(){
 function copyInviteFromModal(){
   const link=document.getElementById('ir-link').value;
   if(!link) return;
-  navigator.clipboard.writeText(link).then(()=>toast('📋 Invite link copied!')).catch(()=>{
-    prompt('Copy this invite link:',link);
-  });
+  copyLinkText('ir-link');
 }
 
 function inviteResident(propertyId){
@@ -4619,9 +4631,18 @@ async function resetInviteCode(slotId,unitNum){
 }
 
 function copyInviteLink(link,unitNum){
-  navigator.clipboard.writeText(link).then(()=>toast('📋 Invite link for Unit '+unitNum+' copied!')).catch(()=>{
-    prompt('Copy this invite link:',link);
-  });
+  // Shows the link (Safari can block silent copying), with Copy and Open buttons
+  document.getElementById('il-title').textContent='Signup link · Unit '+unitNum;
+  document.getElementById('il-link').value=link;
+  document.getElementById('il-open').href=link;
+  openModal('modal-invite-link');
+}
+function copyLinkText(inputId){
+  const el=document.getElementById(inputId);
+  const done=()=>toast('📋 Link copied');
+  const fallback=()=>{el.focus();el.select();el.setSelectionRange(0,99999);try{document.execCommand('copy')?done():toast('Select the link and copy it');}catch(e){toast('Select the link and copy it');}};
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(el.value).then(done).catch(fallback);
+  else fallback();
 }
 
 let _editingSlot=null;
