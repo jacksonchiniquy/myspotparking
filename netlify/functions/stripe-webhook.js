@@ -84,6 +84,16 @@ async function handleCheckoutCompleted(session) {
     console.log('Pay to Park session', row ? `activated: ${row.plate}` : 'not found', session.id);
     return;
   }
+
+  // A paid spot added after sign-up (unit portal button or manager's payment link)
+  if (meta.kind === 'spot_addon') {
+    if (!/^[0-9a-f-]{36}$/i.test(String(meta.slot_id || ''))) return;
+    await sbUpdate('property_units',
+      { spot_paid: true, paid_via: 'card', spot_subscription_id: session.subscription || null, stripe_customer_id: session.customer || null },
+      `id=eq.${meta.slot_id}&property_id=eq.${meta.property_id}&billing_type=eq.monthly`);
+    console.log(`Spot ${meta.slot_id} paid for Unit ${meta.unit_number}`);
+    return;
+  }
   const {
     invite_code, property_id, unit_number,
     tenant_name, tenant_email, billing_interval,
@@ -105,7 +115,8 @@ async function handleCheckoutCompleted(session) {
   try {
     const unitFilter = `property_id=eq.${property_id}&unit_number=eq.${encodeURIComponent(unit_number)}&billing_type=eq.monthly`;
     const ids = String(meta.spot_ids || '').split(',').filter(id => /^[0-9a-f-]{36}$/i.test(id));
-    await sbUpdate('property_units', { spot_paid: true },
+    await sbUpdate('property_units',
+      { spot_paid: true, paid_via: 'card', spot_subscription_id: session.subscription || null, stripe_customer_id: session.customer || null },
       ids.length ? `${unitFilter}&id=in.(${ids.join(',')})` : `${unitFilter}&invite_code=eq.${encodeURIComponent(invite_code)}`);
   } catch (e) { console.error('Marking paid spots failed (non-fatal):', e.message); }
 
@@ -291,16 +302,22 @@ async function handlePaymentFailed(invoice) {
 async function handleSubscriptionDeleted(subscription) {
   const subscriptionId = subscription.id;
 
+  // Spots paid by this subscription are locked again (other spots are untouched)
+  try {
+    await sbUpdate('property_units', { spot_paid: false, paid_via: null, spot_subscription_id: null },
+      `spot_subscription_id=eq.${encodeURIComponent(subscriptionId)}`);
+  } catch (e) { console.error('Clearing paid spots failed (non-fatal):', e.message); }
+
   await sbUpdate('permits', { billing_status: 'suspended', status: 'revoked' }, `stripe_subscription_id=eq.${subscriptionId}`);
 
   const permits = await sbSelect('permits', `stripe_subscription_id=eq.${subscriptionId}&select=*`);
   const permit = permits?.[0];
   if (!permit) return;
 
-  // Paid spots for this unit are no longer paid for
+  // Older sign-ups didn't record which subscription paid which spot
   try {
-    await sbUpdate('property_units', { spot_paid: false },
-      `property_id=eq.${permit.property_id}&unit_number=eq.${encodeURIComponent(permit.unit_number || '')}&billing_type=eq.monthly`);
+    await sbUpdate('property_units', { spot_paid: false, paid_via: null },
+      `property_id=eq.${permit.property_id}&unit_number=eq.${encodeURIComponent(permit.unit_number || '')}&billing_type=eq.monthly&paid_via=eq.card&spot_subscription_id=is.null`);
   } catch (e) { console.error('Clearing paid spots failed (non-fatal):', e.message); }
 
   const propertyResult3 = await sbSelect('properties', `id=eq.${permit.property_id}&select=name,manager_email`);

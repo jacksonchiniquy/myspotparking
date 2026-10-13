@@ -384,6 +384,14 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
     <hr style="border:none;border-top:1px solid var(--border);margin-bottom:20px;">
 
+    <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Billing</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Update your card, see receipts, or cancel a paid spot.</div>
+    <div style="margin-bottom:20px;">
+      <button class="btn btn-ghost" style="font-size:13px;" id="billing-btn" onclick="openBilling()">Manage Billing ↗</button>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin-bottom:20px;">
+
     <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Change Password</div>
     <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Set a personal password to replace your temporary one.</div>
     <div class="err-msg" id="pw-err"></div>
@@ -432,6 +440,37 @@ async function api(action,payload={}){
   }
   if(!res.ok) return {error:body.error||'Something went wrong. Please try again.'};
   return body;
+}
+
+// ── PAID SPOTS ──
+async function addPaidSpot(slotId){
+  const btn=document.getElementById('addspot-'+slotId);
+  if(btn){btn.disabled=true;btn.textContent='Opening secure checkout…';}
+  const r=await api('addSpotCheckout',{slotId});
+  if(r.url){window.location.href=r.url;return;}
+  if(btn){btn.disabled=false;btn.textContent='Add this spot →';}
+  if(!r.signedOut) toast(r.error||'Could not open checkout.');
+}
+async function openBilling(){
+  const btn=document.getElementById('billing-btn');
+  btn.disabled=true;btn.textContent='Opening…';
+  const r=await api('billingPortal');
+  btn.disabled=false;btn.textContent='Manage Billing ↗';
+  if(r.url){window.location.href=r.url;return;}
+  if(!r.signedOut) toast(r.error||'Could not open billing.');
+}
+// Back from Stripe: the payment confirmation can take a few seconds to arrive
+async function afterSpotPayment(){
+  const params=new URLSearchParams(window.location.search);
+  if(params.get('spot_added')!=='1') return;
+  history.replaceState(null,'',window.location.pathname);
+  toast('✅ Payment received — unlocking your spot…');
+  for(let i=0;i<5;i++){
+    await new Promise(r=>setTimeout(r,2500));
+    const before=unitSlots.filter(s=>s.needs_payment).length;
+    await loadUnitData();
+    if(unitSlots.filter(s=>s.needs_payment).length<before) {toast('✅ Your new spot is ready');return;}
+  }
 }
 
 // ── BOOT ──
@@ -501,6 +540,7 @@ async function showApp(){
   document.getElementById('acct-btn').style.display='inline-flex';
   await loadUnitData();
   populateAccountModal();
+  afterSpotPayment();
 }
 
 // ── DATA ──
@@ -702,9 +742,10 @@ function renderSlots(){
         </div>`;
 
     const swapHtml=slot.needs_payment
-      ? `<div class="locked-notice">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          This is a paid spot${slot.monthly_amount?` ($${Number(slot.monthly_amount).toFixed(2)}/mo)`:''} that isn't part of your plan. Contact your property manager to add it.
+      ? `<div style="border:1.5px solid #c7d7fe;background:#f5f8ff;border-radius:12px;padding:14px;">
+          <div style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.45;">This paid spot isn't part of your plan yet. Add it to park a car here.</div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;" id="addspot-${slot.id}" onclick="addPaidSpot('${slot.id}')">Add this spot${slot.monthly_amount?` · $${Number(slot.monthly_amount).toFixed(2)}/mo`:''} →</button>
+          <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:8px;">Billed monthly by card · Cancel anytime in Account → Manage Billing</div>
         </div>`
       : isTenant
       ? `<div class="vehicle-picker" id="picker-${slot.id}">

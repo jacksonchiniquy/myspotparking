@@ -778,6 +778,20 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
   </div>
 </div>
 
+<!-- MODAL: Send spot payment link -->
+<div class="modal-overlay" id="modal-spot-link">
+  <div class="modal" style="width:440px;">
+    <button class="modal-close" onclick="closeModal('modal-spot-link')">✕</button>
+    <div class="modal-title" id="sl-title">Send Payment Link</div>
+    <div class="modal-sub">The resident gets an email with a "Pay &amp; Add Spot" button. Once they pay by card, the spot unlocks on its own. The link works for 30 days.</div>
+    <div class="err-msg" id="sl-err"></div>
+    <div class="err-msg" id="sl-ok" style="display:none;background:rgba(0,200,122,.08);border-color:rgba(0,200,122,.3);color:#007a4a;"></div>
+    <div class="form-group"><label class="form-label">Resident Email</label>
+      <input class="form-input" id="sl-email" type="email" placeholder="tenant@example.com" onkeydown="if(event.key==='Enter')sendSpotLink()"></div>
+    <button class="btn btn-primary" id="sl-btn" style="width:100%;" onclick="sendSpotLink()">Send Payment Link →</button>
+  </div>
+</div>
+
 <!-- MODAL: Bulk Add Units -->
 <div class="modal-overlay" id="modal-bulk-units">
   <div class="modal" style="width:640px;max-width:calc(100vw - 32px);max-height:calc(100vh - 40px);overflow-y:auto;">
@@ -4373,7 +4387,7 @@ function renderUnitSlotCard(s){
   const billingBadge=isFree
     ?`<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(0,200,122,0.12);color:#007a4a;font-family:'JetBrains Mono',monospace;">FREE</span>`
     :`<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(26,111,255,0.10);color:var(--blue);font-family:'JetBrains Mono',monospace;">$${Number(s.monthly_amount||0).toFixed(Number(s.monthly_amount)%1?2:0)}/mo</span>`
-      +(s.spot_paid===true?` <span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(0,200,122,0.12);color:#007a4a;font-family:'JetBrains Mono',monospace;">PAID</span>`
+      +(s.spot_paid===true?` <span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(0,200,122,0.12);color:#007a4a;font-family:'JetBrains Mono',monospace;">${s.paid_via==='manual'?'PAID · OUTSIDE':s.paid_via==='card'?'PAID · CARD':'PAID'}</span>`
         :s.spot_paid===false?` <span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(148,163,184,0.15);color:var(--text3);font-family:'JetBrains Mono',monospace;">NOT PAID</span>`:'');
   const sJson=JSON.stringify(s).replace(/"/g,'&quot;');
   return `<div style="display:flex;align-items:center;gap:12px;background:${managed?'rgba(255,170,0,0.05)':'rgba(26,111,255,0.04)'};border:1px solid ${managed?'rgba(255,170,0,0.25)':'var(--border)'};border-radius:10px;padding:12px 14px;">
@@ -4389,7 +4403,8 @@ function renderUnitSlotCard(s){
           <div style="font-size:11px;color:var(--text3);margin-top:1px;">Assigned ${new Date(permit.created_at).toLocaleDateString()}</div>`
         :`<div style="font-size:12px;color:var(--text3);margin-top:2px;font-style:italic;">No vehicle assigned</div>`}
     </div>
-    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
+      ${spotPayButtons(s)}
       <span style="font-size:10px;padding:3px 8px;border-radius:20px;font-family:'JetBrains Mono',monospace;background:${managed?'rgba(255,170,0,0.15)':'rgba(26,111,255,0.10)'};color:${managed?'#b45309':'var(--blue)'};">${managed?'MANAGER':'TENANT'}</span>
       ${managed&&permit?`<button class="btn btn-danger btn-sm" onclick="managerVoidSlot('${s.id}')">Void</button>`:''}
       ${managed?`<button class="btn btn-primary btn-sm" onclick="openManagerAssign('${s.id}','${s.slot_label||s.id}')">Assign</button>`:''}
@@ -4640,6 +4655,48 @@ async function resetInviteCode(slotId,unitNum){
   const code=makeInviteCode();
   await sb.from('property_units').update({invite_code:code,invite_used:false,invite_used_at:null,tenant_email:null,tenant_name:null}).eq('property_id',currentPropertyId).eq('unit_number',unitNum);
   toast('🔄 New invite code generated for Unit '+unitNum);
+  loadUnitsTab(currentPropertyId);
+}
+
+// ── Paid spots: payment link, outside billing ──
+function spotPayButtons(s){
+  if(s.billing_type!=='monthly'||typeof s.spot_paid!=='boolean') return '';
+  const prop=(typeof allProperties!=='undefined'?allProperties:[]).find(p=>p.id===s.property_id)||{};
+  const label=escHtml(s.slot_label||'Spot');
+  if(!s.spot_paid){
+    return `<button class="btn btn-primary btn-sm" onclick="openSpotLink('${s.id}','${escHtml(s.unit_number)}','${label}')">Send Payment Link</button>`
+      +(prop.outside_billing?`<button class="btn btn-ghost btn-sm" onclick="markSpotPaid('${s.id}',true)">Mark as Paid</button>`:'');
+  }
+  if(s.paid_via==='manual') return `<button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="markSpotPaid('${s.id}',false)">Mark Not Paid</button>`;
+  return '';
+}
+let _spotLinkId=null;
+function openSpotLink(slotId,unitNum,label){
+  _spotLinkId=slotId;
+  document.getElementById('sl-title').textContent='Send Payment Link · Unit '+unitNum+' · '+label;
+  document.getElementById('sl-email').value=((window._unitInvites||{})[unitNum]||{}).email||'';
+  document.getElementById('sl-err').classList.remove('show');
+  document.getElementById('sl-ok').style.display='none';
+  const b=document.getElementById('sl-btn');b.disabled=false;b.textContent='Send Payment Link →';
+  openModal('modal-spot-link');
+}
+async function sendSpotLink(){
+  const err=document.getElementById('sl-err'),ok=document.getElementById('sl-ok'),btn=document.getElementById('sl-btn');
+  const email=document.getElementById('sl-email').value.trim();
+  err.classList.remove('show');ok.style.display='none';
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent='Enter the resident\'s email address.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Sending…';
+  const r=await unitService('managerSendSpotLink',{slotId:_spotLinkId,email});
+  btn.disabled=false;btn.textContent='Send Payment Link →';
+  if(r.error){err.textContent=r.error;err.classList.add('show');return;}
+  ok.textContent='✅ Payment link sent to '+(r.sentTo||email);ok.style.display='block';
+}
+async function markSpotPaid(slotId,paid){
+  if(paid&&!confirm('Mark this spot as paid outside the app (for example, included in rent)? The resident will be able to park here without paying by card.')) return;
+  if(!paid&&!confirm('Mark this spot as not paid? The resident won\'t be able to assign a car to it until it\'s paid.')) return;
+  const r=await unitService(paid?'managerMarkPaid':'managerMarkUnpaid',{slotId});
+  if(r.error){toast('❌ '+r.error);return;}
+  toast(paid?'Spot marked as paid':'Spot marked as not paid');
   loadUnitsTab(currentPropertyId);
 }
 

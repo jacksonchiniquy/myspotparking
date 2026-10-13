@@ -16,10 +16,18 @@
 //   forgot   { propertyId, unitNumber, email }
 //   managerAssign { slotId, plate, desc }   (Authorization: Bearer <manager or admin login>)
 //   managerVoid   { slotId }                (Authorization: Bearer <manager or admin login>)
+//   addSpotCheckout { token, slotId }        → { url }  resident pays for a paid spot they skipped
+//   billingPortal   { token }                → { url }  resident's Stripe billing page
+//   managerSendSpotLink { slotId, email? }   emails the resident a "Pay & Add Spot" link
+//   managerMarkPaid / managerMarkUnpaid { slotId }  outside billing (admin must allow it per property)
 
 const crypto = require('crypto');
 const { hashPassword, verifyPassword, isHashed, generatePassword } = require('./lib/unit-password');
-const { send } = require('./send-email');
+const { send, sendRaw, logoHeader } = require('./send-email');
+const { createSpotCheckout, unitCustomer, spotProblem, makePayLink } = require('./lib/spot-checkout');
+const { spotMonthlyCents } = require('./lib/spot-pricing');
+const stripe = () => require('stripe')(process.env.STRIPE_SECRET_KEY);
+const SITE = process.env.SITE_URL || 'https://myspotparking.com';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -91,6 +99,7 @@ function publicSlot(s) {
     id: s.id, slot_label: s.slot_label, slot_type: s.slot_type, managed_by: s.managed_by,
     max_vehicles: s.max_vehicles, billing_type: s.billing_type, monthly_amount: s.monthly_amount,
     needs_payment: s.billing_type === 'monthly' && s.spot_paid === false,
+    paid_via: s.paid_via || null,
   };
 }
 
@@ -183,8 +192,14 @@ async function authManagerForSlot(event, slotId) {
   const [prop] = await sb('GET', `properties?id=eq.${slot.property_id}&select=manager_id`);
   if (me?.role !== 'admin' && !(me?.role === 'manager' && prop?.manager_id === userId)) throw new UserError('Not allowed.', 403);
   const slots = await getSlots(slot.property_id, slot.unit_number);
-  return { propertyId: slot.property_id, unitNumber: slot.unit_number, slots };
+  return { propertyId: slot.property_id, unitNumber: slot.unit_number, slots, slot: slots.find(x => x.id === slotId) };
 }
+
+async function propertyRow(propertyId) {
+  const [p] = await sb('GET', `properties?id=eq.${q(propertyId)}&select=*`);
+  return p || {};
+}
+const escH = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // ── Actions ──────────────────────────────────────────────────
 const actions = {
@@ -298,6 +313,84 @@ const actions = {
     const u = await authManagerForSlot(event, slotId);
     const vehicle = { ...vehicleFields({ plate }), desc: typeof desc === 'string' && desc.trim() ? desc.trim().slice(0, 120) : null };
     await assignToSlot({ ...u, slotId, vehicle, assignedBy: 'manager' });
+    return { ok: true };
+  },
+
+  // ── Paid spots added after sign-up ─────────────────────────
+  async addSpotCheckout({ token, slotId }) {
+    const u = await authUnit(token);
+    const slot = u.slots.find(x => x.id === slotId);
+    const problem = spotProblem(slot);
+    if (problem) throw new UserError(problem);
+    try {
+      const checkout = await createSpotCheckout(stripe(), {
+        slot, property: await propertyRow(u.propertyId), email: u.slots.find(x => x.tenant_email)?.tenant_email || null,
+        successUrl: `${SITE}/unit.html?spot_added=1`, cancelUrl: `${SITE}/unit.html`,
+      });
+      return { url: checkout.url };
+    } catch (e) { if (e.user) throw new UserError(e.message); throw e; }
+  },
+
+  async billingPortal({ token }) {
+    const u = await authUnit(token);
+    const customer = await unitCustomer(u.propertyId, u.unitNumber);
+    if (!customer) throw new UserError('There is no card billing on this unit yet.');
+    const session = await stripe().billingPortal.sessions.create({ customer, return_url: `${SITE}/unit.html` });
+    return { url: session.url };
+  },
+
+  async managerSendSpotLink({ slotId, email }, event) {
+    const u = await authManagerForSlot(event, slotId);
+    const problem = spotProblem(u.slot);
+    if (problem) throw new UserError(problem);
+    const to = String(email || u.slots.find(x => x.tenant_email)?.tenant_email || '').trim().toLowerCase();
+    if (!EMAIL_RE.test(to)) throw new UserError('Enter the resident\'s email address.');
+    const property = await propertyRow(u.propertyId);
+    const price = `$${(spotMonthlyCents(u.slot, property) / 100).toFixed(2)} / month`;
+    const link = makePayLink(u.slot.id);
+    const spot = `${u.slot.slot_label || 'Spot'}`;
+    const typeName = String(u.slot.slot_type || '').replace(/^(stall|zone)-/, '').replace(/\b\w/g, c => c.toUpperCase());
+    await sendRaw({
+      to,
+      subject: `${spot} has been added to Unit ${u.unitNumber} — complete payment`,
+      html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
+  ${logoHeader('#1a6fff')}
+  <h2 style="margin:0 0 8px;">${escH(spot)} has been added to Unit ${escH(u.unitNumber)}</h2>
+  <p style="color:#475569;margin:0 0 20px;line-height:1.5;">Your property manager at <strong>${escH(property.name || 'your property')}</strong> added a parking spot to your unit. Complete payment to start using it.</p>
+  <div style="background:#f4f7ff;border-radius:10px;padding:14px 20px;margin-bottom:22px;"><table width="100%" cellpadding="0" cellspacing="0">
+    <tr><td style="padding:5px 0;color:#64748b;font-size:13px;">Spot</td><td style="padding:5px 0;text-align:right;font-weight:700;">${escH(spot)}${typeName ? ' · ' + escH(typeName) : ''}</td></tr>
+    <tr><td style="padding:5px 0;color:#64748b;font-size:13px;">Price</td><td style="padding:5px 0;text-align:right;font-weight:700;">${price}</td></tr></table></div>
+  <p style="text-align:center;margin:0 0 20px;"><a href="${link}" style="display:inline-block;background:#1a6fff;color:#ffffff;text-decoration:none;padding:13px 28px;border-radius:9px;font-weight:700;">Pay &amp; Add Spot →</a></p>
+  <p style="color:#94a3b8;font-size:12px;text-align:center;">Billed monthly by card through Stripe. Cancel anytime from Manage Billing in your unit portal. This link works for 30 days.</p>
+  <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc.</p>
+</body></html>`,
+      text: `${spot} has been added to Unit ${u.unitNumber} at ${property.name || 'your property'} (${price}).\n\nPay and add the spot: ${link}\n\nBilled monthly by card. This link works for 30 days.`,
+    });
+    if (!u.slots.some(x => x.tenant_email)) {
+      await sb('PATCH', `property_units?property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}`, { tenant_email: to });
+    }
+    return { ok: true, sentTo: to };
+  },
+
+  async managerMarkPaid({ slotId }, event) {
+    const u = await authManagerForSlot(event, slotId);
+    if (!(await propertyRow(u.propertyId)).outside_billing) {
+      throw new UserError('Outside billing isn\'t turned on for this property. Contact My Spot Parking to set it up.', 403);
+    }
+    const problem = spotProblem(u.slot);
+    if (problem) throw new UserError(problem);
+    await sb('PATCH', `property_units?id=eq.${u.slot.id}`, { spot_paid: true, paid_via: 'manual' });
+    return { ok: true };
+  },
+
+  async managerMarkUnpaid({ slotId }, event) {
+    const u = await authManagerForSlot(event, slotId);
+    if (!u.slot?.spot_paid) throw new UserError('This spot isn\'t marked paid.');
+    if (u.slot.paid_via !== 'manual') {
+      throw new UserError('This spot is paid by card. The resident can cancel it from Manage Billing in their unit portal.');
+    }
+    await sb('PATCH', `property_units?id=eq.${u.slot.id}`, { spot_paid: false, paid_via: null });
     return { ok: true };
   },
 
