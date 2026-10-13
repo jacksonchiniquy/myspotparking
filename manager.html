@@ -1082,7 +1082,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     </div>
     <div style="display:flex;gap:8px;margin-top:4px;">
       <button class="btn btn-primary" style="flex:1;" id="flyer-send-btn" onclick="sendFlyerEmail()">Send Invite →</button>
-      <button class="btn btn-ghost" onclick="closeModal('modal-send-flyer')">Skip for Now</button>
+      <button class="btn btn-ghost" id="flyer-skip-btn" onclick="closeModal('modal-send-flyer')">Skip for Now</button>
     </div>
   </div>
 </div>
@@ -4368,11 +4368,13 @@ function renderUnitsTab(){
   wrap.innerHTML=Object.entries(groups).map(([unitNum,slots])=>{
     const propId=slots[0].property_id;
     // Use the first slot's invite_code (all slots for a unit share one invite code)
-    const inviteCode=slots[0].invite_code||'';
-    const inviteUsed=slots[0].invite_used||false;
-    const tenantEmail=slots[0].tenant_email||'';
-    const tenantName=slots[0].tenant_name||'';
-    const hasPassword=!!(slots[0].unit_password);
+    // The invite lives on one spot of the unit (whichever has the code), not always the first one listed
+    const inv=slots.find(s=>s.invite_code)||slots[0];
+    const inviteCode=inv.invite_code||'';
+    const inviteUsed=slots.some(s=>s.invite_used);
+    const tenantEmail=(slots.find(s=>s.tenant_email)||{}).tenant_email||'';
+    const tenantName=(slots.find(s=>s.tenant_name)||{}).tenant_name||'';
+    const hasPassword=slots.some(s=>s.unit_password);
     const inviteLink=inviteCode?`${window.location.origin}/signup.html?code=${encodeURIComponent(inviteCode)}`:'';
     (window._unitInvites=window._unitInvites||{})[unitNum]={used:inviteUsed,email:tenantEmail,name:tenantName};
     const usedBadge=inviteUsed
@@ -4400,8 +4402,8 @@ function renderUnitsTab(){
               <span style="font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--blue);">${inviteCode}</span>
             </div>
             <button class="btn ${inviteUsed?'btn-ghost':'btn-primary'} btn-sm" onclick="copyInviteLink('${inviteLink}','${unitNum}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> ${inviteUsed?'View Invite':'Invite Tenant'}</button>
-            ${inviteUsed?`<button class="btn btn-ghost btn-sm" title="Tenant turnover: removes the current tenant and gets the unit ready for the next one" onclick="openMoveOut('${slots[0].id}','${unitNum}')">Move Out Tenant</button>`:''}
-          `:`<button class="btn btn-ghost btn-sm" onclick="generateInviteCodeForUnit('${slots[0].id}','${unitNum}')">Generate Invite</button>`}
+            ${inviteUsed?`<button class="btn btn-ghost btn-sm" title="Tenant turnover: removes the current tenant and gets the unit ready for the next one" onclick="openMoveOut('${inv.id}','${unitNum}')">Move Out Tenant</button>`:''}
+          `:`<button class="btn btn-ghost btn-sm" onclick="generateInviteCodeForUnit('${inv.id}','${unitNum}')">Generate Invite</button>`}
           ${(_tenanciesByUnit[unitNum]||[]).length?`<button class="btn btn-ghost btn-sm" onclick="openPastTenants('${escHtml(unitNum)}')">🕘 Past Tenants (${_tenanciesByUnit[unitNum].length})</button>`:''}
           <button class="btn btn-ghost btn-sm" onclick="openAddUnitSlot('${unitNum}')">+ Slot</button>
         </div>
@@ -4873,6 +4875,7 @@ let _inviteUnit=null;
 function copyInviteLink(link,unitNum){
   const info=(window._unitInvites||{})[unitNum]||{};
   _inviteUnit=unitNum;
+  clearTimeout(window._ilCloseTimer);
   document.getElementById('il-title').textContent='Invite Tenant · Unit '+unitNum;
   document.getElementById('il-link').value=link;
   document.getElementById('il-open').href=link;
@@ -4914,6 +4917,8 @@ async function sendUnitInvite(){
   await sb.from('property_units').update({tenant_email:email}).eq('property_id',currentPropertyId).eq('unit_number',_inviteUnit);
   const info=((window._unitInvites=window._unitInvites||{})[_inviteUnit]=window._unitInvites[_inviteUnit]||{});
   info.email=email;
+  clearTimeout(window._ilCloseTimer);
+  window._ilCloseTimer=setTimeout(()=>{closeModal('modal-invite-link');loadUnitsTab(currentPropertyId);},2000);
   document.getElementById('il-last').innerHTML='Last sent to <strong style="color:var(--text2)">'+escHtml(email)+'</strong> · You can send it again anytime before they sign up.';
 }
 function copyLinkText(inputId){
@@ -5004,6 +5009,9 @@ async function saveUnitSlot(){
     document.getElementById('flyer-ok').style.display='none';
     document.getElementById('flyer-send-btn').disabled=false;
     document.getElementById('flyer-send-btn').textContent='Send Invite →';
+    document.getElementById('flyer-send-btn').style.display='';
+    document.getElementById('flyer-skip-btn').textContent='Skip for Now';
+    clearTimeout(window._flyerCloseTimer);
     // Store invite code and unit info for the send function
     window._flyerData={unitNumber:data.unit_number,inviteCode:data.invite_code,propertyId:currentPropertyId};
     openModal('modal-send-flyer');
@@ -5041,6 +5049,10 @@ async function sendFlyerEmail(){
       .update({tenant_email:email})
       .eq('property_id',_flyerData.propertyId)
       .eq('unit_number',_flyerData.unitNumber);
+    // Close on its own after a moment; the unit card then shows "Invite sent to …"
+    document.getElementById('flyer-skip-btn').textContent='Done';
+    clearTimeout(window._flyerCloseTimer);
+    window._flyerCloseTimer=setTimeout(()=>{closeModal('modal-send-flyer');loadUnitsTab(currentPropertyId);},2000);
   } else {
     err.textContent=resBody.error||'Failed to send email. Please try again.';err.classList.add('show');
   }
