@@ -41,13 +41,17 @@ exports.handler = async (event) => {
     if (q.length < 2) return reply(200, { results: [] });
     const props = await sb(`properties?name=ilike.${encodeURIComponent('*' + q + '*')}&select=id,name,address&order=name&limit=25`);
     // Only properties that actually use unit parking (same lookup the unit portal uses)
+    const problems = [];
     const hasUnits = await Promise.all(props.map(p =>
-      sb(`property_units?property_id=eq.${p.id}&select=id&limit=1`).then(r => r.length > 0).catch(() => false)));
+      sb(`property_units?property_id=eq.${p.id}&select=id&limit=1`)
+        .then(r => Array.isArray(r) && r.length > 0)
+        .catch(e => { problems.push(String(e.message || e).slice(0, 160)); return false; })));
     const results = props.filter((p, i) => hasUnits[i])
       .slice(0, 8).map(p => ({ id: p.id, name: p.name, place: place(p.address) }));
     if (event.queryStringParameters?.check === '1') {
       // Troubleshooting only: how many names matched and which have units (no names returned)
-      return reply(200, { matched: props.length, hasUnits, results: results.length });
+      return reply(200, { matched: props.length, hasUnits, results: results.length, problems,
+        keyType: (() => { try { return JSON.parse(Buffer.from(String(SUPABASE_KEY).split('.')[1], 'base64url').toString()).role; } catch { return 'unknown'; } })() });
     }
     return reply(200, { results });
   } catch (err) {
