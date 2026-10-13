@@ -187,8 +187,7 @@ async function handleCheckoutCompleted(session) {
   const permit = permitResult[0];
 
   // 6. Look up property name for email
-  const propertyResult = await sbSelect('properties', `id=eq.${property_id}&select=name,manager_email`);
-  const property = Array.isArray(propertyResult) ? propertyResult[0] : null;
+  const property = await propertyContact(property_id);
   const propertyName = property?.name || 'your property';
   const managerEmail = property?.manager_email;
 
@@ -231,6 +230,24 @@ async function handleCheckoutCompleted(session) {
   console.log(`Permit created for ${tenant_email} at ${propertyName} Unit ${unit_number}`);
 }
 
+// Property name + the manager's email (from the manager's account; properties
+// don't store an email of their own). Never throws: alerts are best-effort.
+async function propertyContact(propertyId) {
+  try {
+    const props = await sbSelect('properties', `id=eq.${propertyId}&select=*`);
+    const prop = Array.isArray(props) ? props[0] : null;
+    let managerEmail = prop?.manager_email || null;
+    if (!managerEmail && prop?.manager_id) {
+      const users = await sbSelect('users', `id=eq.${prop.manager_id}&select=email`);
+      managerEmail = Array.isArray(users) ? users[0]?.email || null : null;
+    }
+    return { name: prop?.name || null, manager_email: managerEmail };
+  } catch (e) {
+    console.error('propertyContact failed:', e.message);
+    return { name: null, manager_email: null };
+  }
+}
+
 // Confirmation to the resident + heads-up to the manager when a spot is added
 const escH = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function emailShell(color, title, intro, rows, button, footnote) {
@@ -247,9 +264,10 @@ function emailShell(color, title, intro, rows, button, footnote) {
 </body></html>`;
 }
 async function spotAddedEmails(meta, session) {
-  const [slot] = await sbSelect('property_units', `id=eq.${meta.slot_id}&select=*`);
-  const [unitRow] = await sbSelect('property_units', `property_id=eq.${meta.property_id}&unit_number=eq.${encodeURIComponent(meta.unit_number)}&tenant_email=not.is.null&select=tenant_email,tenant_name&limit=1`);
-  const [property] = await sbSelect('properties', `id=eq.${meta.property_id}&select=name,manager_email`);
+  const first = r => (Array.isArray(r) ? r[0] : null);
+  const slot = first(await sbSelect('property_units', `id=eq.${meta.slot_id}&select=*`));
+  const unitRow = first(await sbSelect('property_units', `property_id=eq.${meta.property_id}&unit_number=eq.${encodeURIComponent(meta.unit_number)}&tenant_email=not.is.null&select=tenant_email,tenant_name&limit=1`));
+  const property = await propertyContact(meta.property_id);
   const spot = slot?.slot_label || 'Your new spot';
   const price = session.amount_total != null ? `$${(session.amount_total / 100).toFixed(2)} / month` : '';
   const propertyName = property?.name || 'your property';
@@ -259,7 +277,7 @@ async function spotAddedEmails(meta, session) {
   const rows = [['Property', propertyName], ['Unit', meta.unit_number], ['Spot', spot], ['Price', price], ['Started', date]];
 
   if (residentEmail) {
-    await sendRaw({
+    try { await sendRaw({
       to: residentEmail,
       subject: `${spot} is now active — Unit ${meta.unit_number}`,
       html: emailShell('#059669', `${spot} is now active`,
@@ -267,18 +285,20 @@ async function spotAddedEmails(meta, session) {
         rows, ['Open My Unit →', `${SITE}/unit.html`],
         'Billed monthly by card. To update your card or cancel this spot, open Account → Manage Billing in your unit portal.'),
       text: `${spot} is now active on Unit ${meta.unit_number} at ${propertyName} (${price}).\n\nAssign a vehicle: ${SITE}/unit.html\nTo update your card or cancel, open Account → Manage Billing in your unit portal.`,
-    });
-  }
+    }); console.log('Spot added email sent to resident', residentEmail); }
+    catch (e) { console.error('Resident spot email failed:', e.message); }
+  } else console.log('Spot added: no resident email on file');
   if (property?.manager_email) {
-    await sendRaw({
+    try { await sendRaw({
       to: property.manager_email,
       subject: `Unit ${meta.unit_number} added ${spot} (${price}) — ${propertyName}`,
       html: emailShell('#2859a8', 'Paid spot added',
         `${escH(residentName)}${residentEmail ? ' (' + escH(residentEmail) + ')' : ''} paid for an extra spot. It now shows as <strong>PAID · CARD</strong> on your Units tab.`,
         rows, ['Open Manager Dashboard →', `${SITE}/manager.html`], ''),
       text: `Unit ${meta.unit_number} at ${propertyName} added ${spot} (${price}), paid by card.\n\n${SITE}/manager.html`,
-    });
-  }
+    }); console.log('Spot added email sent to manager', property.manager_email); }
+    catch (e) { console.error('Manager spot email failed:', e.message); }
+  } else console.log('Spot added: no manager email for property');
 }
 
 async function handleInvoicePaid(invoice) {
@@ -310,8 +330,7 @@ async function handlePaymentFailed(invoice) {
   const permit = permits?.[0];
   if (!permit) return;
 
-  const propertyResult2 = await sbSelect('properties', `id=eq.${permit.property_id}&select=name,manager_email`);
-  const property = Array.isArray(propertyResult2) ? propertyResult2[0] : null;
+  const property = await propertyContact(permit.property_id);
   const propertyName = property?.name || 'your property';
   const portalUrl = await getBillingPortalUrl(customerId);
 
@@ -372,8 +391,7 @@ async function handleSubscriptionDeleted(subscription) {
       `property_id=eq.${permit.property_id}&unit_number=eq.${encodeURIComponent(permit.unit_number || '')}&billing_type=eq.monthly&paid_via=eq.card&spot_subscription_id=is.null`);
   } catch (e) { console.error('Clearing paid spots failed (non-fatal):', e.message); }
 
-  const propertyResult3 = await sbSelect('properties', `id=eq.${permit.property_id}&select=name,manager_email`);
-  const property = Array.isArray(propertyResult3) ? propertyResult3[0] : null;
+  const property = await propertyContact(permit.property_id);
   const propertyName = property?.name || 'your property';
 
   if (permit.holder_email) {
