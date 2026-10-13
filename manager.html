@@ -696,7 +696,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
             <div style="font-size:15px;font-weight:700;">Unit Parking Slots</div>
             <div style="font-size:12px;color:var(--text3);margin-top:2px;">Slots assigned to residential units. Each unit has a unique invite link tenants use to sign up.</div>
           </div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm" onclick="openBulkUnits()">+ Bulk Add Units</button><button class="btn btn-primary btn-sm" onclick="openAddUnitSlot()">+ Add Slot</button></div>
+          <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm" onclick="openBulkDelete()">Bulk Delete Units</button><button class="btn btn-ghost btn-sm" onclick="openBulkUnits()">+ Bulk Add Units</button><button class="btn btn-primary btn-sm" onclick="openAddUnitSlot()">+ Add Slot</button></div>
         </div>
         <div id="units-list" style="display:flex;flex-direction:column;gap:20px;">
           <div style="text-align:center;padding:48px;color:var(--text3);font-size:13px;">Loading units…</div>
@@ -824,6 +824,37 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <button class="btn btn-danger" id="mo-btn" style="flex:1;" onclick="doMoveOut()" disabled>Move Out Tenant</button>
       <button class="btn btn-ghost" onclick="closeModal('modal-move-out')">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: Bulk Delete Units -->
+<div class="modal-overlay" id="modal-bulk-delete">
+  <div class="modal" style="width:560px;max-width:calc(100vw - 32px);max-height:calc(100vh - 40px);overflow-y:auto;">
+    <button class="modal-close" onclick="closeModal('modal-bulk-delete')">✕</button>
+    <div class="modal-title">Bulk Delete Units</div>
+    <div class="modal-sub">Deletes whole units (all their spots). Units with a current tenant or a card-paid spot are skipped — use Move Out Tenant for those first.</div>
+    <div style="display:flex;gap:6px;margin:6px 0 14px;">
+      <button class="btn btn-sm btn-primary" id="bd-tab-range" onclick="setBulkDelMode('range')">Number range</button>
+      <button class="btn btn-sm btn-ghost" id="bd-tab-list" onclick="setBulkDelMode('list')">Paste a list</button>
+    </div>
+    <div id="bd-range">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Prefix (optional)</label><input class="form-input" id="bd-prefix" type="text" placeholder="e.g. A-" oninput="updateBulkDelPreview()"></div>
+        <div class="form-group"><label class="form-label">Suffix (optional)</label><input class="form-input" id="bd-suffix" type="text" oninput="updateBulkDelPreview()"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">From *</label><input class="form-input" id="bd-from" type="text" inputmode="numeric" placeholder="500" oninput="updateBulkDelPreview()"></div>
+        <div class="form-group"><label class="form-label">To *</label><input class="form-input" id="bd-to" type="text" inputmode="numeric" placeholder="520" oninput="updateBulkDelPreview()"></div>
+      </div>
+    </div>
+    <div id="bd-list" style="display:none;">
+      <div class="form-group"><label class="form-label">Unit numbers, one per line (or separated by commas)</label>
+        <textarea class="form-input" id="bd-paste" rows="6" placeholder="500&#10;501&#10;Penthouse 1" oninput="updateBulkDelPreview()"></textarea></div>
+    </div>
+    <div id="bd-preview" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--text2);margin:6px 0 12px;">Enter a range or list to see a preview.</div>
+    <label id="bd-confirm-wrap" style="display:none;align-items:center;gap:8px;font-size:13px;margin-bottom:12px;cursor:pointer;"><input type="checkbox" id="bd-confirm" onchange="updateBulkDelPreview()"> I understand these units and their spots will be permanently deleted.</label>
+    <div class="err-msg" id="bd-err"></div>
+    <button class="btn btn-danger btn-full" id="bd-btn" onclick="saveBulkDelete()" disabled>Delete Units</button>
   </div>
 </div>
 
@@ -4524,6 +4555,89 @@ function renderUnitVehicleRoster(unitNum, slots){
   </div>`;
 }
 
+
+// ── BULK DELETE UNITS ──
+let _bdMode='range',_bdPlan=[];
+function openBulkDelete(){
+  if(!currentPropertyId){toast('Open a property first');return;}
+  ['bd-prefix','bd-suffix','bd-from','bd-to','bd-paste'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('bd-confirm').checked=false;
+  document.getElementById('bd-err').classList.remove('show');
+  setBulkDelMode('range');
+  openModal('modal-bulk-delete');
+}
+function setBulkDelMode(m){
+  _bdMode=m;
+  document.getElementById('bd-range').style.display=m==='range'?'':'none';
+  document.getElementById('bd-list').style.display=m==='list'?'':'none';
+  document.getElementById('bd-tab-range').className='btn btn-sm '+(m==='range'?'btn-primary':'btn-ghost');
+  document.getElementById('bd-tab-list').className='btn btn-sm '+(m==='list'?'btn-primary':'btn-ghost');
+  updateBulkDelPreview();
+}
+function bulkDelNumbers(){
+  if(_bdMode==='list') return document.getElementById('bd-paste').value.split(/[\n,]+/).map(x=>x.trim()).filter(Boolean);
+  const from=document.getElementById('bd-from').value.trim(),to=document.getElementById('bd-to').value.trim();
+  if(!/^\d+$/.test(from)||!/^\d+$/.test(to)) return null;
+  const a=parseInt(from,10),b=parseInt(to,10);
+  if(b<a||b-a+1>BULK_MAX) return {tooMany:b-a+1,backwards:b<a};
+  const pad=(from.length>1&&from.startsWith('0'))?from.length:0;
+  const pre=document.getElementById('bd-prefix').value,suf=document.getElementById('bd-suffix').value;
+  const out=[];for(let n=a;n<=b;n++) out.push(pre+(pad?String(n).padStart(pad,'0'):String(n))+suf);
+  return out;
+}
+function updateBulkDelPreview(){
+  const el=document.getElementById('bd-preview'),btn=document.getElementById('bd-btn'),cw=document.getElementById('bd-confirm-wrap');
+  const nums=bulkDelNumbers();
+  _bdPlan=[];btn.disabled=true;btn.textContent='Delete Units';cw.style.display='none';
+  if(nums&&!Array.isArray(nums)){el.textContent=nums.backwards?'"To" must be the same as or higher than "From".':`Please delete at most ${BULK_MAX.toLocaleString()} units at a time.`;return;}
+  if(!nums||!nums.length){el.textContent='Enter a range or list to see a preview.';return;}
+  const byUnit={};_unitSlots.forEach(x=>{const k=String(x.unit_number||'').trim().toLowerCase();(byUnit[k]=byUnit[k]||[]).push(x);});
+  const seen=new Set(),skipped=[],missing=[];let spotCount=0;
+  nums.forEach(n=>{
+    const k=n.toLowerCase();if(seen.has(k))return;seen.add(k);
+    const spots=byUnit[k];
+    if(!spots){missing.push(n);return;}
+    const tenant=spots.some(x=>x.unit_password||x.invite_used);
+    const card=spots.some(x=>x.spot_paid&&(x.paid_via||'card')==='card');
+    if(tenant||card){skipped.push(`Unit ${escHtml(spots[0].unit_number)} — ${tenant?'has a current tenant':'has a card-paid spot'}`);return;}
+    _bdPlan.push({unit:spots[0].unit_number,ids:spots.map(x=>x.id)});spotCount+=spots.length;
+  });
+  const sample=_bdPlan.slice(0,3).map(p=>escHtml(p.unit)).join(', ')+(_bdPlan.length>4?' … '+escHtml(_bdPlan[_bdPlan.length-1].unit):_bdPlan.length===4?', '+escHtml(_bdPlan[3].unit):'');
+  el.innerHTML=(_bdPlan.length?`<div><strong style="color:var(--red);">${_bdPlan.length} unit${_bdPlan.length===1?'':'s'} (${spotCount} spot${spotCount===1?'':'s'}) will be deleted</strong>: ${sample}</div>`:'<div><strong>Nothing to delete.</strong></div>')
+    +(skipped.length?`<div style="margin-top:6px;color:#b45309;">${skipped.length} skipped:<br>${skipped.slice(0,6).join('<br>')}${skipped.length>6?'<br>…and '+(skipped.length-6)+' more':''}</div>`:'')
+    +(missing.length?`<div style="margin-top:6px;color:var(--text3);">${missing.length} not found${missing.length<=5?': '+missing.map(escHtml).join(', '):''}</div>`:'');
+  if(_bdPlan.length){
+    cw.style.display='flex';
+    const ok=document.getElementById('bd-confirm').checked;
+    btn.disabled=!ok;btn.textContent=`Delete ${_bdPlan.length} Unit${_bdPlan.length===1?'':'s'}`;
+  }
+}
+async function saveBulkDelete(){
+  const err=document.getElementById('bd-err'),btn=document.getElementById('bd-btn');
+  err.classList.remove('show');
+  if(!_bdPlan.length||!document.getElementById('bd-confirm').checked) return;
+  btn.disabled=true;
+  let done=0;const failed=[];
+  for(let i=0;i<_bdPlan.length;i+=50){
+    const batch=_bdPlan.slice(i,i+50);
+    btn.textContent=`Deleting… ${done}/${_bdPlan.length}`;
+    const {error}=await sb.from('property_units').delete().in('id',batch.flatMap(p=>p.ids));
+    if(!error){done+=batch.length;continue;}
+    // Something in this batch was refused: try each unit on its own
+    for(const p of batch){
+      const r=await sb.from('property_units').delete().in('id',p.ids);
+      if(r.error) failed.push(`Unit ${p.unit}: ${r.error.message.replace(/^.*?:\s*/,'')}`); else done++;
+    }
+  }
+  if(done) logAct('unit.bulk_deleted',`Bulk deleted ${done} unit${done===1?'':'s'}`,{property_id:currentPropertyId,details:{units:_bdPlan.map(p=>p.unit)}});
+  await loadUnitsTab(currentPropertyId);
+  if(failed.length){
+    err.innerHTML=`Deleted ${done}. These were refused:<br>${failed.slice(0,8).map(escHtml).join('<br>')}`;err.classList.add('show');
+    updateBulkDelPreview();return;
+  }
+  closeModal('modal-bulk-delete');
+  toast(`🗑 ${done} unit${done===1?'':'s'} deleted`);
+}
 
 // ── BULK ADD UNITS ──
 // Each unit can get several spots (e.g. Spot 1 free, Spot 2 $50/mo).
