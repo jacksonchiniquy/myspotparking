@@ -4697,8 +4697,9 @@ function makeInviteCode(){
 
 async function generateInviteCodeForUnit(slotId,unitNum){
   const code=makeInviteCode();
-  // Update all slots for this unit_number in current property
-  await sb.from('property_units').update({invite_code:code,invite_used:false}).eq('property_id',currentPropertyId).eq('unit_number',unitNum);
+  // The code goes on one spot of the unit (codes must be unique, so not on every spot)
+  const {error}=await sb.from('property_units').update({invite_code:code,invite_used:false}).eq('id',slotId);
+  if(error){toast('❌ '+error.message);return;}
   toast('✅ Invite code generated for Unit '+unitNum);
   loadUnitsTab(currentPropertyId);
 }
