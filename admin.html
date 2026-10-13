@@ -856,8 +856,16 @@ async function toggleOutsideBilling(id,on){
     ?'Turn ON outside billing? This property\'s managers will be able to mark paid spots as paid outside the app (for example, included in rent). Those payments don\'t go through My Spot.'
     :'Turn OFF outside billing? Managers will no longer be able to mark spots as paid. Spots already marked stay paid.';
   if(!confirm(msg)) return;
-  const {error}=await sb.from('properties').update({outside_billing:on}).eq('id',id);
-  if(error){toast('❌ '+error.message);return;}
+  // Goes through the server: the database only lets the server or an admin change this
+  const {data:{session}}=await sb.auth.getSession();
+  let res,body={};
+  try{
+    res=await fetch('/.netlify/functions/admin-api',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body:JSON.stringify({action:'setOutsideBilling',propertyId:id,on})});
+    body=await res.json().catch(()=>({}));
+  }catch(e){res={ok:false};}
+  if(!res.ok){toast('❌ '+(body.error||'Could not change outside billing.'));return;}
   toast(on?'Outside billing turned on':'Outside billing turned off');
   loadProperties();
 }

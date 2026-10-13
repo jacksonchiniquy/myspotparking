@@ -8,7 +8,7 @@
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { hashPassword } = require('./lib/unit-password');
-const { send } = require('./send-email');
+const { send, sendRaw, logoHeader } = require('./send-email');
 const { activateSession } = require('./lib/parking');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -92,6 +92,8 @@ async function handleCheckoutCompleted(session) {
       { spot_paid: true, paid_via: 'card', spot_subscription_id: session.subscription || null, stripe_customer_id: session.customer || null },
       `id=eq.${meta.slot_id}&property_id=eq.${meta.property_id}&billing_type=eq.monthly`);
     console.log(`Spot ${meta.slot_id} paid for Unit ${meta.unit_number}`);
+    try { await spotAddedEmails(meta, session); }
+    catch (e) { console.error('Spot added emails failed (non-fatal):', e.message); }
     return;
   }
   const {
@@ -227,6 +229,56 @@ async function handleCheckoutCompleted(session) {
   }
 
   console.log(`Permit created for ${tenant_email} at ${propertyName} Unit ${unit_number}`);
+}
+
+// Confirmation to the resident + heads-up to the manager when a spot is added
+const escH = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function emailShell(color, title, intro, rows, button, footnote) {
+  const table = rows.map(([k, v]) => `<tr><td style="padding:5px 0;color:#64748b;font-size:13px;">${escH(k)}</td><td style="padding:5px 0;text-align:right;font-weight:700;">${escH(v)}</td></tr>`).join('');
+  return `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
+  ${logoHeader(color)}
+  <h2 style="margin:0 0 8px;">${escH(title)}</h2>
+  <p style="color:#475569;margin:0 0 20px;line-height:1.5;">${intro}</p>
+  <div style="background:#f4f7ff;border-radius:10px;padding:14px 20px;margin-bottom:22px;"><table width="100%" cellpadding="0" cellspacing="0">${table}</table></div>
+  <p style="text-align:center;margin:0 0 20px;"><a href="${button[1]}" style="display:inline-block;background:${color};color:#ffffff;text-decoration:none;padding:13px 28px;border-radius:9px;font-weight:700;">${escH(button[0])}</a></p>
+  ${footnote ? `<p style="color:#94a3b8;font-size:12px;text-align:center;">${footnote}</p>` : ''}
+  <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc.</p>
+</body></html>`;
+}
+async function spotAddedEmails(meta, session) {
+  const [slot] = await sbSelect('property_units', `id=eq.${meta.slot_id}&select=*`);
+  const [unitRow] = await sbSelect('property_units', `property_id=eq.${meta.property_id}&unit_number=eq.${encodeURIComponent(meta.unit_number)}&tenant_email=not.is.null&select=tenant_email,tenant_name&limit=1`);
+  const [property] = await sbSelect('properties', `id=eq.${meta.property_id}&select=name,manager_email`);
+  const spot = slot?.slot_label || 'Your new spot';
+  const price = session.amount_total != null ? `$${(session.amount_total / 100).toFixed(2)} / month` : '';
+  const propertyName = property?.name || 'your property';
+  const residentEmail = session.customer_details?.email || unitRow?.tenant_email;
+  const residentName = session.customer_details?.name || unitRow?.tenant_name || 'Resident';
+  const date = new Date().toLocaleDateString('en-US', { timeZone: 'America/Denver', month: 'short', day: 'numeric', year: 'numeric' });
+  const rows = [['Property', propertyName], ['Unit', meta.unit_number], ['Spot', spot], ['Price', price], ['Started', date]];
+
+  if (residentEmail) {
+    await sendRaw({
+      to: residentEmail,
+      subject: `${spot} is now active — Unit ${meta.unit_number}`,
+      html: emailShell('#059669', `${spot} is now active`,
+        `Thanks! Your payment went through and ${escH(spot)} has been added to Unit ${escH(meta.unit_number)}. You can assign a vehicle to it in your unit portal now.`,
+        rows, ['Open My Unit →', `${SITE}/unit.html`],
+        'Billed monthly by card. To update your card or cancel this spot, open Account → Manage Billing in your unit portal.'),
+      text: `${spot} is now active on Unit ${meta.unit_number} at ${propertyName} (${price}).\n\nAssign a vehicle: ${SITE}/unit.html\nTo update your card or cancel, open Account → Manage Billing in your unit portal.`,
+    });
+  }
+  if (property?.manager_email) {
+    await sendRaw({
+      to: property.manager_email,
+      subject: `Unit ${meta.unit_number} added ${spot} (${price}) — ${propertyName}`,
+      html: emailShell('#2859a8', 'Paid spot added',
+        `${escH(residentName)}${residentEmail ? ' (' + escH(residentEmail) + ')' : ''} paid for an extra spot. It now shows as <strong>PAID · CARD</strong> on your Units tab.`,
+        rows, ['Open Manager Dashboard →', `${SITE}/manager.html`], ''),
+      text: `Unit ${meta.unit_number} at ${propertyName} added ${spot} (${price}), paid by card.\n\n${SITE}/manager.html`,
+    });
+  }
 }
 
 async function handleInvoicePaid(invoice) {
