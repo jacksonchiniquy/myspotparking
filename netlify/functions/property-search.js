@@ -44,6 +44,10 @@ exports.handler = async (event) => {
     const results = props
       .filter(p => (p.property_units?.[0]?.count || 0) > 0)
       .slice(0, 8).map(p => ({ id: p.id, name: p.name, place: place(p.address) }));
+    if (event.queryStringParameters?.check === '1') {
+      // Troubleshooting only: how many names matched and how many units each has (no names returned)
+      return reply(200, { matched: props.length, unitCounts: props.map(p => p.property_units?.[0]?.count ?? null), results: results.length });
+    }
     return reply(200, { results });
   } catch (err) {
     console.error('property-search error:', err);
