@@ -39,14 +39,15 @@ exports.handler = async (event) => {
     }
     const q = String(body.q || '').replace(/[^\p{L}\p{N}\s'&.-]/gu, ' ').trim().slice(0, 60);
     if (q.length < 2) return reply(200, { results: [] });
-    // Only properties that actually use unit parking (count of their unit spots)
-    const props = await sb(`properties?name=ilike.${encodeURIComponent('*' + q + '*')}&select=id,name,address,property_units(count)&order=name&limit=25`);
-    const results = props
-      .filter(p => (p.property_units?.[0]?.count || 0) > 0)
+    const props = await sb(`properties?name=ilike.${encodeURIComponent('*' + q + '*')}&select=id,name,address&order=name&limit=25`);
+    // Only properties that actually use unit parking (same lookup the unit portal uses)
+    const hasUnits = await Promise.all(props.map(p =>
+      sb(`property_units?property_id=eq.${p.id}&select=id&limit=1`).then(r => r.length > 0).catch(() => false)));
+    const results = props.filter((p, i) => hasUnits[i])
       .slice(0, 8).map(p => ({ id: p.id, name: p.name, place: place(p.address) }));
     if (event.queryStringParameters?.check === '1') {
-      // Troubleshooting only: how many names matched and how many units each has (no names returned)
-      return reply(200, { matched: props.length, unitCounts: props.map(p => p.property_units?.[0]?.count ?? null), results: results.length });
+      // Troubleshooting only: how many names matched and which have units (no names returned)
+      return reply(200, { matched: props.length, hasUnits, results: results.length });
     }
     return reply(200, { results });
   } catch (err) {
