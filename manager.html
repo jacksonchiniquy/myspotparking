@@ -756,12 +756,24 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-invite-link">
   <div class="modal" style="width:480px;">
     <button class="modal-close" onclick="closeModal('modal-invite-link')">✕</button>
-    <div class="modal-title" id="il-title">Signup link</div>
-    <div class="modal-sub">Send this link to the resident. Opening it shows the same signup page they'll see.</div>
+    <div class="modal-title" id="il-title">Invite Tenant</div>
+    <div class="modal-sub">Copy this signup link to send it yourself, or email it below. Opening it shows the same page the tenant will see.</div>
     <input class="form-input" id="il-link" type="text" readonly onclick="this.select()" style="font-family:'JetBrains Mono',monospace;font-size:12px;margin-bottom:14px;">
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-primary" onclick="copyLinkText('il-link')">Copy Link</button>
       <a class="btn btn-ghost" id="il-open" href="#" target="_blank" rel="noopener">Open Signup Page ↗</a>
+    </div>
+    <div style="border-top:1px solid var(--border);margin:20px 0 16px;"></div>
+    <div id="il-claimed" style="display:none;font-size:13px;color:var(--text2);background:rgba(0,200,122,0.08);border:1px solid rgba(0,200,122,0.25);border-radius:10px;padding:12px 14px;"></div>
+    <div id="il-email-wrap">
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Email the invite</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Emails the tenant their invite with this signup link.</div>
+      <div class="err-msg" id="il-err"></div>
+      <div class="err-msg" id="il-ok" style="display:none;background:rgba(0,200,122,.08);border-color:rgba(0,200,122,.3);color:#007a4a;"></div>
+      <div class="form-group" style="margin-bottom:12px;"><label class="form-label">Tenant Email</label>
+        <input class="form-input" id="il-email" type="email" placeholder="tenant@example.com" onkeydown="if(event.key==='Enter')sendUnitInvite()"></div>
+      <button class="btn btn-primary" id="il-send" style="width:100%;" onclick="sendUnitInvite()">Send Invite →</button>
+      <div id="il-last" style="font-size:12px;color:var(--text3);margin-top:10px;"></div>
     </div>
   </div>
 </div>
@@ -4300,12 +4312,13 @@ function renderUnitsTab(){
     const tenantName=slots[0].tenant_name||'';
     const hasPassword=!!(slots[0].unit_password);
     const inviteLink=inviteCode?`${window.location.origin}/signup.html?code=${encodeURIComponent(inviteCode)}`:'';
+    (window._unitInvites=window._unitInvites||{})[unitNum]={used:inviteUsed,email:tenantEmail,name:tenantName};
     const usedBadge=inviteUsed
       ?`<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(0,200,122,0.12);color:#007a4a;font-family:'JetBrains Mono',monospace;">SIGNED UP</span>`
       :`<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(255,170,0,0.12);color:#b45309;font-family:'JetBrains Mono',monospace;">PENDING</span>`;
     const tenantInfo=inviteUsed&&tenantEmail
       ?`<div style="font-size:11px;color:var(--text3);margin-top:2px;">Signed up: <strong>${tenantName||tenantEmail}</strong> · ${tenantEmail}</div>`
-      :`<div style="font-size:11px;color:var(--text3);margin-top:2px;">Share the invite link with your tenant to get them signed up</div>`;
+      :`<div style="font-size:11px;color:var(--text3);margin-top:2px;">${tenantEmail?'Invite sent to '+escHtml(tenantEmail):'Click Invite Tenant to send this unit its signup link'}</div>`;
     return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);background:#f8faff;gap:12px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:12px;">
@@ -4324,7 +4337,7 @@ function renderUnitsTab(){
               <span style="font-size:11px;color:var(--text3);">CODE</span>
               <span style="font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--blue);">${inviteCode}</span>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="copyInviteLink('${inviteLink}','${unitNum}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Signup Link</button>
+            <button class="btn ${inviteUsed?'btn-ghost':'btn-primary'} btn-sm" onclick="copyInviteLink('${inviteLink}','${unitNum}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> ${inviteUsed?'View Invite':'Invite Tenant'}</button>
             ${inviteUsed?`<button class="btn btn-ghost btn-sm" title="Reset so a new tenant can sign up" onclick="resetInviteCode('${slots[0].id}','${unitNum}')">Reset Code</button>`:''}
           `:`<button class="btn btn-ghost btn-sm" onclick="generateInviteCodeForUnit('${slots[0].id}','${unitNum}')">Generate Invite</button>`}
           <button class="btn btn-ghost btn-sm" onclick="openAddUnitSlot('${unitNum}')">+ Slot</button>
@@ -4630,12 +4643,54 @@ async function resetInviteCode(slotId,unitNum){
   loadUnitsTab(currentPropertyId);
 }
 
+// "Invite Tenant": shows the unit's signup link (copy / open) and lets the
+// manager email the invite. Safari can block silent copying, so the link is shown.
+let _inviteUnit=null;
 function copyInviteLink(link,unitNum){
-  // Shows the link (Safari can block silent copying), with Copy and Open buttons
-  document.getElementById('il-title').textContent='Signup link · Unit '+unitNum;
+  const info=(window._unitInvites||{})[unitNum]||{};
+  _inviteUnit=unitNum;
+  document.getElementById('il-title').textContent='Invite Tenant · Unit '+unitNum;
   document.getElementById('il-link').value=link;
   document.getElementById('il-open').href=link;
+  document.getElementById('il-err').classList.remove('show');
+  document.getElementById('il-ok').style.display='none';
+  const send=document.getElementById('il-send');send.disabled=false;send.textContent='Send Invite →';
+  const claimed=document.getElementById('il-claimed');
+  if(info.used){
+    claimed.style.display='';
+    claimed.innerHTML='✅ This unit has already been claimed'+(info.email?' by <strong>'+escHtml(info.name||info.email)+'</strong>':'')+'. Use <strong>Reset Code</strong> if a new tenant needs to sign up.';
+    document.getElementById('il-email-wrap').style.display='none';
+  } else {
+    claimed.style.display='none';
+    document.getElementById('il-email-wrap').style.display='';
+    document.getElementById('il-email').value=info.email||'';
+    document.getElementById('il-last').innerHTML=info.email
+      ?'Last sent to <strong style="color:var(--text2)">'+escHtml(info.email)+'</strong> · You can send it again anytime before they sign up.':'';
+  }
   openModal('modal-invite-link');
+}
+async function sendUnitInvite(){
+  const email=document.getElementById('il-email').value.trim().toLowerCase();
+  const err=document.getElementById('il-err'),ok=document.getElementById('il-ok'),btn=document.getElementById('il-send');
+  err.classList.remove('show');ok.style.display='none';
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent='Enter a valid email address.';err.classList.add('show');return;}
+  if(!_inviteUnit||!currentPropertyId){err.textContent='Close this window and try again.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Sending…';
+  const {data:{session}}=await sb.auth.getSession();
+  let res,body={};
+  try{
+    res=await fetch('/.netlify/functions/send-email',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body:JSON.stringify({type:'invite_flyer',to:email,propertyId:currentPropertyId,unitNumber:_inviteUnit})});
+    body=await res.json().catch(()=>({}));
+  }catch(e){res={ok:false};}
+  btn.disabled=false;btn.textContent='Send Invite →';
+  if(!res.ok){err.textContent=body.error||'Could not send the email. Please try again.';err.classList.add('show');return;}
+  ok.textContent='✅ Invite sent to '+email;ok.style.display='block';
+  await sb.from('property_units').update({tenant_email:email}).eq('property_id',currentPropertyId).eq('unit_number',_inviteUnit);
+  const info=((window._unitInvites=window._unitInvites||{})[_inviteUnit]=window._unitInvites[_inviteUnit]||{});
+  info.email=email;
+  document.getElementById('il-last').innerHTML='Last sent to <strong style="color:var(--text2)">'+escHtml(email)+'</strong> · You can send it again anytime before they sign up.';
 }
 function copyLinkText(inputId){
   const el=document.getElementById(inputId);
