@@ -226,6 +226,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <nav style="padding:10px;flex:1;">
       <div class="sb-section">Overview</div>
       <button class="sb-item active" id="sb-dashboard" onclick="showPanel('dashboard',this)">📊 Dashboard</button>
+      <button class="sb-item" id="sb-activity" onclick="showPanel('activity',this);loadActivity()">🕘 Activity</button>
       <div class="sb-section">Platform</div>
       <button class="sb-item" id="sb-managers" onclick="showPanel('managers',this)">🏢 Managers<span class="sb-count" id="cnt-managers">0</span><span class="sb-count" id="cnt-pending" title="Pending access requests" style="display:none;background:#d97706;color:#fff;margin-left:4px;">0</span></button>
       <button class="sb-item" id="sb-properties" onclick="showPanel('properties',this)">🗺 Properties<span class="sb-count" id="cnt-properties">0</span></button>
@@ -296,6 +297,23 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       </div>
 
       <!-- PROPERTIES -->
+      <div id="panel-activity" class="panel">
+        <div class="section-head"><div><div class="section-title">Activity</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">Every change, sign-in and plate check across all portals. Newest first · kept permanently · read-only.</div></div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+          <input class="form-input" id="act-q" type="search" placeholder="🔍 Search name, plate, unit, email…" style="flex:1;min-width:220px;padding:8px 12px;" onkeydown="if(event.key==='Enter')loadActivity()">
+          <select class="select-input" id="act-days" onchange="loadActivity()" style="width:auto;font-size:12px;padding:6px 10px;">
+            <option value="1">Today</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="0">All time</option></select>
+          <select class="select-input" id="act-who" onchange="loadActivity()" style="width:auto;font-size:12px;padding:6px 10px;">
+            <option value="">All portals</option><option value="admin">Admin</option><option value="manager">Managers</option><option value="enforcer">Enforcement</option><option value="holder">Residents</option><option value="unit">Unit portal</option><option value="system">System &amp; payments</option></select>
+          <select class="select-input" id="act-prop" onchange="loadActivity()" style="width:auto;font-size:12px;padding:6px 10px;max-width:200px;"><option value="">All properties</option></select>
+          <select class="select-input" id="act-type" onchange="loadActivity()" style="width:auto;font-size:12px;padding:6px 10px;">
+            <option value="">All actions</option><option value="noplate">All except plate checks</option><option value="changes">Data changes</option><option value="auth.">Sign-ins</option><option value="enforcement.">Plate checks &amp; enforcement</option><option value="billing">Payments &amp; billing</option><option value="unit.">Units &amp; tenants</option><option value="access.">Access requests</option><option value="lead.">Website leads</option></select>
+          <button class="btn btn-ghost btn-sm" onclick="exportActivity()">Export CSV</button>
+        </div>
+        <div id="act-list"><div class="loading">Loading…</div></div>
+        <div style="text-align:center;margin-top:12px;"><button class="btn btn-ghost btn-sm" id="act-more" style="display:none;" onclick="loadActivity(true)">Load more</button></div>
+      </div>
+
       <div id="panel-properties" class="panel">
         <div class="section-head"><div class="section-title">All Properties</div></div>
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
@@ -639,8 +657,15 @@ async function adminSignIn(){
   }
 
   currentAdmin=profile;
+  logAct('auth.sign_in','Signed in to the admin portal');
   enterApp();
 }
+// Activity log (admin can see who did what). Never blocks or shows errors.
+function logAct(action,summary,extra){
+  try{sb.auth.getUser().then(({data})=>{const id=data&&data.user&&data.user.id;if(!id)return;
+    sb.from('activity_log').insert(Object.assign({actor_id:id,action:action,summary:summary,portal:'admin',source:'app'},extra||{})).then(()=>{},()=>{});}).catch(()=>{});}catch(e){}
+}
+
 
 async function checkSession(){
   const {data:{session}}=await sb.auth.getSession();
@@ -849,6 +874,97 @@ function renderProperties(data){
       </div></td>
     </tr>`;
   }).join('')||'<tr><td colspan="8" class="loading">No properties found</td></tr>';
+}
+
+// ── ACTIVITY LOG ──────────────────────────────────────────────
+let actRows=[],actPage=0;const ACT_PAGE=200;
+const ACT_THINGS={permits:'permit',property_units:'spot',properties:'property',violations:'violation',users:'user account',vehicles:'vehicle',unit_vehicles:'unit vehicle',unit_permits:'spot assignment',guest_passes:'guest pass',enforcement_assignments:'enforcement assignment',parking_sessions:'parking session',manager_features:'plan & features'};
+const ACT_ROLES={admin:['ADMIN','#a371f7'],manager:['MANAGER','#79c0ff'],enforcer:['ENFORCEMENT','#e3b341'],holder:['RESIDENT','#56d364'],unit:['UNIT PORTAL','#56d364'],driver:['PAY TO PARK','#56d364'],system:['SYSTEM','#8b949e'],database:['DATABASE','#8b949e'],visitor:['WEBSITE','#8b949e'],manager_pending:['APPLICANT','#79c0ff'],anonymous:['NOT SIGNED IN','#ff7b72']};
+const actEsc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function actVal(v){
+  if(v===null||v===undefined||v==='') return '—';
+  if(typeof v==='object') return JSON.stringify(v);
+  const s=String(v);
+  if(/^(stall|zone)-[a-z]+$/.test(s)) return s.replace(/^(stall|zone)-/,'').replace(/\b\w/g,c=>c.toUpperCase());
+  if(/^\d{4}-\d{2}-\d{2}T/.test(s)){const d=new Date(s);if(!isNaN(d))return d.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});}
+  return s;
+}
+const actField=k=>k.replace(/_/g,' ');
+function actSummary(r){
+  if(r.summary) return actEsc(r.summary);
+  const [tbl,op]=String(r.action||'').split('.');
+  const thing=ACT_THINGS[tbl]||tbl.replace(/_/g,' ');
+  const tgt=r.target?' <b>'+actEsc(r.target)+'</b>':'';
+  if(op==='insert') return 'Added '+thing+tgt;
+  if(op==='delete') return 'Deleted '+thing+tgt;
+  const ch=Object.keys((r.details||{}).changes||{});
+  return 'Edited '+thing+tgt+(ch.length?' — '+ch.slice(0,4).map(actField).join(', ')+(ch.length>4?' and more':''):'');
+}
+function actDetail(r){
+  const d=r.details||{};
+  if(d.changes&&Object.keys(d.changes).length){
+    return Object.entries(d.changes).map(([k,[a,b]])=>`<div><span style="color:var(--text3)">${actEsc(actField(k))}:</span> <span style="color:var(--red2);text-decoration:line-through;">${actEsc(actVal(a))}</span> → <span style="color:var(--green2)">${actEsc(actVal(b))}</span></div>`).join('');
+  }
+  const obj=d.row||d;const keys=Object.keys(obj||{}).filter(k=>obj[k]!==null&&obj[k]!==''&&!['id'].includes(k));
+  if(!keys.length) return '';
+  return keys.slice(0,24).map(k=>`<div><span style="color:var(--text3)">${actEsc(actField(k))}:</span> ${actEsc(actVal(obj[k]))}</div>`).join('');
+}
+function actPropOptions(){
+  const sel=document.getElementById('act-prop');if(!sel||sel.options.length>1) return;
+  sel.innerHTML='<option value="">All properties</option>'+allProperties.map(p=>`<option value="${p.id}">${actEsc(p.name)}</option>`).join('');
+}
+async function loadActivity(more){
+  actPropOptions();
+  if(!more){actPage=0;actRows=[];}
+  const list=document.getElementById('act-list');
+  if(!more) list.innerHTML='<div class="loading">Loading…</div>';
+  let q=sb.from('activity_log').select('*').order('created_at',{ascending:false}).range(actPage*ACT_PAGE,actPage*ACT_PAGE+ACT_PAGE-1);
+  const days=Number(document.getElementById('act-days').value);
+  if(days){const since=new Date();if(days===1)since.setHours(0,0,0,0);else since.setDate(since.getDate()-days);q=q.gte('created_at',since.toISOString());}
+  const who=document.getElementById('act-who').value;
+  if(who==='system') q=q.in('actor_role',['system','database','driver','visitor']);
+  else if(who==='holder') q=q.in('actor_role',['holder']);
+  else if(who) q=q.eq('actor_role',who);
+  const prop=document.getElementById('act-prop').value; if(prop) q=q.eq('property_id',prop);
+  const type=document.getElementById('act-type').value;
+  if(type==='noplate') q=q.neq('action','enforcement.plate_check');
+  else if(type==='changes') q=q.eq('source','db');
+  else if(type==='billing') q=q.or('action.like.billing.*,action.like.pay.*');
+  else if(type) q=q.like('action',type+'%');
+  const term=document.getElementById('act-q').value.trim().replace(/[,()*%]/g,' ').trim();
+  if(term){const t='*'+term+'*';q=q.or(`summary.ilike.${t},target.ilike.${t},actor_name.ilike.${t},action.ilike.${t}`);}
+  const {data,error}=await q;
+  if(error){list.innerHTML=`<div class="loading">${/activity_log/.test(error.message)?'The activity log isn\'t set up yet. Run supabase-activity-log.sql in Supabase.':actEsc(error.message)}</div>`;return;}
+  actRows=actRows.concat(data||[]);actPage++;
+  document.getElementById('act-more').style.display=(data||[]).length===ACT_PAGE?'':'none';
+  renderActivity();
+}
+function renderActivity(){
+  const list=document.getElementById('act-list');
+  if(!actRows.length){list.innerHTML='<div class="loading">No activity for these filters.</div>';return;}
+  let lastDay='';
+  list.innerHTML=actRows.map((r,i)=>{
+    const d=new Date(r.created_at);
+    const day=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+    const head=day!==lastDay?`<div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--text3);margin:${i?16:0}px 0 8px;text-transform:uppercase;">${day}</div>`:'';
+    lastDay=day;
+    const [tag,color]=ACT_ROLES[r.actor_role]||[String(r.actor_role||'').toUpperCase()||'—','#8b949e'];
+    const det=actDetail(r);
+    const prop=r.property_id?(allProperties.find(p=>p.id===r.property_id)?.name||'—'):'—';
+    return head+`<div onclick="${det?`this.querySelector('.act-det').style.display=this.querySelector('.act-det').style.display==='none'?'block':'none'`:''}" style="display:grid;grid-template-columns:72px 190px 1fr 160px;gap:14px;align-items:start;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:6px;font-size:13px;${det?'cursor:pointer;':''}">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);padding-top:2px;">${d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</div>
+      <div style="min-width:0;"><div style="font-weight:600;overflow-wrap:anywhere;">${actEsc(r.actor_name||'—')}</div><span style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:1px 6px;border-radius:10px;background:${color}22;color:${color};">${tag}</span></div>
+      <div style="min-width:0;line-height:1.45;">${actSummary(r)}${det?` <span style="color:var(--text3);font-size:11px;">▾</span>`:''}<div class="act-det" style="display:none;margin-top:8px;background:var(--surface2);border-radius:8px;padding:9px 12px;font-size:12px;line-height:1.6;overflow-wrap:anywhere;">${det}</div></div>
+      <div style="font-size:12px;color:var(--text2);text-align:right;">${actEsc(prop)}</div></div>`;
+  }).join('');
+}
+function exportActivity(){
+  if(!actRows.length){toast('Nothing to export');return;}
+  const c=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const strip=h=>String(h).replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");
+  const csv=['Date,Time,Who,Role,Action,What happened,Property,Target,Details',...actRows.map(r=>{const d=new Date(r.created_at);return [d.toLocaleDateString(),d.toLocaleTimeString(),r.actor_name,r.actor_role,r.action,strip(actSummary(r)),r.property_id?(allProperties.find(p=>p.id===r.property_id)?.name||r.property_id):'',r.target,JSON.stringify(r.details||{})].map(c).join(',');})].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='activity-log.csv';a.click();
+  toast('📁 Activity exported');
 }
 
 async function toggleOutsideBilling(id,on){
@@ -1286,8 +1402,8 @@ function propMgrId(propId){
   return allProperties.find(p=>p.id===propId)?.manager_id||null;
 }
 
-const PANELS=['dashboard','managers','properties','permits','residents','violations','plans','staff'];
-const PANEL_TITLES={dashboard:'Dashboard',managers:'Managers',properties:'Properties',permits:'Permits',residents:'Residents / Holders',violations:'Violations',plans:'Plans & Features',staff:'Staff Access'};
+const PANELS=['activity','dashboard','managers','properties','permits','residents','violations','plans','staff'];
+const PANEL_TITLES={activity:'Activity',dashboard:'Dashboard',managers:'Managers',properties:'Properties',permits:'Permits',residents:'Residents / Holders',violations:'Violations',plans:'Plans & Features',staff:'Staff Access'};
 function showPanel(name,el){
   PANELS.forEach(p=>document.getElementById('panel-'+p)?.classList.remove('active'));
   document.getElementById('panel-'+name)?.classList.add('active');
@@ -1302,6 +1418,7 @@ function restoreFromHash(){
   if(!hash) return;
   const sbEl=document.getElementById('sb-'+hash);
   if(sbEl) showPanel(hash,sbEl);
+  if(hash==='activity') setTimeout(loadActivity,300);
 }
 
 function openModal(id){document.getElementById(id).classList.add('open');}

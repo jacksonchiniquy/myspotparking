@@ -111,8 +111,13 @@ exports.handler = async (event) => {
   if (saved.status === 'rejected') console.error('pricing-inquiry save failed:', saved.reason);
   if (emailed.status === 'rejected') console.error('pricing-inquiry email failed:', emailed.reason);
 
+  await require('./lib/activity').logActivity({
+    actorName: `${lead.first_name} ${lead.last_name}`.trim(), actorRole: 'visitor', portal: 'website',
+    action: 'lead.pricing_inquiry', target: lead.company,
+    summary: `Pricing inquiry from ${lead.company} (${lead.units} units, ${lead.email})`, details: { email: lead.email, units: lead.units, state: lead.state },
+  });
   if (saved.status === 'rejected' && emailed.status === 'rejected') {
-    return reply(500, { error: 'We could not send your request. Please email info@myspotparking.com.' });
+    return reply(500, { error: 'We could not send your request. Please email support@myspotparking.com.' });
   }
   return reply(200, { ok: true });
 };

@@ -262,8 +262,15 @@ async function handleSignIn(){
     err.textContent='This account is not an Enforcement account.';err.classList.add('show');
     await sb.auth.signOut();btn.disabled=false;btn.textContent='Sign In →';return;
   }
+  logAct('auth.sign_in','Signed in to the enforcement portal');
   enterDashboard(profile);
 }
+// Activity log (admin can see who did what). Never blocks or shows errors.
+function logAct(action,summary,extra){
+  try{sb.auth.getUser().then(({data})=>{const id=data&&data.user&&data.user.id;if(!id)return;
+    sb.from('activity_log').insert(Object.assign({actor_id:id,action:action,summary:summary,portal:'enforcement',source:'app'},extra||{})).then(()=>{},()=>{});}).catch(()=>{});}catch(e){}
+}
+
 
 async function checkExistingSession(){
   const {data:{session}}=await sb.auth.getSession();
@@ -372,6 +379,11 @@ async function lookupPlate(){
     return;
   }
   stats.checked++;
+  {
+    const label={valid:'valid',expired:'expired',possible:'possible look-alike match',none:'no permit found'}[r.result]||r.result;
+    logAct('enforcement.plate_check','Plate check '+raw.toUpperCase()+' → '+label+(r.kind&&r.result==='valid'?' ('+(r.kind==='session'?'paid session':r.kind==='guest'?'guest pass':'permit')+')':''),
+      {property_id:patrolProperty.id,target:raw.toUpperCase(),details:{result:r.result,kind:r.kind||null,matches:(r.matches||[]).map(m=>m.plate)}});
+  }
   const time=new Date().toLocaleTimeString();
   const where=`${esc(r.property||patrolProperty.name)} · ${time}`;
   document.getElementById('plate-input').value='';
@@ -467,6 +479,7 @@ function renderPossible(raw,r,time){
 async function confirmPossible(i){
   if(!pendingPossible) return;
   const {raw,r,time}=pendingPossible; const m=r.matches[i]; pendingPossible=null;
+  logAct('enforcement.lookalike_confirmed','Confirmed look-alike: car '+raw.toUpperCase()+' matches permit '+m.plate,{property_id:patrolProperty.id,target:raw.toUpperCase()});
   stats.valid++;updateStats();
   patrolLog[0]={plate:raw,result:'Valid (look-alike)',time};
   // Flag for the property manager so the plate on file can be corrected
@@ -480,6 +493,7 @@ async function confirmPossible(i){
 async function rejectPossible(){
   if(!pendingPossible) return;
   const {raw,r,time}=pendingPossible; pendingPossible=null;
+  logAct('enforcement.lookalike_rejected','Rejected look-alike for '+raw.toUpperCase()+' — not the same car',{property_id:patrolProperty.id,target:raw.toUpperCase()});
   stats.violations++;updateStats();
   const reason='No valid permit found for this property (possible look-alike rejected by officer)';
   const vid='C-'+Date.now().toString().slice(-6);

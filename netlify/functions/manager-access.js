@@ -126,6 +126,10 @@ exports.handler = async (event) => {
       if (!u || u.role !== 'manager_pending' || u.access_request?.notified_at) return reply(200, { ok: true });
       await sendRaw(requestEmail(u));
       await patchUser(userId, { access_request: { ...(u.access_request || {}), notified_at: new Date().toISOString() } });
+      await require('./lib/activity').logActivity({
+        actorId: userId, actorName: u.full_name || u.name || u.email, actorRole: 'manager_pending', portal: 'manager',
+        action: 'access.requested', target: u.email, summary: `Requested manager access${u.company ? ' for ' + u.company : ''}`,
+      });
       return reply(200, { ok: true });
     }
 
@@ -144,6 +148,11 @@ exports.handler = async (event) => {
       let emailed = true;
       try { await sendRaw(action === 'approved' ? approvedEmail(u) : declinedEmail(u)); }
       catch (e) { emailed = false; console.error('manager-access email failed:', e); }
+      await require('./lib/activity').logActivity({
+        actorId: admin.id || null, actorName: admin.full_name || admin.name || admin.email, actorRole: 'admin', portal: 'admin',
+        action: action === 'approved' ? 'access.approved' : 'access.declined', target: u.email,
+        summary: `${action === 'approved' ? 'Approved' : 'Declined'} manager access for ${u.full_name || u.name || u.email}`,
+      });
       return reply(200, { ok: true, emailed });
     }
 

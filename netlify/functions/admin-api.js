@@ -49,6 +49,9 @@ exports.handler = async (event) => {
       const rows = await sb('PATCH', `properties?id=eq.${body.propertyId}`, { outside_billing: !!body.on });
       if (!rows?.length) return reply(404, { error: 'Property not found.' });
       console.log(`Outside billing ${body.on ? 'ON' : 'OFF'} for ${body.propertyId} by ${admin.email}`);
+      const { logActivity, userActor } = require('./lib/activity');
+      await logActivity({ ...(await userActor(admin.id)), actorRole: 'admin', portal: 'admin', action: 'billing.outside_billing',
+        propertyId: body.propertyId, target: rows[0].name || null, summary: `Turned Outside Billing ${body.on ? 'ON' : 'OFF'}` });
       return reply(200, { ok: true });
     }
     return reply(400, { error: 'Unknown action' });

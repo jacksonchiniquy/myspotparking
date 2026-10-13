@@ -10,6 +10,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { hashPassword } = require('./lib/unit-password');
 const { send, sendRaw, logoHeader } = require('./send-email');
 const { activateSession } = require('./lib/parking');
+const { logActivity, money } = require('./lib/activity');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY; // service role key for server-side writes
@@ -82,6 +83,12 @@ async function handleCheckoutCompleted(session) {
   if (meta.kind === 'parking_session') {
     const row = await activateSession(session);
     console.log('Pay to Park session', row ? `activated: ${row.plate}` : 'not found', session.id);
+    if (row) await logActivity({
+      actorName: row.email || session.customer_details?.email || 'Pay to Park driver', actorRole: 'driver', portal: 'pay',
+      action: 'pay.session_paid', propertyId: row.property_id, target: row.plate,
+      summary: `Paid ${money(session.amount_total ?? row.amount_paid)} to park ${row.plate}${row.rate_name ? ' · ' + row.rate_name : ''}`,
+      details: { plate: row.plate, rate: row.rate_name, minutes: row.duration_minutes, expires_at: row.expires_at },
+    });
     return;
   }
 
@@ -92,6 +99,16 @@ async function handleCheckoutCompleted(session) {
       { spot_paid: true, paid_via: 'card', spot_subscription_id: session.subscription || null, stripe_customer_id: session.customer || null },
       `id=eq.${meta.slot_id}&property_id=eq.${meta.property_id}&billing_type=eq.monthly`);
     console.log(`Spot ${meta.slot_id} paid for Unit ${meta.unit_number}`);
+    {
+      const slotRows = await sbSelect('property_units', `id=eq.${meta.slot_id}&select=slot_label`);
+      const label = (Array.isArray(slotRows) && slotRows[0]?.slot_label) || 'a spot';
+      await logActivity({
+        actorName: session.customer_details?.name || session.customer_details?.email || `Unit ${meta.unit_number} resident`,
+        actorRole: 'unit', portal: 'unit', action: 'billing.spot_paid', propertyId: meta.property_id, target: `Unit ${meta.unit_number}`,
+        summary: `Paid for ${label} — ${money(session.amount_total)}/mo by card`,
+        details: { slot_id: meta.slot_id, subscription: session.subscription || null },
+      });
+    }
     try { await spotAddedEmails(meta, session); }
     catch (e) { console.error('Spot added emails failed (non-fatal):', e.message); }
     return;
@@ -228,6 +245,12 @@ async function handleCheckoutCompleted(session) {
   }
 
   console.log(`Permit created for ${tenant_email} at ${propertyName} Unit ${unit_number}`);
+  await logActivity({
+    actorId: userId || null, actorName: tenant_name || tenant_email, actorRole: 'holder', portal: 'signup',
+    action: 'unit.signed_up', propertyId: property_id, target: `Unit ${unit_number}`,
+    summary: `Signed up with invite ${invite_code} and paid ${money(session.amount_total)} (${billing_interval || 'monthly'})`,
+    details: { email: tenant_email, spots: String(meta.spot_ids || '').split(',').filter(Boolean) },
+  });
 }
 
 // Property name + the manager's email (from the manager's account; properties
@@ -324,6 +347,26 @@ async function handleInvoicePaid(invoice) {
   );
 
   console.log(`Invoice paid for subscription ${subscriptionId}`);
+  const ctx = await subscriptionContext(subscriptionId);
+  await logActivity({
+    actorName: 'Stripe', actorRole: 'system', portal: 'system', action: 'billing.payment_received',
+    propertyId: ctx.propertyId, target: ctx.unit ? `Unit ${ctx.unit}` : null,
+    summary: `Payment received: ${money(invoice.amount_paid)}${ctx.who ? ' from ' + ctx.who : ''}`,
+    details: { subscription: subscriptionId, invoice: invoice.id },
+  });
+}
+
+// Which property / unit / person a Stripe subscription belongs to (for the activity log)
+async function subscriptionContext(subscriptionId) {
+  try {
+    const permits = await sbSelect('permits', `stripe_subscription_id=eq.${encodeURIComponent(subscriptionId)}&select=property_id,unit_number,holder_name,holder_email&limit=1`);
+    const p = Array.isArray(permits) ? permits[0] : null;
+    if (p) return { propertyId: p.property_id, unit: p.unit_number, who: p.holder_name || p.holder_email };
+    const spots = await sbSelect('property_units', `spot_subscription_id=eq.${encodeURIComponent(subscriptionId)}&select=property_id,unit_number,slot_label&limit=1`);
+    const s = Array.isArray(spots) ? spots[0] : null;
+    if (s) return { propertyId: s.property_id, unit: s.unit_number, who: null };
+  } catch {}
+  return {};
 }
 
 async function handlePaymentFailed(invoice) {
@@ -332,6 +375,15 @@ async function handlePaymentFailed(invoice) {
   if (!subscriptionId) return;
 
   await sbUpdate('permits', { billing_status: 'past_due' }, `stripe_subscription_id=eq.${subscriptionId}`);
+  {
+    const ctx = await subscriptionContext(subscriptionId);
+    await logActivity({
+      actorName: 'Stripe', actorRole: 'system', portal: 'system', action: 'billing.payment_failed',
+      propertyId: ctx.propertyId, target: ctx.unit ? `Unit ${ctx.unit}` : null,
+      summary: `Payment failed: ${money(invoice.amount_due)}${ctx.who ? ' for ' + ctx.who : ''}`,
+      details: { subscription: subscriptionId, invoice: invoice.id },
+    });
+  }
 
   const permits = await sbSelect('permits', `stripe_subscription_id=eq.${subscriptionId}&select=*`);
   const permit = permits?.[0];
@@ -384,6 +436,16 @@ async function handleSubscriptionDeleted(subscription) {
   if (subscription.metadata?.moved_out === '1') {
     console.log(`Subscription ${subscriptionId} ended by tenant move-out`);
     return;
+  }
+
+  {
+    const ctx = await subscriptionContext(subscriptionId);
+    await logActivity({
+      actorName: 'Stripe', actorRole: 'system', portal: 'system', action: 'billing.subscription_ended',
+      propertyId: ctx.propertyId, target: ctx.unit ? `Unit ${ctx.unit}` : null,
+      summary: `Card billing ended${ctx.who ? ' for ' + ctx.who : ''} — paid spots locked`,
+      details: { subscription: subscriptionId },
+    });
   }
 
   // Spots paid by this subscription are locked again (other spots are untouched)

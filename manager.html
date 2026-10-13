@@ -1373,8 +1373,15 @@ async function handleSignIn(){
     err.textContent='This account is not a Property Manager account.';err.classList.add('show');
     await sb.auth.signOut();btn.disabled=false;btn.textContent='Sign In →';return;
   }
+  logAct('auth.sign_in','Signed in to the manager portal');
   enterApp(profile);
 }
+// Activity log (admin can see who did what). Never blocks or shows errors.
+function logAct(action,summary,extra){
+  try{sb.auth.getUser().then(({data})=>{const id=data&&data.user&&data.user.id;if(!id)return;
+    sb.from('activity_log').insert(Object.assign({actor_id:id,action:action,summary:summary,portal:'manager',source:'app'},extra||{})).then(()=>{},()=>{});}).catch(()=>{});}catch(e){}
+}
+
 
 async function handleForgotPassword(){
   const email=document.getElementById('si-email').value.trim();

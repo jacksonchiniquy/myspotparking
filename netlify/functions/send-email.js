@@ -253,7 +253,7 @@ exports.handler = async (event) => {
     const who = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${jwt}` } });
     if (!who.ok) return reply(401, { error: 'Please sign in again.' });
     const { id: userId } = await who.json();
-    const [me] = await sbGet(`users?id=eq.${userId}&select=role`);
+    const [me] = await sbGet(`users?id=eq.${userId}&select=*`);
 
     // 2. Is this their unit?
     const to = String(body.to || '').trim().toLowerCase();
@@ -275,6 +275,11 @@ exports.handler = async (event) => {
       inviteLink: `${SITE}/signup.html?code=${encodeURIComponent(inviteCode)}`,
     });
     await sendViaSES({ to, ...template });
+    await require('./lib/activity').logActivity({
+      actorId: userId, actorName: me?.full_name || me?.name || me?.email || null, actorRole: me?.role, portal: 'manager',
+      action: 'unit.invite_sent', propertyId, target: `Unit ${unitNumber}`, summary: `Emailed the signup invite to ${to}`,
+      details: { to, invite_code: inviteCode },
+    });
     return reply(200, { ok: true });
   } catch (err) {
     console.error('send-email error:', err);

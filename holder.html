@@ -609,6 +609,7 @@ async function handleSignIn(){
     err.textContent='This account is not a Permit Holder account.';err.classList.add('show');
     await sb.auth.signOut();btn.disabled=false;btn.textContent='Sign In →';return;
   }
+  logAct('auth.sign_in','Signed in to the resident portal');
   // Link any permits a manager issued to this email before the account existed
   const {error:claimErr}=await sb.rpc('claim_my_permits');
   if(claimErr) await sb.from('permits').update({holder_id:data.user.id}).eq('holder_email',email).is('holder_id',null);
@@ -1185,6 +1186,12 @@ async function saveAccount(){
 
 // ── BOOT ──────────────────────────────────────────────────────────────
 checkExistingSession();
+
+// Activity log (admin can see who did what). Never blocks or shows errors.
+function logAct(action,summary,extra){
+  try{sb.auth.getUser().then(({data})=>{const id=data&&data.user&&data.user.id;if(!id)return;
+    sb.from('activity_log').insert(Object.assign({actor_id:id,action:action,summary:summary,portal:'resident',source:'app'},extra||{})).then(()=>{},()=>{});}).catch(()=>{});}catch(e){}
+}
 </script>
 </body>
 </html>

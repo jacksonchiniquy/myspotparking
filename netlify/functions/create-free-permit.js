@@ -148,6 +148,11 @@ exports.handler = async (event) => {
       console.warn('Welcome email failed:', e.message);
     }
 
+    await require('./lib/activity').logActivity({
+      actorId: userId || null, actorName: tenantName || tenantEmail, actorRole: 'holder', portal: 'signup',
+      action: 'unit.signed_up', propertyId, target: `Unit ${unitNumber}`,
+      summary: `Signed up with invite ${inviteCode} (no payment)`, details: { email: tenantEmail },
+    });
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
