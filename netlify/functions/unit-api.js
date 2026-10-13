@@ -20,6 +20,7 @@
 //   billingPortal   { token }                → { url }  resident's Stripe billing page
 //   managerSendSpotLink { slotId, email? }   emails the resident a "Pay & Add Spot" link
 //   managerMarkPaid / managerMarkUnpaid { slotId }  outside billing (admin must allow it per property)
+//   managerMoveOutPreview / managerMoveOut { slotId }  tenant turnover for the whole unit
 
 const crypto = require('crypto');
 const { hashPassword, verifyPassword, isHashed, generatePassword } = require('./lib/unit-password');
@@ -200,6 +201,36 @@ async function propertyRow(propertyId) {
   return p || {};
 }
 const escH = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// ── Move-out helpers ─────────────────────────────────────────
+function newInviteCode() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) { if (i === 4) code += '-'; code += chars[crypto.randomInt(chars.length)]; }
+  return code;
+}
+async function moveOutSummary(u) {
+  const slotIds = u.slots.map(x => x.id);
+  const [vehicles, ups, permits] = await Promise.all([
+    sb('GET', `unit_vehicles?property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}&select=plate`),
+    sb('GET', `unit_permits?unit_slot_id=in.(${slotIds.join(',')})&void_at=is.null&select=plate`),
+    sb('GET', `permits?property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}&status=eq.active&select=id,plate,stripe_subscription_id`),
+  ]);
+  const subs = new Set();
+  u.slots.forEach(x => { if (x.spot_subscription_id) subs.add(x.spot_subscription_id); });
+  permits.forEach(p => { if (p.stripe_subscription_id) subs.add(p.stripe_subscription_id); });
+  const tenant = u.slots.find(x => x.tenant_name || x.tenant_email) || {};
+  const plates = [...new Set([...vehicles, ...ups, ...permits].map(v => String(v.plate || '').toUpperCase()).filter(Boolean))];
+  return {
+    unitNumber: u.unitNumber,
+    tenantName: tenant.tenant_name || null, tenantEmail: tenant.tenant_email || null,
+    signedUp: u.slots.some(x => x.invite_used || x.unit_password),
+    plates,
+    paidSpots: u.slots.filter(x => x.spot_paid).map(x => ({ label: x.slot_label || 'Spot', via: x.paid_via || 'card', amount: x.monthly_amount })),
+    cardBilling: subs.size,
+    _subscriptions: [...subs],
+  };
+}
 
 // ── Actions ──────────────────────────────────────────────────
 const actions = {
@@ -395,6 +426,50 @@ const actions = {
     }
     await sb('PATCH', `property_units?id=eq.${u.slot.id}`, { spot_paid: false, paid_via: null });
     return { ok: true };
+  },
+
+  // ── Tenant move-out (turnover) ─────────────────────────────
+  async managerMoveOutPreview({ slotId }, event) {
+    const u = await authManagerForSlot(event, slotId);
+    const { _subscriptions, ...summary } = await moveOutSummary(u);
+    return summary;
+  },
+
+  async managerMoveOut({ slotId }, event) {
+    const u = await authManagerForSlot(event, slotId);
+    const sum = await moveOutSummary(u);
+    const st = stripe();
+
+    // 1. Stop the old tenant's card billing (marked so the webhook doesn't send "suspended" emails)
+    const cancelFailed = [];
+    for (const subId of sum._subscriptions) {
+      try {
+        await st.subscriptions.update(subId, { metadata: { moved_out: '1' } });
+        await st.subscriptions.cancel(subId);
+      } catch (e) {
+        if (!/No such subscription|canceled/i.test(e.message || '')) { cancelFailed.push(subId); console.error('Move-out cancel failed', subId, e.message); }
+      }
+    }
+    // 2. Their cars are no longer valid to enforcement
+    const slotIds = u.slots.map(x => x.id);
+    await sb('PATCH', `unit_permits?unit_slot_id=in.(${slotIds.join(',')})&void_at=is.null`, { void_at: new Date().toISOString() });
+    await sb('PATCH', `permits?property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}&status=eq.active`,
+      { status: 'revoked', ...(sum._subscriptions.length ? { billing_status: 'suspended' } : {}) });
+    // 3. Clear their saved vehicles
+    await sb('DELETE', `unit_vehicles?property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}`);
+    // 4. Sign them out, clear tenant info and paid spots, new invite for the next tenant
+    await sb('PATCH', `property_units?property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}`, {
+      unit_password: null, invite_used: false, invite_used_at: null, tenant_email: null, tenant_name: null,
+      spot_paid: false, paid_via: null, spot_subscription_id: null, stripe_customer_id: null,
+    });
+    const inviteSlot = u.slots.find(x => x.invite_code) || u.slots[0];
+    let code = null;
+    for (let i = 0; i < 3 && !code; i++) {
+      const c = newInviteCode();
+      try { await sb('PATCH', `property_units?id=eq.${inviteSlot.id}`, { invite_code: c }); code = c; }
+      catch (e) { if (!/duplicate|unique/i.test(e.message)) throw e; }
+    }
+    return { ok: true, inviteCode: code, cancelFailed };
   },
 
   async managerVoid({ slotId }, event) {

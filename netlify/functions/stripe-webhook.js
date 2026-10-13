@@ -380,6 +380,12 @@ async function handlePaymentFailed(invoice) {
 async function handleSubscriptionDeleted(subscription) {
   const subscriptionId = subscription.id;
 
+  // Cancelled by a manager's "Move Out Tenant": everything was already cleaned up
+  if (subscription.metadata?.moved_out === '1') {
+    console.log(`Subscription ${subscriptionId} ended by tenant move-out`);
+    return;
+  }
+
   // Spots paid by this subscription are locked again (other spots are untouched)
   try {
     await sbUpdate('property_units', { spot_paid: false, paid_via: null, spot_subscription_id: null },

@@ -792,6 +792,21 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
   </div>
 </div>
 
+<!-- MODAL: Move Out Tenant -->
+<div class="modal-overlay" id="modal-move-out">
+  <div class="modal" style="width:480px;">
+    <button class="modal-close" onclick="closeModal('modal-move-out')">✕</button>
+    <div class="modal-title" id="mo-title">Move Out Tenant</div>
+    <div class="modal-sub">Use this when a tenant leaves. The unit is cleared and ready for the next tenant.</div>
+    <div id="mo-body" style="font-size:13px;color:var(--text2);">Loading…</div>
+    <div class="err-msg" id="mo-err"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-danger" id="mo-btn" style="flex:1;" onclick="doMoveOut()" disabled>Move Out Tenant</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-move-out')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Bulk Add Units -->
 <div class="modal-overlay" id="modal-bulk-units">
   <div class="modal" style="width:640px;max-width:calc(100vw - 32px);max-height:calc(100vh - 40px);overflow-y:auto;">
@@ -4352,7 +4367,7 @@ function renderUnitsTab(){
               <span style="font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--blue);">${inviteCode}</span>
             </div>
             <button class="btn ${inviteUsed?'btn-ghost':'btn-primary'} btn-sm" onclick="copyInviteLink('${inviteLink}','${unitNum}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> ${inviteUsed?'View Invite':'Invite Tenant'}</button>
-            ${inviteUsed?`<button class="btn btn-ghost btn-sm" title="Reset so a new tenant can sign up" onclick="resetInviteCode('${slots[0].id}','${unitNum}')">Reset Code</button>`:''}
+            ${inviteUsed?`<button class="btn btn-ghost btn-sm" title="Tenant turnover: removes the current tenant and gets the unit ready for the next one" onclick="openMoveOut('${slots[0].id}','${unitNum}')">Move Out Tenant</button>`:''}
           `:`<button class="btn btn-ghost btn-sm" onclick="generateInviteCodeForUnit('${slots[0].id}','${unitNum}')">Generate Invite</button>`}
           <button class="btn btn-ghost btn-sm" onclick="openAddUnitSlot('${unitNum}')">+ Slot</button>
         </div>
@@ -4650,6 +4665,45 @@ async function generateInviteCodeForUnit(slotId,unitNum){
   loadUnitsTab(currentPropertyId);
 }
 
+// ── Move Out Tenant (turnover) ──
+let _moveOut=null;
+async function openMoveOut(slotId,unitNum){
+  _moveOut={slotId,unitNum};
+  document.getElementById('mo-title').textContent='Move Out Tenant · Unit '+unitNum;
+  document.getElementById('mo-err').classList.remove('show');
+  const body=document.getElementById('mo-body'),btn=document.getElementById('mo-btn');
+  body.textContent='Loading…';btn.disabled=true;btn.textContent='Move Out Tenant';
+  openModal('modal-move-out');
+  const r=await unitService('managerMoveOutPreview',{slotId});
+  if(r.error){body.textContent='';const e=document.getElementById('mo-err');e.textContent=r.error;e.classList.add('show');return;}
+  const li=t=>`<li style="margin:4px 0;">${t}</li>`;
+  const who=r.tenantName||r.tenantEmail?`<strong>${escHtml(r.tenantName||r.tenantEmail)}</strong>${r.tenantName&&r.tenantEmail?' · '+escHtml(r.tenantEmail):''}`:'the current tenant';
+  const paid=r.paidSpots.map(p=>escHtml(p.label)+(p.via==='manual'?' (paid outside the app)':' (paid by card'+(p.amount?', $'+Number(p.amount).toFixed(2)+'/mo':'')+')')).join(', ');
+  body.innerHTML=`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;">Current tenant: ${who}</div>
+    <div style="font-weight:700;color:var(--text1);margin-bottom:4px;">This will:</div>
+    <ul style="margin:0 0 0 18px;padding:0;line-height:1.45;">
+      ${li('Sign them out of the unit portal and remove their password')}
+      ${li(r.plates.length?'Void permits and clear saved vehicles: <strong>'+r.plates.map(escHtml).join(', ')+'</strong> — enforcement will no longer see them as valid':'Clear any saved vehicles (none on file)')}
+      ${r.cardBilling?li('Cancel their card billing ('+r.cardBilling+' subscription'+(r.cardBilling===1?'':'s')+') — no more charges'):''}
+      ${r.paidSpots.length?li('Set paid spots back to Not Paid: '+paid):''}
+      ${li('Create a new invite code so you can <strong>Invite Tenant</strong> for the next resident')}
+    </ul>
+    <div style="margin-top:10px;font-size:12px;color:#b45309;">This can't be undone.</div>`;
+  btn.disabled=false;
+}
+async function doMoveOut(){
+  if(!_moveOut) return;
+  const btn=document.getElementById('mo-btn'),err=document.getElementById('mo-err');
+  btn.disabled=true;btn.textContent='Moving out…';err.classList.remove('show');
+  const r=await unitService('managerMoveOut',{slotId:_moveOut.slotId});
+  if(r.error){err.textContent=r.error;err.classList.add('show');btn.disabled=false;btn.textContent='Move Out Tenant';return;}
+  closeModal('modal-move-out');
+  toast(r.cancelFailed&&r.cancelFailed.length
+    ?'⚠️ Unit '+_moveOut.unitNum+' cleared, but card billing couldn\'t be cancelled — contact support'
+    :'✅ Unit '+_moveOut.unitNum+' is ready for a new tenant');
+  loadUnitsTab(currentPropertyId);
+}
+
 async function resetInviteCode(slotId,unitNum){
   if(!confirm('Reset the invite code? The old link will stop working. Use this when a tenant changes.')) return;
   const code=makeInviteCode();
@@ -4718,7 +4772,7 @@ function copyInviteLink(link,unitNum){
   const claimed=document.getElementById('il-claimed');
   if(info.used){
     claimed.style.display='';
-    claimed.innerHTML='✅ This unit has already been claimed'+(info.email?' by <strong>'+escHtml(info.name||info.email)+'</strong>':'')+'. Use <strong>Reset Code</strong> if a new tenant needs to sign up.';
+    claimed.innerHTML='✅ This unit has already been claimed'+(info.email?' by <strong>'+escHtml(info.name||info.email)+'</strong>':'')+'. When they move out, use <strong>Move Out Tenant</strong> to get the unit ready for the next tenant.';
     document.getElementById('il-email-wrap').style.display='none';
   } else {
     claimed.style.display='none';
