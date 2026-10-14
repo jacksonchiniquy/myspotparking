@@ -9,6 +9,7 @@
 <title>Property Manager — My Spot Parking</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="violations-pager.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root{--bg:#f4f7ff;--surface:#ffffff;--surface2:#f0f4ff;--border:rgba(15,23,42,0.09);--border2:rgba(15,23,42,0.05);--blue:#1a6fff;--blue2:#4d8fff;--bluelight:#e8f1ff;--text:#0f172a;--text2:#475569;--text3:#94a3b8;--green:#00c87a;--amber:#f59e0b;--red:#ef4444;--shadow:0 1px 4px rgba(15,23,42,0.06),0 4px 16px rgba(15,23,42,0.04);}
@@ -417,7 +418,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div id="ip-all" class="inner-panel active"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Holder</th><th>Property</th><th>Type</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead><tbody id="body-all"></tbody></table></div></div>
       <div id="ip-active" class="inner-panel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Holder</th><th>Property</th><th>Type</th><th>Expires</th><th>Actions</th></tr></thead><tbody id="body-active"></tbody></table></div></div>
       <div id="ip-expired" class="inner-panel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Holder</th><th>Property</th><th>Expired On</th><th>Actions</th></tr></thead><tbody id="body-expired"></tbody></table></div></div>
-      <div id="ip-violations" class="inner-panel"><div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button class="btn btn-ghost btn-sm" onclick="exportViolations()">Export CSV</button></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Reason</th><th>Property</th><th>Date</th><th>Status</th></tr></thead><tbody id="body-violations"></tbody></table></div></div>
+      <div id="ip-violations" class="inner-panel"><div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button class="btn btn-ghost btn-sm" onclick="exportViolations()">Export CSV</button></div><div id="all-viol-list"></div></div>
     </div>
   </div>
 
@@ -705,10 +706,10 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
       <!-- Violations for this property -->
       <div class="sec-head" style="margin-top:36px;margin-bottom:14px;">
-        <div><div class="sec-title">Violations</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">Citations logged by enforcement</div></div>
+        <div><div class="sec-title">Violations</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">Vehicles towed, booted or ticketed by enforcement</div></div>
         <button class="btn btn-ghost btn-sm" onclick="exportPropertyViolations()">Export CSV</button>
       </div>
-      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Reason</th><th>Date</th><th>Status</th></tr></thead><tbody id="pd-body-violations"></tbody></table></div>
+      <div id="pd-viol-list"></div>
     </div>
   </div>
 
@@ -1888,17 +1889,25 @@ async function setResidentStatus(id,status){
   toast(status==='active'?'✅ Resident reactivated':'Resident deactivated');
 }
 
+function violStatusPill(v){
+  return v.status==='Plate Mismatch'
+    ?'<span class="pill" style="background:rgba(217,119,6,.12);color:#b45309;border:1px solid rgba(217,119,6,.3);" title="Officer verified the vehicle but the plate on file looks wrong. Please correct it.">Fix Plate</span>'
+    :`<span class="pill ${v.status==='Open'?'pill-expired':'pill-active'}">${escHtml(v.status)}</span>`;
+}
+const VIOL_SORTS={plate:v=>String(v.plate||'').toUpperCase(),action:v=>v.action||'',date:v=>v.noted_at||'',status:v=>v.status||'',property:v=>propName(v.property_id)};
 function renderViolationsTable(){
-  document.getElementById('body-violations').innerHTML=allViolations.map(v=>`
-    <tr>
-      <td><strong style="font-family:'JetBrains Mono',monospace">${v.plate}</strong></td>
-      <td style="font-size:12px">${v.reason||'—'}</td>
-      <td style="font-size:12px;color:var(--text2)">${propName(v.property_id)}</td>
+  vpShow('mgr-all',{mount:'all-viol-list',rows:()=>allViolations,sorts:VIOL_SORTS,
+    cols:[{label:'Plate',sort:'plate'},{label:'Action',sort:'action'},{label:'Reason'},{label:'Property',sort:'property'},{label:'Date',sort:'date'},{label:'Status',sort:'status'}],
+    text:v=>[v.plate,v.reason,VP_ACTION[v.action],propName(v.property_id)].join(' '),
+    empty:'No violations logged.',
+    row:v=>`<tr>
+      <td><strong style="font-family:'JetBrains Mono',monospace">${escHtml(v.plate)}</strong></td>
+      <td>${vpAction(v.action)}</td>
+      <td style="font-size:12px">${escHtml(v.reason||'—')}</td>
+      <td style="font-size:12px;color:var(--text2)">${escHtml(propName(v.property_id))}</td>
       <td style="font-size:12px;color:var(--text3)">${new Date(v.noted_at).toLocaleDateString()}</td>
-      <td>${v.status==='Plate Mismatch'
-        ?'<span class="pill" style="background:rgba(217,119,6,.12);color:#b45309;border:1px solid rgba(217,119,6,.3);" title="Officer verified the vehicle but the plate on file looks wrong. Please correct it.">Fix Plate</span>'
-        :`<span class="pill ${v.status==='Open'?'pill-expired':'pill-active'}">${v.status}</span>`}</td>
-    </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">No violations logged.</td></tr>';
+      <td>${violStatusPill(v)}</td>
+    </tr>`});
 }
 
 function filterResidents(q){
@@ -2375,7 +2384,7 @@ function inviteResident(propertyId){
 
 function exportViolations(){
   if(!allViolations.length){toast('No violations to export');return;}
-  const csv=['Plate,Reason,Property,Date,Status',...allViolations.map(v=>`${v.plate},"${v.reason||''}","${propName(v.property_id)}",${new Date(v.noted_at).toLocaleDateString()},${v.status}`)].join('\n');
+  const csv=['Plate,Action,Reason,Property,Date,Status',...allViolations.map(v=>`${v.plate},${VP_ACTION[v.action]||''},"${v.reason||''}","${propName(v.property_id)}",${new Date(v.noted_at).toLocaleDateString()},${v.status}`)].join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='violations.csv';a.click();
   toast('📁 Violations exported');
 }
@@ -2555,15 +2564,18 @@ function renderPropertyDetail(propId){
   document.getElementById('pd-body-active').innerHTML=activeRow;
   document.getElementById('pd-body-expired').innerHTML=expiredRow;
 
-  // Violations
-  document.getElementById('pd-body-violations').innerHTML=propViolations.map(v=>`<tr>
-    <td><strong style="font-family:'JetBrains Mono',monospace">${v.plate}</strong></td>
-    <td style="font-size:12px">${v.reason||'—'}</td>
-    <td style="font-size:12px;color:var(--text3)">${new Date(v.noted_at).toLocaleDateString()}</td>
-    <td>${v.status==='Plate Mismatch'
-      ?'<span class="pill" style="background:rgba(217,119,6,.12);color:#b45309;border:1px solid rgba(217,119,6,.3);" title="Officer verified the vehicle but the plate on file looks wrong. Please correct it.">Fix Plate</span>'
-      :`<span class="pill ${v.status==='Open'?'pill-expired':'pill-active'}">${v.status}</span>`}</td>
-  </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--text3)">No violations for this property.</td></tr>';
+  // Violations (a page at a time)
+  vpShow('mgr-pd',{mount:'pd-viol-list',resetKey:propId,rows:()=>allViolations.filter(x=>x.property_id===propId),sorts:VIOL_SORTS,
+    cols:[{label:'Plate',sort:'plate'},{label:'Action',sort:'action'},{label:'Reason'},{label:'Date',sort:'date'},{label:'Status',sort:'status'}],
+    text:v=>[v.plate,v.reason,VP_ACTION[v.action]].join(' '),
+    empty:'No violations for this property.',
+    row:v=>`<tr>
+      <td><strong style="font-family:'JetBrains Mono',monospace">${escHtml(v.plate)}</strong></td>
+      <td>${vpAction(v.action)}</td>
+      <td style="font-size:12px">${escHtml(v.reason||'—')}</td>
+      <td style="font-size:12px;color:var(--text3)">${new Date(v.noted_at).toLocaleDateString()}</td>
+      <td>${violStatusPill(v)}</td>
+    </tr>`});
 }
 
 function setPDTab(name){
@@ -4328,7 +4340,7 @@ function exportPropertyPermits(){
 function exportPropertyViolations(){
   const propViolations=allViolations.filter(x=>x.property_id===currentPropertyId);
   if(!propViolations.length){toast('No violations to export');return;}
-  const csv=['Plate,Reason,Date,Status',...propViolations.map(v=>`${v.plate},"${v.reason||''}",${new Date(v.noted_at).toLocaleDateString()},${v.status}`)].join('\n');
+  const csv=['Plate,Action,Reason,Date,Status',...propViolations.map(v=>`${v.plate},${VP_ACTION[v.action]||''},"${v.reason||''}",${new Date(v.noted_at).toLocaleDateString()},${v.status}`)].join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   const name=(allProperties.find(x=>x.id===currentPropertyId)?.name||'property').replace(/\s+/g,'-').toLowerCase();
   a.download=name+'-violations.csv';a.click();

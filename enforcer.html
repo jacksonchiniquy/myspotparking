@@ -333,10 +333,11 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 
 async function loadAssignedProperties(){
   const sel=document.getElementById('patrol-property');
-  const {data,error}=await sb.from('enforcement_assignments').select('property_id, properties(name,address)');
+  let {data,error}=await sb.from('enforcement_assignments').select('property_id, properties(name,address,enforcement_actions)');
+  if(error) ({data,error}=await sb.from('enforcement_assignments').select('property_id, properties(name,address)'));
   const seen=new Set();
   assignedProperties=(data||[]).filter(a=>a.properties&&!seen.has(a.property_id)&&seen.add(a.property_id))
-    .map(a=>({id:a.property_id,name:a.properties.name,address:a.properties.address}))
+    .map(a=>({id:a.property_id,name:a.properties.name,address:a.properties.address,actions:a.properties.enforcement_actions}))
     .sort((a,b)=>a.name.localeCompare(b.name));
   if(error||!assignedProperties.length){
     sel.innerHTML='<option value="">No properties assigned yet</option>';sel.disabled=true;
@@ -418,21 +419,11 @@ async function lookupPlate(){
     updateStats();renderSummary();
     return;
   }else{
-    // Expired permit or nothing valid at this property → log a violation for this property
-    stats.violations++;updateStats();
+    // Expired permit or nothing valid: nothing is saved until the officer takes action
     const expired=r.result==='expired';
     const reason=expired?`Permit expired ${fmtDate(r.end_date)}`:'No valid permit found for this property';
-    const vid='C-'+Date.now().toString().slice(-6);
-    await sb.from('violations').insert({officer_id:currentUser.id,property_id:patrolProperty.id,plate:raw,reason,status:'Open'});
-    sessionViolations.unshift({id:vid,plate:raw,reason,time,status:'Open'});
-    patrolLog.unshift({plate:raw,result:'Violation',time});
-    renderViolationsLog();
-    resultEl.innerHTML=resultCard('violation',expired?'VIOLATION — PERMIT EXPIRED':'VIOLATION — NO VALID PERMIT',`Logged at ${where} · Citation ${vid}`,raw,
-      expired?[['Property',r.property],['Vehicle',r.vehicle||'—'],['Permit Type',r.permit_type],['Expired',fmtDate(r.end_date)]]:[['Property',r.property]],
-      `<div style="display:flex;gap:10px;margin-top:16px;">
-        <button class="btn btn-sm" style="background:rgba(255,77,77,.1);color:var(--red);border:1px solid rgba(255,77,77,.2);" onclick="toast('🖨 Printing citation ${vid}')">Print Citation</button>
-        <button class="btn btn-ghost btn-sm" onclick="toast('📷 Photo logged')">Log Photo</button>
-      </div>`);
+    patrolLog.unshift({plate:raw,result:'No Permit',time});
+    showNoPermit(raw,r,reason,expired,where);
   }
   updateStats();renderSummary();
   document.getElementById('plate-input').focus();
@@ -472,12 +463,12 @@ function renderPossible(raw,r,time){
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:12px;">${details}</div>
     </div>`;}).join('');
   return `<div class="result-possible">
-    <div style="font-size:18px;font-weight:800;color:#b45309;">POSSIBLE MATCH — VERIFY BEFORE CITING</div>
+    <div style="font-size:18px;font-weight:800;color:#b45309;">POSSIBLE MATCH — VERIFY BEFORE ENFORCING</div>
     <div style="font-size:12px;color:var(--slate2);margin-top:2px;">${esc(r.property||patrolProperty?.name||'')} · ${time} · No exact match for <strong style="font-family:'JetBrains Mono',monospace;">${formatPlate(raw)}</strong></div>
     <div style="font-size:13px;color:var(--slate2);margin-top:10px;">Compare the vehicle, unit and VIN with the car in front of you. Highlighted characters differ from what was typed.</div>
     ${cards}
     <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
-      <button class="btn btn-sm" style="background:rgba(255,77,77,.1);color:var(--red);border:1px solid rgba(255,77,77,.2);" onclick="rejectPossible()">Not a match — log violation</button>
+      <button class="btn btn-sm" style="background:rgba(255,77,77,.1);color:var(--red);border:1px solid rgba(255,77,77,.2);" onclick="rejectPossible()">Not a match</button>
     </div>
   </div>`;
 }
@@ -499,18 +490,60 @@ async function rejectPossible(){
   if(!pendingPossible) return;
   const {raw,r,time}=pendingPossible; pendingPossible=null;
   logAct('enforcement.lookalike_rejected','Rejected look-alike for '+raw.toUpperCase()+' — not the same car',{property_id:patrolProperty.id,target:raw.toUpperCase()});
-  stats.violations++;updateStats();
-  const reason='No valid permit found for this property (possible look-alike rejected by officer)';
-  const vid='C-'+Date.now().toString().slice(-6);
-  await sb.from('violations').insert({officer_id:currentUser.id,property_id:patrolProperty.id,plate:raw,reason,status:'Open'});
-  sessionViolations.unshift({id:vid,plate:raw,reason,time,status:'Open'});
-  patrolLog[0]={plate:raw,result:'Violation',time};
-  renderViolationsLog();renderSummary();
-  document.getElementById('lookup-result').innerHTML=resultCard('violation','VIOLATION — NO VALID PERMIT',`Logged at ${esc(r.property||'')} · ${time} · Citation ${vid}`,raw,[['Property',r.property]],
-    `<div style="display:flex;gap:10px;margin-top:16px;">
-      <button class="btn btn-sm" style="background:rgba(255,77,77,.1);color:var(--red);border:1px solid rgba(255,77,77,.2);" onclick="toast('🖨 Printing citation ${vid}')">Print Citation</button>
+  patrolLog[0]={plate:raw,result:'No Permit',time};
+  renderSummary();
+  showNoPermit(raw,r,'No valid permit found for this property (possible look-alike rejected by officer)',false,`${esc(r.property||patrolProperty.name)} · ${time}`);
+  document.getElementById('plate-input').focus();
+}
+
+// ── ENFORCEMENT ACTIONS (tow / boot / ticket) ──
+const ACTIONS={tow:{label:'Tow',done:'Towed',icon:'🚛'},boot:{label:'Boot',done:'Booted',icon:'🔒'},ticket:{label:'Ticket',done:'Ticketed',icon:'🎫'}};
+let pendingEnforce=null;
+function allowedActions(){
+  const a=(patrolProperty?.actions||[]).filter(x=>ACTIONS[x]);
+  return a.length?a:['tow','boot','ticket'];
+}
+function showNoPermit(raw,r,reason,expired,where){
+  pendingEnforce={raw,r,reason,expired,where,propertyId:patrolProperty.id};
+  document.getElementById('lookup-result').innerHTML=resultCard('violation',expired?'NO VALID PERMIT — EXPIRED':'NO VALID PERMIT',`Checked at ${where} · Not logged as a violation unless you take action`,raw,
+    expired?[['Property',r.property],['Vehicle',r.vehicle||'—'],['Permit Type',r.permit_type],['Expired',fmtDate(r.end_date)]]:[['Property',r.property||patrolProperty.name]],
+    `<div id="enforce-actions" style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+      <button class="btn btn-sm" style="background:var(--red);color:#fff;border:1px solid var(--red);" onclick="openEnforce()">Enforcement</button>
       <button class="btn btn-ghost btn-sm" onclick="toast('📷 Photo logged')">Log Photo</button>
     </div>`);
+}
+function openEnforce(){
+  if(!pendingEnforce) return;
+  const btns=allowedActions().map(a=>`<button class="btn btn-sm" style="background:var(--red);color:#fff;border:1px solid var(--red);min-width:96px;" onclick="takeAction('${a}',this)">${ACTIONS[a].icon} ${ACTIONS[a].label}</button>`).join('');
+  document.getElementById('enforce-actions').innerHTML=`<div style="width:100%;font-size:13px;font-weight:700;color:var(--red);margin-bottom:2px;">What action are you taking on ${esc(formatPlate(pendingEnforce.raw))}?</div>
+    ${btns}<button class="btn btn-ghost btn-sm" onclick="cancelEnforce()">Cancel</button>`;
+}
+function cancelEnforce(){
+  if(!pendingEnforce) return;
+  const p=pendingEnforce;
+  showNoPermit(p.raw,p.r,p.reason,p.expired,p.where);
+}
+async function takeAction(action,btn){
+  const p=pendingEnforce; if(!p||!ACTIONS[action]) return;
+  document.querySelectorAll('#enforce-actions button').forEach(b=>b.disabled=true);
+  btn.textContent='Saving…';
+  const {error}=await sb.from('violations').insert({officer_id:currentUser.id,property_id:p.propertyId,plate:p.raw,reason:p.reason,status:'Open',action});
+  if(error){
+    toast('❌ Could not save: '+error.message);
+    document.querySelectorAll('#enforce-actions button').forEach(b=>b.disabled=false);
+    btn.textContent=ACTIONS[action].icon+' '+ACTIONS[action].label;
+    return;
+  }
+  pendingEnforce=null;
+  const done=ACTIONS[action].done, time=new Date().toLocaleTimeString();
+  stats.violations++;updateStats();
+  const vid='C-'+Date.now().toString().slice(-6);
+  sessionViolations.unshift({id:vid,plate:p.raw,reason:done+' — '+p.reason,time,status:'Open'});
+  const entry=patrolLog.find(l=>l.plate===p.raw&&l.result==='No Permit'); if(entry) entry.result=done;
+  renderViolationsLog();renderSummary();
+  document.getElementById('lookup-result').innerHTML=resultCard('violation','VIOLATION — '+done.toUpperCase(),`Logged at ${esc(p.r.property||patrolProperty?.name||'')} · ${time}`,p.raw,
+    [['Property',p.r.property||patrolProperty?.name],['Action',done],['Reason',p.reason]],
+    `<div style="display:flex;gap:10px;margin-top:16px;"><button class="btn btn-ghost btn-sm" onclick="toast('📷 Photo logged')">Log Photo</button></div>`);
   document.getElementById('plate-input').focus();
 }
 

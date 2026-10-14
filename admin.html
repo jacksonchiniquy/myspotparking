@@ -9,6 +9,7 @@
 <title>Admin — My Spot Parking</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="violations-pager.js"></script>
 <style>
 :root{
   --bg:#0d1117;--surface:#161b22;--surface2:#21262d;--surface3:#30363d;
@@ -316,7 +317,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
       <div id="panel-properties" class="panel">
         <div class="section-head"><div class="section-title">All Properties</div></div>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th title="Which actions enforcement officers can take at this property">Enforcement</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
       </div>
 
       <!-- PERMITS -->
@@ -351,7 +352,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
           <div class="section-title">All Violations</div>
           <button class="btn btn-ghost btn-sm" onclick="exportCSV('violations')">Export CSV</button>
         </div>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Reason</th><th>Property</th><th>Officer</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody id="tbl-violations"></tbody></table></div>
+        <div id="adm-viol-list"></div>
       </div>
 
       <!-- PLANS & FEATURES -->
@@ -874,11 +875,12 @@ function renderProperties(data){
         <button class="btn btn-sm ${p.outside_billing?'btn-primary':'btn-ghost'}" onclick="toggleOutsideBilling('${p.id}',${!p.outside_billing})">${p.outside_billing?'On':'Off'}</button>
         ${outsidePaidCounts[p.id]?`<div style="font-size:11px;color:var(--amber,#b45309);margin-top:4px;">${outsidePaidCounts[p.id]} spot${outsidePaidCounts[p.id]===1?'':'s'} paid outside</div>`:''}
       </td>
+      <td style="white-space:nowrap;">${enforceChips(p)}</td>
       <td><div class="tbl-actions">
         <button class="btn btn-danger btn-sm" onclick="confirmDelete('property','${p.id}','${(p.name||'').replace(/'/g,'')}')">Delete</button>
       </div></td>
     </tr>`;
-  }).join('')||'<tr><td colspan="8" class="loading">No properties found</td></tr>';
+  }).join('')||'<tr><td colspan="9" class="loading">No properties found</td></tr>';
 }
 
 // ── ACTIVITY LOG ──────────────────────────────────────────────
@@ -973,6 +975,31 @@ function exportActivity(){
   toast('📁 Activity exported');
 }
 
+const ENF_ORDER=['tow','boot','ticket'], ENF_LABEL={tow:'Tow',boot:'Boot',ticket:'Ticket'};
+function enforceChips(p){
+  if(!Array.isArray(p.enforcement_actions)) return '<span style="font-size:11px;color:var(--text3)" title="Run supabase-enforcement-actions.sql">Not set up</span>';
+  return '<div style="display:flex;gap:4px;">'+ENF_ORDER.map(a=>{const on=p.enforcement_actions.includes(a);
+    return `<button class="btn btn-sm ${on?'btn-primary':'btn-ghost'}" style="padding:4px 9px;${on?'':'opacity:.6;'}" title="${on?'On — click to turn off':'Off — click to turn on'}" onclick="toggleEnforcement('${p.id}','${a}')">${on?'✓ ':''}${ENF_LABEL[a]}</button>`;}).join('')+'</div>';
+}
+async function toggleEnforcement(id,action){
+  const p=allProperties.find(x=>x.id===id); if(!p) return;
+  const cur=p.enforcement_actions||ENF_ORDER;
+  const next=cur.includes(action)?cur.filter(a=>a!==action):ENF_ORDER.filter(a=>cur.includes(a)||a===action);
+  if(!next.length){toast('Keep at least one option on — officers need a way to record enforcement.');return;}
+  const {data:{session}}=await sb.auth.getSession();
+  let res,body={};
+  try{
+    res=await fetch('/.netlify/functions/admin-api',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body:JSON.stringify({action:'setEnforcementActions',propertyId:id,actions:next})});
+    body=await res.json().catch(()=>({}));
+  }catch(e){res={ok:false};}
+  if(!res.ok){toast('❌ '+(body.error||'Could not change enforcement options.'));return;}
+  p.enforcement_actions=body.actions||next;
+  toast(`${p.name}: ${p.enforcement_actions.map(a=>ENF_LABEL[a]).join(', ')}`);
+  loadProperties();
+}
+
 async function toggleOutsideBilling(id,on){
   const msg=on
     ?'Turn ON outside billing? This property\'s managers will be able to mark paid spots as paid outside the app (for example, included in rent). Those payments don\'t go through My Spot.'
@@ -1033,23 +1060,28 @@ function renderResidents(data){
   }).join('')||'<tr><td colspan="6" class="loading">No residents found</td></tr>';
 }
 
-function renderViolations(data){
-  document.getElementById('tbl-violations').innerHTML=data.map(v=>{
-    const prop=allProperties.find(p=>p.id===v.property_id);
-    const officer=allManagers.find(m=>m.id===v.officer_id)||allResidents.find(r=>r.id===v.officer_id);
-    return `<tr>
-      <td><strong style="font-family:'JetBrains Mono',monospace;font-size:12px;">${v.plate}</strong></td>
-      <td style="font-size:12px">${v.reason||'—'}</td>
-      <td style="font-size:12px">${prop?.name||'—'}</td>
-      <td style="font-size:12px;color:var(--text2)">${officer?.full_name||officer?.email||'—'}</td>
+function renderViolations(){
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const propOf=v=>allProperties.find(p=>p.id===v.property_id)?.name||'—';
+  const officerOf=v=>{const o=allManagers.find(m=>m.id===v.officer_id)||allResidents.find(r=>r.id===v.officer_id);return o?.full_name||o?.email||'—';};
+  vpShow('adm',{mount:'adm-viol-list',rows:()=>allViolations,
+    sorts:{plate:v=>String(v.plate||'').toUpperCase(),action:v=>v.action||'',date:v=>v.noted_at||'',status:v=>v.status||'',property:propOf,officer:officerOf},
+    cols:[{label:'Plate',sort:'plate'},{label:'Action',sort:'action'},{label:'Reason'},{label:'Property',sort:'property'},{label:'Officer',sort:'officer'},{label:'Date',sort:'date'},{label:'Status',sort:'status'},{label:'Actions'}],
+    text:v=>[v.plate,v.reason,VP_ACTION[v.action],propOf(v),officerOf(v)].join(' '),
+    empty:'No violations found',
+    row:v=>`<tr>
+      <td><strong style="font-family:'JetBrains Mono',monospace;font-size:12px;">${esc(v.plate)}</strong></td>
+      <td>${vpAction(v.action)}</td>
+      <td style="font-size:12px">${esc(v.reason||'—')}</td>
+      <td style="font-size:12px">${esc(propOf(v))}</td>
+      <td style="font-size:12px;color:var(--text2)">${esc(officerOf(v))}</td>
       <td style="font-size:12px;color:var(--text3)">${v.noted_at?new Date(v.noted_at).toLocaleDateString():'—'}</td>
-      <td><span class="pill ${v.status==='Open'?'pill-revoked':'pill-active'}">${v.status||'Open'}</span></td>
+      <td><span class="pill ${v.status==='Open'?'pill-revoked':'pill-active'}">${esc(v.status||'Open')}</span></td>
       <td><div class="tbl-actions">
         ${v.status==='Open'?`<button class="btn btn-ghost btn-sm" onclick="resolveViolation('${v.id}')">Resolve</button>`:''}
-        <button class="btn btn-danger btn-sm" onclick="confirmDelete('violation','${v.id}','${v.plate}')">Delete</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete('violation','${v.id}','${esc(String(v.plate||'').replace(/'/g,''))}')">Delete</button>
       </div></td>
-    </tr>`;
-  }).join('')||'<tr><td colspan="7" class="loading">No violations found</td></tr>';
+    </tr>`});
 }
 
 function renderStaff(data){
@@ -1389,9 +1421,9 @@ function exportCSV(type){
   } else if(type==='residents'){
     csv=['Name,Email,Phone,Permits',...allResidents.map(r=>`"${r.full_name||''}","${r.email||''}","${r.phone||''}",${allPermits.filter(p=>p.holder_id===r.id).length}`)].join('\n');filename='residents.csv';
   } else if(type==='violations'){
-    csv=['Plate,Reason,Property,Date,Status',...allViolations.map(v=>{
+    csv=['Plate,Action,Reason,Property,Date,Status',...allViolations.map(v=>{
       const prop=allProperties.find(p=>p.id===v.property_id);
-      return `${v.plate},"${v.reason||''}","${prop?.name||''}",${v.noted_at?new Date(v.noted_at).toLocaleDateString():''},${v.status}`;
+      return `${v.plate},${VP_ACTION[v.action]||''},"${v.reason||''}","${prop?.name||''}",${v.noted_at?new Date(v.noted_at).toLocaleDateString():''},${v.status}`;
     })].join('\n');filename='violations.csv';
   }
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=filename;a.click();

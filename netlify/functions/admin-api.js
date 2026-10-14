@@ -3,6 +3,8 @@
 //
 // POST { action, ... }   Authorization: Bearer <admin login>
 //   setOutsideBilling { propertyId, on }   lets that property's managers "Mark as Paid"
+//   setEnforcementActions { propertyId, actions: ['tow','boot','ticket'] }
+//                                          which actions officers can take there
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -53,6 +55,22 @@ exports.handler = async (event) => {
       await logActivity({ ...(await userActor(admin.id)), actorRole: 'admin', portal: 'admin', action: 'billing.outside_billing',
         propertyId: body.propertyId, target: rows[0].name || null, summary: `Turned Outside Billing ${body.on ? 'ON' : 'OFF'}` });
       return reply(200, { ok: true });
+    }
+    if (body.action === 'setEnforcementActions') {
+      if (!UUID_RE.test(String(body.propertyId || ''))) return reply(400, { error: 'Property not found.' });
+      const ORDER = ['tow', 'boot', 'ticket'];
+      const actions = ORDER.filter(a => Array.isArray(body.actions) && body.actions.includes(a));
+      if (!actions.length) return reply(400, { error: 'Keep at least one option on (Tow, Boot or Ticket).' });
+      const [before] = await sb('GET', `properties?id=eq.${body.propertyId}&select=enforcement_actions`);
+      const rows = await sb('PATCH', `properties?id=eq.${body.propertyId}`, { enforcement_actions: actions });
+      if (!rows?.length) return reply(404, { error: 'Property not found.' });
+      const words = { tow: 'Tow', boot: 'Boot', ticket: 'Ticket' };
+      const { logActivity, userActor } = require('./lib/activity');
+      await logActivity({ ...(await userActor(admin.id)), actorRole: 'admin', portal: 'admin', action: 'property.enforcement_actions',
+        propertyId: body.propertyId, target: rows[0].name || null,
+        summary: `Set enforcement options to ${actions.map(a => words[a]).join(', ')}`,
+        details: { before: before?.enforcement_actions || null, after: actions } });
+      return reply(200, { ok: true, actions });
     }
     return reply(400, { error: 'Unknown action' });
   } catch (err) {
