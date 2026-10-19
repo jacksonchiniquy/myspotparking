@@ -6,7 +6,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Unit Login — My Spot Parking</title>
+<title>My Spot Login — My Spot Parking</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -71,6 +71,9 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 /* ── UNIT HEADER ── */
 .unit-header{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px;box-shadow:var(--shadow);}
 .unit-header-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px;}
+.gate-note{display:none;background:#eef4ff;border:1px solid #c9dafb;border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;line-height:1.55;color:#1b2340;}
+.gate-note.show{display:block;}
+.gate-note a.btn{color:#fff;text-decoration:none;display:flex;justify-content:center;}
 .unit-number{font-size:28px;font-weight:800;letter-spacing:-.04em;}
 .unit-prop{font-size:13px;color:var(--text2);margin-top:2px;}
 .unit-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
@@ -201,10 +204,11 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <!-- GATE: unit login -->
 <div id="gate">
   <div class="gate-card">
-    <div class="gate-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="4"/><path d="M12 8h8"/><path d="M16 8v4"/><path d="M20 8v4"/></svg> Unit Login</div>
-    <div class="gate-title">Resident Parking</div>
-    <div class="gate-sub">Sign in with your unit number and password to manage your parking spot.</div>
+    <div class="gate-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="4"/><path d="M12 8h8"/><path d="M16 8v4"/><path d="M20 8v4"/></svg> My Spot Login</div>
+    <div class="gate-title">Sign in</div>
+    <div class="gate-sub" id="gate-sub">Sign in with your unit number and password to manage your parking.</div>
     <div class="err-msg" id="gate-err"></div>
+    <div class="gate-note" id="gate-note" role="status"></div>
     <div class="form-group">
       <label class="form-label">Property</label>
 <div class="prop-pick">
@@ -214,15 +218,16 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Unit Number</label>
-      <input class="form-input" id="gate-unit" type="text" placeholder="e.g. A-102" autocomplete="off">
+      <label class="form-label" for="gate-unit" id="gate-unit-label">Unit Number</label>
+      <input class="form-input" id="gate-unit" type="text" placeholder="e.g. A-102" autocomplete="off" oninput="unitFieldCheck()">
     </div>
     <div class="form-group">
       <label class="form-label">Password</label>
       <input class="form-input" id="gate-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <button class="btn btn-primary btn-full" style="font-size:15px;padding:13px;" id="gate-btn" onclick="doLogin()">Sign In →</button>
-    <div class="back-link"><a href="portals.html">← Back to portals</a> · <a onclick="showForgot()">Forgot password?</a></div>
+    <div class="back-link"><a href="login.html">← My Spot Login</a> · <a onclick="showForgot()">Forgot password?</a></div>
+    <div class="back-link" style="margin-top:6px;">Have an email account instead? <a href="holder.html">Sign in with email</a></div>
   </div>
 </div>
 
@@ -243,7 +248,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Unit Number</label>
+      <label class="form-label" for="forgot-unit" id="forgot-unit-label">Unit Number</label>
       <input class="form-input" id="forgot-unit" type="text" placeholder="e.g. A-102" autocomplete="off">
     </div>
     <div class="form-group">
@@ -506,6 +511,7 @@ async function propSearch(pid){
   const qEl=document.getElementById(pid+'-q'),list=document.getElementById(pid+'-list');
   const q=qEl.value.trim();
   document.getElementById(pid).value='';            // typing again clears the choice
+  delete _picked[pid]; if(pid==='gate-property') showGateNote('');
   clearTimeout((_ps[pid]=_ps[pid]||{}).t);
   if(q.length<2){list.classList.remove('show');return;}
   _ps[pid].t=setTimeout(async()=>{
@@ -529,7 +535,36 @@ function pickProp(pid,i){
   const next=document.getElementById(pid==='gate-property'?'gate-unit':'forgot-unit');
   if(next) next.focus();
 }
+// The property each sign-in box has picked (name, word, and how its people sign in)
+const _picked={};
+function spaceWord(){const p=_picked['gate-property']||_picked['forgot-property'];return (p&&p.word)||'Unit';}
+function showGateNote(html){const n=document.getElementById('gate-note');n.innerHTML=html||'';n.classList.toggle('show',!!html);}
+// Catch people at the wrong sign-in and point them to the right one
+function checkLoginType(p){
+  if(!p){showGateNote('');return;}
+  if(p.login==='email'){
+    showGateNote(`<strong>${escapeHtml(p.name)} uses email sign-in.</strong><br>Sign in with the email on your account instead.<a class="btn btn-primary btn-full" style="margin-top:10px;" href="holder.html?property=${encodeURIComponent(p.id)}">Go to email sign-in</a>`);
+  }else if(p.login==='none'){
+    showGateNote(`<strong>${escapeHtml(p.name)}</strong> manages parking directly, so there's no online account to sign in to. Please contact your property manager.`);
+  }else showGateNote('');
+}
+function applySpaceWord(){
+  const w=spaceWord();
+  document.getElementById('gate-unit-label').textContent=w+' Number';
+  document.getElementById('forgot-unit-label').textContent=w+' Number';
+  document.getElementById('gate-sub').textContent='Sign in with your '+w.toLowerCase()+' number and password to manage your parking.';
+}
+function unitFieldCheck(){
+  const v=document.getElementById('gate-unit').value;
+  const p=_picked['gate-property'];
+  if(v.includes('@')){
+    showGateNote(`<strong>You sign in with your ${escapeHtml(spaceWord().toLowerCase())} number</strong>, not your email.<br>Enter your ${escapeHtml(spaceWord().toLowerCase())} number (for example 204) and your password.`);
+  }else checkLoginType(p);
+}
 function setProp(pid,p){
+  _picked[pid]=p;
+  if(pid==='gate-property'){checkLoginType(p);}
+  applySpaceWord();
   document.getElementById(pid).value=p.id;
   document.getElementById(pid+'-q').value=p.name+(p.place?' · '+p.place:'');
   document.getElementById(pid+'-list').classList.remove('show');
@@ -561,13 +596,14 @@ async function doLogin(){
   const btn=document.getElementById('gate-btn');
   err.classList.remove('show');
   if(!propertyId){err.textContent='Start typing your property name, then pick it from the list.';err.classList.add('show');return;}
-  if(!unitNumber){err.textContent='Please enter your unit number.';err.classList.add('show');return;}
+  if(!unitNumber){err.textContent='Please enter your '+spaceWord().toLowerCase()+' number.';err.classList.add('show');return;}
   if(!password){err.textContent='Please enter your password.';err.classList.add('show');return;}
   btn.disabled=true;btn.textContent='Signing in…';
   const r=await api('login',{propertyId,unitNumber,password});
   btn.disabled=false;btn.textContent='Sign In →';
   if(r.error){err.textContent=r.error;err.classList.add('show');return;}
-  session={token:r.token,propertyId,unitNumber:r.unitNumber,propertyName:r.propertyName};
+  session={token:r.token,propertyId,unitNumber:r.unitNumber,propertyName:r.propertyName,word:spaceWord()};
+  try{const pk=_picked['gate-property'];if(pk&&pk.id===propertyId)localStorage.setItem('msp_login_property',JSON.stringify(pk));}catch(e){}
   sessionStorage.setItem('unit_session',JSON.stringify(session));
   document.getElementById('gate-pass').value='';
   showApp();
@@ -588,7 +624,7 @@ function signOut(){
 async function showApp(){
   document.getElementById('gate').style.display='none';
   document.getElementById('app').style.display='block';
-  document.getElementById('unit-badge').textContent='Unit '+session.unitNumber;
+  document.getElementById('unit-badge').textContent=(session.word||'Unit')+' '+session.unitNumber;
   document.getElementById('unit-badge').style.display='';
   document.getElementById('signout-btn').style.display='inline-flex';
   document.getElementById('acct-btn').style.display='inline-flex';
@@ -623,7 +659,7 @@ async function loadUnitData(){
 }
 
 function renderHeader(){
-  document.getElementById('uh-unit').textContent='Unit '+session.unitNumber;
+  document.getElementById('uh-unit').textContent=(session.word||'Unit')+' '+session.unitNumber;
   document.getElementById('uh-prop').textContent=session.propertyName;
   const garage=unitSlots.filter(s=>typeGroup(s.slot_type)==='garage').length;
   const open=unitSlots.filter(s=>typeGroup(s.slot_type)!=='garage').length;

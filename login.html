@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Spot Login — My Spot Parking</title>
+<meta name="description" content="Sign in to My Spot Parking. For residents, tenants and employees.">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#2859a8;--ink:#1b2340;--slate:#55607d;--off:#f5f7fb;--border:#e1e6f0;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;}
+a{color:var(--blue);font-weight:600;text-decoration:none;}
+a:hover{text-decoration:underline;}
+.wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 60px;}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:28px;text-decoration:none;}
+.brand:hover{text-decoration:none;}
+.brand-name{font-family:'Sora',sans-serif;font-size:17px;font-weight:700;line-height:1.1;}
+.card{background:#fff;border:1px solid var(--border);border-radius:20px;width:100%;max-width:440px;padding:28px 24px;box-shadow:0 4px 24px rgba(11,18,32,0.07);}
+h1{font-family:'Sora',sans-serif;font-size:26px;font-weight:800;letter-spacing:-0.03em;margin-bottom:6px;}
+.sub{font-size:14px;color:var(--slate);line-height:1.55;margin-bottom:20px;}
+.label{display:block;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate);margin-bottom:7px;}
+.input{width:100%;background:#f8faff;border:1.5px solid #d3d9e6;color:var(--ink);padding:14px;border-radius:12px;font-family:'Inter',sans-serif;font-size:16px;outline:none;}
+.input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(40,89,168,0.1);background:#fff;}
+.results{border:1px solid var(--border);border-radius:12px;margin-top:8px;overflow:hidden;display:none;}
+.results.show{display:block;}
+.opt{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;background:#fff;border:0;border-top:1px solid #eef1f6;padding:12px 14px;cursor:pointer;font-family:inherit;color:inherit;}
+.opt:first-child{border-top:0;}
+.opt:hover,.opt.on{background:#eef4ff;}
+.opt b{font-size:15px;}
+.opt span{font-size:12px;color:var(--slate);}
+.empty{padding:14px;font-size:13px;color:var(--slate);}
+.remember{display:none;background:#eef4ff;border:1px solid #c9dafb;border-radius:14px;padding:16px;margin-bottom:18px;}
+.remember.show{display:block;}
+.remember-name{font-family:'Sora',sans-serif;font-size:16px;font-weight:700;}
+.remember-place{font-size:12px;color:var(--slate);margin-bottom:12px;}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:#fff;background:var(--blue);border:none;border-radius:12px;cursor:pointer;}
+.note{display:none;border-radius:14px;padding:16px;margin-top:16px;font-size:14px;line-height:1.55;background:#fff8eb;border:1px solid #f5d9a8;}
+.note.show{display:block;}
+.foot{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:22px;font-size:13px;color:var(--slate);text-align:center;max-width:440px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="brand" href="/">
+    <svg width="36" height="38" viewBox="0 0 80 64" fill="none" aria-hidden="true"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg>
+    <span class="brand-name"><span style="color:#374269;font-weight:800;display:block;">My Spot</span><span style="color:#2859a8;font-weight:600;font-size:.75em;letter-spacing:.12em;">— PARKING —</span></span>
+  </a>
+
+  <div class="card">
+    <h1>My Spot Login</h1>
+    <p class="sub">For residents, tenants and employees. Start by finding where you park.</p>
+
+    <div class="remember" id="remember">
+      <div style="font-size:12px;color:var(--slate);margin-bottom:4px;">Welcome back</div>
+      <div class="remember-name" id="rem-name"></div>
+      <div class="remember-place" id="rem-place"></div>
+      <button class="btn" type="button" id="rem-go">Continue</button>
+      <div style="text-align:center;margin-top:10px;font-size:13px;"><a href="#" id="rem-forget">Use a different property</a></div>
+    </div>
+
+    <div id="finder">
+      <label class="label" for="q">Property or business</label>
+      <input class="input" id="q" placeholder="Start typing the name" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="results">
+      <div class="results" id="results" role="listbox"></div>
+    </div>
+
+    <div class="note" id="note" role="status"></div>
+  </div>
+
+  <div class="foot">
+    <span>Have a code from a parking sign or a guest pass? <a href="/park">Enter it here</a></span>
+    <span>Manager or enforcement? Business login: <a href="manager.html">Managers</a> · <a href="enforcer.html">Enforcement</a></span>
+  </div>
+</div>
+<script>
+const KEY='msp_login_property';
+const qEl=document.getElementById('q'), list=document.getElementById('results'), note=document.getElementById('note');
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let results=[], on=-1, timer=null;
+
+function remember(p){try{localStorage.setItem(KEY,JSON.stringify(p));}catch(e){}}
+function recall(){try{return JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){return null;}}
+function forget(){try{localStorage.removeItem(KEY);}catch(e){}}
+
+// Send people to the right sign-in for their property
+function go(p){
+  note.classList.remove('show');
+  if(p.login==='none'){
+    note.innerHTML=`<strong>${esc(p.name)}</strong> manages parking directly, so there's no online account to sign in to. Please contact your property manager.`;
+    note.classList.add('show');return;
+  }
+  remember(p);
+  location.href=(p.login==='unit'?'unit.html':'holder.html')+'?property='+encodeURIComponent(p.id);
+}
+
+function render(failed){
+  list.innerHTML=failed?'<div class="empty">Search isn\'t working right now. Please try again in a moment.</div>'
+    :results.length?results.map((p,i)=>`<button type="button" class="opt" role="option" data-i="${i}"><b>${esc(p.name)}</b>${p.place?`<span>${esc(p.place)}</span>`:''}</button>`).join('')
+    :'<div class="empty">No properties found. Check the welcome email or invite from your property manager.</div>';
+  list.classList.add('show');qEl.setAttribute('aria-expanded','true');
+  list.querySelectorAll('.opt').forEach(b=>b.addEventListener('mousedown',e=>{e.preventDefault();go(results[+b.dataset.i]);}));
+}
+qEl.addEventListener('input',()=>{
+  const q=qEl.value.trim();note.classList.remove('show');
+  clearTimeout(timer);
+  if(q.length<2){list.classList.remove('show');return;}
+  timer=setTimeout(async()=>{
+    let failed=false,r=[];
+    try{const res=await fetch('/.netlify/functions/property-search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q})});
+      const b=await res.json(); if(!res.ok) failed=true; else r=b.results||[];}catch(e){failed=true;}
+    if(qEl.value.trim()!==q) return;
+    results=r;on=-1;render(failed);
+  },250);
+});
+qEl.addEventListener('keydown',e=>{
+  const n=results.length; if(!n||!list.classList.contains('show')) return;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();on=(on+(e.key==='ArrowDown'?1:-1)+n)%n;
+    list.querySelectorAll('.opt').forEach((b,i)=>b.classList.toggle('on',i===on));}
+  else if(e.key==='Enter'){e.preventDefault();go(results[on>=0?on:0]);}
+  else if(e.key==='Escape'){list.classList.remove('show');}
+});
+document.addEventListener('click',e=>{if(!e.target.closest('#finder'))list.classList.remove('show');});
+
+(async()=>{
+  // A link with the property already in it (?property=…) goes straight to the right sign-in
+  const id=new URLSearchParams(location.search).get('property');
+  if(id){
+    try{const res=await fetch('/.netlify/functions/property-search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+      const p=(await res.json()).result; if(p){go(p);return;}}catch(e){}
+  }
+  const last=recall();
+  if(last&&last.id){
+    document.getElementById('rem-name').textContent=last.name;
+    document.getElementById('rem-place').textContent=last.place||'';
+    document.getElementById('remember').classList.add('show');
+    document.getElementById('finder').style.display='none';
+    document.getElementById('rem-go').onclick=()=>go(last);
+    document.getElementById('rem-forget').onclick=e=>{e.preventDefault();forget();
+      document.getElementById('remember').classList.remove('show');document.getElementById('finder').style.display='';qEl.focus();};
+  }else qEl.focus();
+})();
+</script>
+</body>
+</html>

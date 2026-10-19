@@ -192,7 +192,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     <div style="background:#fff;border:1px solid var(--border);border-radius:22px;padding:36px;box-shadow:0 8px 40px rgba(15,23,42,.1);">
       <!-- SIGNUP -->
       <div id="panel-signup" style="display:none;">
-        <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(0,200,122,.1);border:1px solid rgba(0,200,122,.2);border-radius:20px;padding:4px 13px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:14px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M5 12h14"/></svg> Permit Holder</div>
+        <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(0,200,122,.1);border:1px solid rgba(0,200,122,.2);border-radius:20px;padding:4px 13px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:14px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M5 12h14"/></svg> My Spot Login</div>
         <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Create your account</div>
         <div style="font-size:13px;color:var(--text2);margin-bottom:24px;">Get your digital parking permit</div>
         <div class="err-msg" id="su-err"></div>
@@ -223,9 +223,13 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
             </div>
           </div>
         </div>
-        <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(0,200,122,.1);border:1px solid rgba(0,200,122,.2);border-radius:20px;padding:4px 13px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:14px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M5 12h14"/></svg> Permit Holder</div>
+        <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(0,200,122,.1);border:1px solid rgba(0,200,122,.2);border-radius:20px;padding:4px 13px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:14px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M5 12h14"/></svg> My Spot Login</div>
         <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Welcome back</div>
-        <div style="font-size:13px;color:var(--text2);margin-bottom:24px;">Sign in to manage your permits</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:18px;">Sign in to manage your permits</div>
+        <div id="si-prop" style="display:none;justify-content:space-between;align-items:center;gap:10px;background:#f6f8fc;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:18px;">
+          <div><div id="si-prop-name" style="font-size:14px;font-weight:700;"></div><div id="si-prop-place" style="font-size:12px;color:var(--text3);"></div></div>
+          <a href="login.html" onclick="try{localStorage.removeItem('msp_login_property')}catch(e){}" style="font-size:13px;font-weight:600;color:var(--blue);text-decoration:none;">Change</a>
+        </div>
         <div class="err-msg" id="si-err"></div>
         <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="si-email" type="email" placeholder="jane@example.com"></div>
         <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="si-pass" type="password" placeholder="••••••••"></div>
@@ -234,7 +238,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <div class="divider">or</div>
         <button class="btn btn-ghost btn-full" onclick="toast('Google sign-in coming soon')">Continue with Google</button>
         <div class="modal-switch" style="margin-top:18px;">New to My Spot Parking? <a onclick="switchPanel('signup')">Create an account</a></div>
-        <div style="text-align:center;margin-top:10px;"><a href="index.html" style="font-size:12px;color:var(--text3);text-decoration:none;">← Back to Home</a></div>
+        <div style="text-align:center;margin-top:10px;"><a href="login.html" style="font-size:12px;color:var(--text3);text-decoration:none;">← My Spot Login</a></div>
       </div>
     </div>
   </div>
@@ -611,9 +615,13 @@ async function handleSignIn(){
   }
   const {data:profile}=await sb.from('users').select('*').eq('id',data.user.id).single();
   if(!profile||profile.role!=='holder'){
-    err.textContent='This account is not a Permit Holder account.';err.classList.add('show');
+    // Wrong door: point business accounts to their own sign-in
+    const where={manager:['a property manager','manager.html','Manager sign-in'],admin:['an admin','admin.html','Admin sign-in'],enforcer:['an enforcement','enforcer.html','Enforcement sign-in']}[profile&&profile.role];
+    err.innerHTML=where?`This is ${where[0]} account. <a href="${where[1]}" style="font-weight:700;color:inherit;text-decoration:underline;">Go to ${where[2]} →</a>`:'This account can\'t sign in here. Contact your property manager.';
+    err.classList.add('show');
     await sb.auth.signOut();btn.disabled=false;btn.textContent='Sign In →';return;
   }
+  try{if(window._loginProp)localStorage.setItem('msp_login_property',JSON.stringify(window._loginProp));}catch(e){}
   logAct('auth.sign_in','Signed in to the resident portal');
   // Link any permits a manager issued to this email before the account existed
   const {error:claimErr}=await sb.rpc('claim_my_permits');
@@ -1191,6 +1199,20 @@ async function saveAccount(){
 
 // ── BOOT ──────────────────────────────────────────────────────────────
 checkExistingSession();
+// Opened from My Spot Login with a property (?property=…): show it, or send unit-based properties to unit sign-in
+(async()=>{
+  const id=new URLSearchParams(location.search).get('property');
+  if(!id) return;
+  try{
+    const r=await fetch('/.netlify/functions/property-search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+    const p=(await r.json()).result; if(!p) return;
+    if(p.login==='unit'){location.replace('unit.html?property='+encodeURIComponent(p.id));return;}
+    window._loginProp=p;
+    document.getElementById('si-prop-name').textContent=p.name;
+    document.getElementById('si-prop-place').textContent=p.place||'';
+    document.getElementById('si-prop').style.display='flex';
+  }catch(e){}
+})();
 
 // Activity log (admin can see who did what). Never blocks or shows errors.
 function logAct(action,summary,extra){

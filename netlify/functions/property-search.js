@@ -1,9 +1,14 @@
-// property-search.js — "type your property" box on the unit login page.
-// Returns at most 8 matching properties that have units, never the
-// whole list, so the public page can't download every customer.
+// property-search.js — "type your property" box on My Spot Login and the sign-in pages.
+// Returns at most 8 matching properties, never the whole list, so the public
+// page can't download every customer.
 //
-// POST { q }   → { results: [{ id, name, place }] }   (q = 2+ characters)
-// POST { id }  → { result: { id, name, place } }       (pre-filled sign-in links)
+// POST { q }   → { results: [{ id, name, place, login, word }] }   (q = 2+ characters)
+// POST { id }  → { result: { id, name, place, login, word } }       (pre-filled sign-in links)
+//
+// login: 'unit'  → people sign in with their unit/suite number (property has units)
+//        'email' → people sign in with email (permits belong to people)
+//        'none'  → self-managed property, no online accounts
+// word:  what that property calls a space ("Unit", "Suite", "Bay"…)
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -24,6 +29,19 @@ function place(address) {
   return m ? `${m[1].trim()}, ${m[2]}` : a;
 }
 
+async function describe(p) {
+  let login = 'email';
+  if (p.property_type === 'self') login = 'none';
+  const units = await sb(`property_units?property_id=eq.${p.id}&select=id&limit=1`).catch(() => []);
+  if (Array.isArray(units) && units.length) login = 'unit';
+  return { id: p.id, name: p.name, place: place(p.address), login, word: (p.space_word || 'Unit').trim() || 'Unit' };
+}
+// Works before and after supabase-space-word.sql has been run
+async function findProps(filter) {
+  try { return await sb(`properties?${filter}&select=id,name,address,property_type,space_word`); }
+  catch (e) { return sb(`properties?${filter}&select=id,name,address,property_type`); }
+}
+
 exports.handler = async (event) => {
   let body;
   if (event.httpMethod !== 'POST') return reply(405, { error: 'Method not allowed' });
@@ -31,17 +49,13 @@ exports.handler = async (event) => {
   try {
     if (body.id) {
       if (!UUID_RE.test(String(body.id))) return reply(200, { result: null });
-      const [p] = await sb(`properties?id=eq.${body.id}&select=id,name,address`);
-      return reply(200, { result: p ? { id: p.id, name: p.name, place: place(p.address) } : null });
+      const [p] = await findProps(`id=eq.${body.id}`);
+      return reply(200, { result: p ? await describe(p) : null });
     }
     const q = String(body.q || '').replace(/[^\p{L}\p{N}\s'&.-]/gu, ' ').trim().slice(0, 60);
     if (q.length < 2) return reply(200, { results: [] });
-    const props = await sb(`properties?name=ilike.${encodeURIComponent('*' + q + '*')}&select=id,name,address&order=name&limit=25`);
-    // Only properties that actually use unit parking
-    const hasUnits = await Promise.all(props.map(p =>
-      sb(`property_units?property_id=eq.${p.id}&select=id&limit=1`).then(r => Array.isArray(r) && r.length > 0).catch(() => false)));
-    const results = props.filter((p, i) => hasUnits[i])
-      .slice(0, 8).map(p => ({ id: p.id, name: p.name, place: place(p.address) }));
+    const props = await findProps(`name=ilike.${encodeURIComponent('*' + q + '*')}&order=name&limit=8`);
+    const results = await Promise.all(props.map(describe));
     return reply(200, { results });
   } catch (err) {
     console.error('property-search error:', err);

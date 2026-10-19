@@ -465,7 +465,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         <div class="inner-tab" id="pdit-map" onclick="setPDTab('map')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg> Lot Map</div>
         <div class="inner-tab" id="pdit-pay" onclick="setPDTab('pay')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Pay to Park</div>
         <div class="inner-tab" id="pdit-history" onclick="setPDTab('history');loadTenancies(currentPropertyId).then(renderTenantHistory)" style="order:99;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg> Tenant History</div>
-        <div class="inner-tab" id="pdit-units" onclick="setPDTab('units')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Units</div>
+        <div class="inner-tab" id="pdit-units" onclick="setPDTab('units')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> <span id="pdit-units-label">Units</span></div>
       </div>
       <div id="pdip-all" class="inner-panel active">
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Holder</th><th>Vehicle</th><th>Type</th><th>Zone</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead><tbody id="pd-body-all"></tbody></table></div>
@@ -720,10 +720,10 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div id="pdip-units" class="inner-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
           <div>
-            <div style="font-size:15px;font-weight:700;">Unit Parking Slots</div>
-            <div style="font-size:12px;color:var(--text3);margin-top:2px;">Slots assigned to residential units. Each unit has a unique invite link tenants use to sign up.</div>
+            <div style="font-size:15px;font-weight:700;" id="units-tab-title">Unit Parking Spots</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px;" id="units-tab-sub">Spots assigned to each unit. Each unit has its own invite link tenants use to sign up.</div>
           </div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm" onclick="openBulkDelete()">Bulk Delete Units</button><button class="btn btn-ghost btn-sm" onclick="openBulkUnits()">+ Bulk Add Units</button><button class="btn btn-primary btn-sm" onclick="openAddUnitSlot()">+ Add Slot</button></div>
+          <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm" onclick="openBulkDelete()" id="units-bulk-del">Bulk Delete Units</button><button class="btn btn-ghost btn-sm" onclick="openBulkUnits()" id="units-bulk-add">+ Bulk Add Units</button><button class="btn btn-primary btn-sm" onclick="openAddUnitSlot()">+ Add Slot</button></div>
         </div>
         <div id="units-list" style="display:flex;flex-direction:column;gap:20px;">
           <div style="text-align:center;padding:48px;color:var(--text3);font-size:13px;">Loading units…</div>
@@ -969,6 +969,16 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div class="form-row">
       <div class="form-group"><label class="form-label">Units / Tenants</label><input class="form-input" id="pp-units" type="number" placeholder="40"></div>
       <div class="form-group"><label class="form-label">Default Monthly Rate ($)</label><input class="form-input" id="pp-rate" type="number" placeholder="0" min="0"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="pp-word-sel">What do people here call their space?</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <select class="form-input" id="pp-word-sel" style="flex:1;min-width:160px;" onchange="ppWordChange()">
+          <option>Unit</option><option>Apartment</option><option>Suite</option><option>Space</option><option>Bay</option><option>Lot</option><option>Office</option><option>Building</option><option value="__custom">Custom…</option>
+        </select>
+        <input class="form-input" id="pp-word-custom" type="text" maxlength="20" placeholder="e.g. Hangar" style="flex:1;min-width:140px;display:none;" oninput="ppWordChange()" aria-label="Custom word">
+      </div>
+      <div id="pp-word-preview" style="font-size:11px;color:var(--text3);margin-top:6px;">Residents see: Unit number · Bulk Add Units · Guest of Unit 204</div>
     </div>
     <!-- Parking Rates by Type -->
     <div style="margin-bottom:6px;">
@@ -2006,6 +2016,42 @@ function onPermitPropertyChange(propId){
   document.getElementById('ip-btn').textContent=isSelf?'Issue Internal Permit':'Issue & Assign Permit';
 }
 
+
+// ── SPACE WORD ("Unit", "Suite", "Bay"…) chosen per property ──
+function spacePlural(w){w=String(w||'Unit');if(/[^aeiou]y$/i.test(w))return w.slice(0,-1)+'ies';if(/(s|x|z|ch|sh)$/i.test(w))return w+'es';return w+'s';}
+function propWord(p){return ((p&&p.space_word)||'Unit').trim()||'Unit';}
+function ppWord(){const sel=document.getElementById('pp-word-sel');if(sel.value!=='__custom')return sel.value;
+  const c=document.getElementById('pp-word-custom').value.trim();return c?c.charAt(0).toUpperCase()+c.slice(1):'Unit';}
+function ppWordChange(){
+  const custom=document.getElementById('pp-word-sel').value==='__custom';
+  document.getElementById('pp-word-custom').style.display=custom?'':'none';
+  const w=ppWord();
+  document.getElementById('pp-word-preview').textContent=`Residents see: ${w} number · Bulk Add ${spacePlural(w)} · Guest of ${w} 204`;
+}
+function setPpWord(w){
+  const sel=document.getElementById('pp-word-sel');w=(w||'Unit').trim();
+  const known=[...sel.options].some(o=>o.value===w);
+  sel.value=known?w:'__custom';
+  document.getElementById('pp-word-custom').value=known?'':w;
+  ppWordChange();
+}
+// Saves a property; leaves out space_word if the database hasn't been updated for it yet
+async function savePropertyRow(payload,id){
+  const run=pl=>id?sb.from('properties').update(pl).eq('id',id):sb.from('properties').insert(pl);
+  let {error}=await run(payload);
+  if(error&&/space_word/.test(error.message||'')){const {space_word,...rest}=payload;({error}=await run(rest));}
+  return {error};
+}
+// Labels on the property's Units tab follow the property's word
+function applyPropertyWord(p){
+  const w=propWord(p), pl=spacePlural(w), set=(id,t)=>{const el=document.getElementById(id);if(el)el.textContent=t;};
+  set('units-tab-title',w+' Parking Spots');
+  set('units-tab-sub',`Spots assigned to each ${w.toLowerCase()}. Each ${w.toLowerCase()} has its own invite link tenants use to sign up.`);
+  set('units-bulk-del','Bulk Delete '+pl);
+  set('units-bulk-add','+ Bulk Add '+pl);
+  set('pdit-units-label',pl);
+}
+
 async function addProperty(){
   const name=document.getElementById('pp-name').value.trim();
   const addr=document.getElementById('pp-addr').value.trim();
@@ -2021,7 +2067,8 @@ async function addProperty(){
     const el=document.getElementById('rate-'+id);
     if(el&&el.value!=='') parking_rates[id]=parseFloat(el.value)||0;
   });
-  const {error}=await sb.from('properties').insert({
+  const {error}=await savePropertyRow({
+    space_word:ppWord(),
     manager_id:currentUser.id,name,address:addr,
     total_spots:parseInt(document.getElementById('pp-spots').value)||0,
     zones:document.getElementById('pp-zones').value||'A',
@@ -2031,6 +2078,7 @@ async function addProperty(){
     parking_rates
   });
   btn.disabled=false;btn.textContent='Add Property';
+  if(!error) setPpWord('Unit');
   if(error){err.textContent=error.message;err.classList.add('show');return;}
   closeModal('modal-add-property');
   // Reset form
@@ -2521,6 +2569,7 @@ function openPropertyDetail(propId){
     <span style="${pillStyle}">${pillSvg('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>')} Default: $${p.monthly_rate||0}/mo</span>
     ${buildRatePills(p.parking_rates)}`;
   renderPropertyDetail(propId);
+  applyPropertyWord(allProperties.find(x=>x.id===propId));
   initPayPanel(); // link, QR code and rates always match the property being shown
   showPage('property-detail', null);
   history.replaceState(null,'','#property/'+propId);
@@ -4483,6 +4532,7 @@ function openEditProperty(){
   document.getElementById('pp-rate').value=p.monthly_rate||'';
   document.getElementById('pp-units').value=p.units||'';
   setPropType(p.property_type||'linked');
+  setPpWord(propWord(p));
   // Populate rate fields
   const rates=p.parking_rates||{};
   ['standard','reserved','handicap','ev','guest','moto','carport','garage','yard','storage','loading'].forEach(id=>{
@@ -4506,7 +4556,8 @@ async function saveEditProperty(id){
     const el=document.getElementById('rate-'+rid);
     if(el&&el.value!=='') parking_rates[rid]=parseFloat(el.value)||0;
   });
-  const {error}=await sb.from('properties').update({
+  const {error}=await savePropertyRow({
+    space_word:ppWord(),
     name,
     address:document.getElementById('pp-addr').value,
     total_spots:parseInt(document.getElementById('pp-spots').value)||0,
@@ -4515,7 +4566,7 @@ async function saveEditProperty(id){
     units:parseInt(document.getElementById('pp-units').value)||0,
     property_type:document.getElementById('pp-type').value||'linked',
     parking_rates
-  }).eq('id',id);
+  },id);
   btn.disabled=false;btn.textContent='Save Changes';
   btn.onclick=addProperty;
   if(error){err.textContent=error.message;err.classList.add('show');return;}

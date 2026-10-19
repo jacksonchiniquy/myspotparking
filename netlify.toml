@@ -10,3 +10,9 @@ SECRETS_SCAN_OMIT_KEYS = "SUPABASE_SERVICE_KEY"
 from = "/park"
 to = "/park.html"
 status = 200
+
+# My Spot Login (residents, tenants, employees)
+[[redirects]]
+from = "/login"
+to = "/login.html"
+status = 200
