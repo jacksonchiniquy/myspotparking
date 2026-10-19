@@ -672,12 +672,15 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
               </div>
               <div id="pay-print-note" style="font-size:12px;color:var(--text2);margin-bottom:12px;"></div>
               <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-                <div id="pay-print-copies"><label class="form-label" for="pay-copies">How many</label><input class="form-input" id="pay-copies" type="number" min="1" max="60" value="6" style="width:110px;"></div>
+                <div id="pay-print-copies"><label class="form-label" for="pay-copies">How many (print sheet)</label><input class="form-input" id="pay-copies" type="number" min="1" max="60" value="6" style="width:110px;"></div>
                 <div id="pay-print-from" style="display:none;"><label class="form-label" for="pay-stall-from">From stall</label><input class="form-input" id="pay-stall-from" type="number" min="1" value="1" style="width:110px;"></div>
                 <div id="pay-print-to" style="display:none;"><label class="form-label" for="pay-stall-to">To stall</label><input class="form-input" id="pay-stall-to" type="number" min="1" value="50" style="width:110px;"></div>
-                <button class="btn btn-ghost btn-sm" style="height:42px;" onclick="printStickers()">🖨 Print Sticker Sheet</button>
+                <button class="btn btn-ghost btn-sm" style="height:42px;" onclick="printStickers()">🖨 Print Sheet</button>
+                <button class="btn btn-primary btn-sm" style="height:42px;" onclick="downloadStickerPDF(this)" title="Vector PDF, one 3x3 sticker per page with bleed. Send this to a sticker or sign company.">Print File (PDF)</button>
+                <button class="btn btn-ghost btn-sm" style="height:42px;" onclick="downloadStickerSVG()" title="Editable vector artwork for Illustrator">Design File (SVG)</button>
+                <button class="btn btn-ghost btn-sm" style="height:42px;" onclick="downloadStickerCSV()" title="Stall numbers and QR links, for printers that do variable-data printing">Stall List (CSV)</button>
               </div>
-              <div style="font-size:11px;color:var(--text3);margin-top:8px;">Prints 3" × 3" stickers, 6 per letter-size page. Use weatherproof label sheets, or send the PDF to a sticker printer.</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.6;"><strong>Print Sheet:</strong> home/office printer, 6 stickers per letter page. <strong>Print File:</strong> send to a sticker or sign company. <strong>Design File:</strong> for a designer in Illustrator. <strong>Stall List:</strong> for shops that print numbered runs from a list.</div>
             </div>
           </div>
 
@@ -2801,79 +2804,185 @@ function drawQR(canvas,url,size,ctxIn,ox,oy){
   ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy-R*0.25,R*0.27,0,Math.PI*2);ctx.fill();
 }
 
-// One 3" x 3" sticker as an image (750 x 750 px)
-function makeSticker(stall){
-  const p=payProp(), S=750;
-  const cv=document.createElement('canvas');cv.width=S;cv.height=S;
-  const ctx=cv.getContext('2d');
-  ctx.fillStyle='#fff';ctx.fillRect(0,0,S,S);
-  ctx.strokeStyle='#d5dbe8';ctx.lineWidth=3;ctx.strokeRect(1.5,1.5,S-3,S-3);
-  const font=(w,px)=>`${w} ${px}px Sora, 'Arial Black', Arial, sans-serif`;
-  ctx.textAlign='center';ctx.textBaseline='alphabetic';
-  if(!stall){
-    drawQR(cv,getPayLink(),470,ctx,(S-470)/2,40);
-    ctx.fillStyle='#5d6886';ctx.font=font(700,26);ctx.fillText('PROPERTY CODE',S/2,560);
-    ctx.fillStyle='#1b2340';ctx.font=font(800,78);ctx.fillText(p.park_code||'',S/2,645);
-    ctx.fillStyle='#5d6886';ctx.font=font(600,24);ctx.fillText('myspotparking.com/park',S/2,700);
-  }else{
-    drawQR(cv,getPayLink(stall),420,ctx,(S-420)/2,34);
-    // Zone code on the left, big stall number on the right
-    ctx.fillStyle='#5d6886';ctx.font=font(700,22);ctx.fillText('ZONE',215,505);
-    ctx.fillStyle='#1b2340';ctx.font=font(800,52);ctx.fillText(p.park_code||'',215,565);
-    ctx.fillStyle='#5d6886';ctx.font=font(600,21);ctx.fillText('myspotparking.com/park',215,610);
-    ctx.fillStyle='#374269';
-    const bx=420,by=470,bw=270,bh=230,rad=22;
-    ctx.beginPath();ctx.moveTo(bx+rad,by);ctx.arcTo(bx+bw,by,bx+bw,by+bh,rad);ctx.arcTo(bx+bw,by+bh,bx,by+bh,rad);ctx.arcTo(bx,by+bh,bx,by,rad);ctx.arcTo(bx,by,bx+bw,by,rad);ctx.fill();
-    ctx.fillStyle='#c9d4f0';ctx.font=font(700,24);ctx.fillText('STALL',bx+bw/2,by+52);
-    ctx.fillStyle='#fff';
-    let px=130;ctx.font=font(800,px);
-    while(ctx.measureText(String(stall)).width>bw-30&&px>40){px-=6;ctx.font=font(800,px);}
-    ctx.fillText(String(stall),bx+bw/2,by+bh-44);
+// ── STICKERS ─────────────────────────────────────────────────
+// One sticker is described once (shapes + text on a 750 x 750 grid = 3" x 3")
+// and drawn three ways: picture (PNG / home print sheet), SVG and print-ready PDF.
+const STK_FONT='Helvetica, Arial, sans-serif';
+function qrShapes(url,x0,y0,size){
+  if(typeof qrcode!=='function') throw new Error('QR library not loaded. Refresh the page and try again.');
+  const qr=qrcode(0,'H');qr.addData(url);qr.make();
+  const n=qr.getModuleCount(), quiet=2, cell=size/(n+quiet*2), f=v=>+v.toFixed(2);
+  let d='';
+  for(let r=0;r<n;r++){
+    let c=0;
+    while(c<n){
+      if(!qr.isDark(r,c)){c++;continue;}
+      let e=c;while(e<n&&qr.isDark(r,e))e++;
+      d+=`M${f(x0+(c+quiet)*cell)} ${f(y0+(r+quiet)*cell)}h${f((e-c)*cell)}v${f(cell)}h${f(-(e-c)*cell)}z`;
+      c=e;
+    }
   }
+  const cx=x0+size/2, cy=y0+size/2, R=size*0.1;
+  const circ=(x,y,rr)=>`M${f(x-rr)} ${f(y)}a${f(rr)} ${f(rr)} 0 1 0 ${f(2*rr)} 0a${f(rr)} ${f(rr)} 0 1 0 ${f(-2*rr)} 0z`;
+  return [
+    {d,fill:'#0B1220'},
+    {d:circ(cx,cy,R*1.25),fill:'#FFFFFF'},
+    {d:circ(cx,cy-R*0.25,R*0.62)+`M${f(cx-R*0.45)} ${f(cy+R*0.05)}L${f(cx)} ${f(cy+R*0.85)}L${f(cx+R*0.45)} ${f(cy+R*0.05)}z`,fill:'#2859A8'},
+    {d:circ(cx,cy-R*0.25,R*0.27),fill:'#FFFFFF'},
+  ];
+}
+function stickerSpec(stall){
+  const p=payProp(), code=p.park_code||'';
+  const shapes=[{d:'M0 0H750V750H0Z',fill:'#FFFFFF'}], texts=[];
+  const T=(t,x,y,size,fill)=>texts.push({t:String(t),x,y,size,fill});
+  if(!stall){
+    shapes.push(...qrShapes(getPayLink(),140,40,470));
+    T('PROPERTY CODE',375,560,26,'#5D6886');
+    T(code,375,645,78,'#1B2340');
+    T('myspotparking.com/park',375,700,24,'#5D6886');
+  }else{
+    shapes.push(...qrShapes(getPayLink(stall),165,34,420));
+    T('ZONE',215,505,22,'#5D6886');
+    T(code,215,565,52,'#1B2340');
+    T('myspotparking.com/park',215,610,21,'#5D6886');
+    const bx=420,by=470,bw=270,bh=230,r=22;
+    shapes.push({d:`M${bx+r} ${by}H${bx+bw-r}A${r} ${r} 0 0 1 ${bx+bw} ${by+r}V${by+bh-r}A${r} ${r} 0 0 1 ${bx+bw-r} ${by+bh}H${bx+r}A${r} ${r} 0 0 1 ${bx} ${by+bh-r}V${by+r}A${r} ${r} 0 0 1 ${bx+r} ${by}Z`,fill:'#374269'});
+    T('STALL',bx+bw/2,by+52,24,'#C9D4F0');
+    const len=String(stall).length;
+    T(stall,bx+bw/2,by+bh-44,Math.min(130,Math.floor(235/(0.6*len))),'#FFFFFF');
+  }
+  return {shapes,texts};
+}
+function stickerCanvas(stall,px){
+  px=px||900;
+  const spec=stickerSpec(stall), cv=document.createElement('canvas');cv.width=px;cv.height=px;
+  const ctx=cv.getContext('2d');ctx.scale(px/750,px/750);
+  spec.shapes.forEach(s=>{ctx.fillStyle=s.fill;ctx.fill(new Path2D(s.d));});
+  ctx.textAlign='center';ctx.textBaseline='alphabetic';
+  spec.texts.forEach(t=>{ctx.fillStyle=t.fill;ctx.font=`bold ${t.size}px ${STK_FONT}`;ctx.fillText(t.t,t.x,t.y);});
   return cv;
+}
+function stickerSVG(stall){
+  const spec=stickerSpec(stall);
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="3in" height="3in" viewBox="0 0 750 750">\n`+
+    spec.shapes.map(s=>`<path fill="${s.fill}" d="${s.d}"/>`).join('\n')+'\n'+
+    spec.texts.map(t=>`<text x="${t.x}" y="${t.y}" font-family="${STK_FONT}" font-weight="bold" font-size="${t.size}" text-anchor="middle" fill="${t.fill}">${escHtml(t.t)}</text>`).join('\n')+
+    '\n</svg>\n';
+}
+function stickerList(){
+  const p=payProp(), mode=p.stall_mode||'off';
+  if(mode==='off'){
+    const n=Math.min(60,Math.max(1,parseInt(document.getElementById('pay-copies').value)||1));
+    return {list:Array(n).fill(null),unique:[null]};
+  }
+  const from=parseInt(document.getElementById('pay-stall-from').value), to=parseInt(document.getElementById('pay-stall-to').value);
+  if(!(from>=1)||!(to>=from)){toast('Enter a stall range, like 1 to 50');return null;}
+  if(to-from+1>300){toast('Up to 300 stalls at a time');return null;}
+  const list=[];for(let i=from;i<=to;i++) list.push(String(i));
+  return {list,unique:list};
+}
+function stickerFileName(ext,list){
+  const p=payProp(), base='my-spot-'+(p.park_code||'property').toLowerCase();
+  return list&&list[0]?`${base}-stalls-${list[0]}-${list[list.length-1]}.${ext}`:`${base}.${ext}`;
+}
+function saveBlob(blob,name){
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);
 }
 
 async function downloadSticker(){
-  const p=payProp();
-  if(document.fonts&&document.fonts.ready) await document.fonts.ready;
-  const a=document.createElement('a');
-  a.download='my-spot-sticker-'+(p.park_code||currentPropertyId)+'.png';
-  a.href=makeSticker(null).toDataURL('image/png');
-  a.click();
-  toast('Sticker downloaded');
+  try{
+    const a=document.createElement('a');
+    a.download=stickerFileName('png');
+    a.href=stickerCanvas(null,900).toDataURL('image/png'); // 3" at 300 dpi
+    a.click();toast('Sticker downloaded');
+  }catch(e){toast('❌ '+e.message);}
 }
 
+// Home / office printing: 6 stickers per letter page, each page its own block
 async function printStickers(){
-  const p=payProp(), mode=p.stall_mode||'off';
-  let list=[];
-  if(mode==='off'){
-    const n=Math.min(60,Math.max(1,parseInt(document.getElementById('pay-copies').value)||1));
-    list=Array(n).fill(null);
-  }else{
-    const from=parseInt(document.getElementById('pay-stall-from').value), to=parseInt(document.getElementById('pay-stall-to').value);
-    if(!(from>=1)||!(to>=from)){toast('Enter a stall range, like 1 to 50');return;}
-    if(to-from+1>300){toast('Print up to 300 stalls at a time');return;}
-    for(let i=from;i<=to;i++) list.push(String(i));
-  }
+  const p=payProp(), sel=stickerList(); if(!sel) return;
+  const list=sel.list;
   const w=window.open('','_blank');
   if(!w){toast('Allow pop-ups to print stickers');return;}
   w.document.write('<p style="font-family:sans-serif;padding:24px">Preparing '+list.length+' stickers…</p>');
-  if(document.fonts&&document.fonts.ready) await document.fonts.ready;
-  const lot=mode==='off'?makeSticker(null).toDataURL('image/png'):null;
-  const imgs=list.map(st=>`<img src="${lot||makeSticker(st).toDataURL('image/png')}" alt="">`).join('');
-  const title=(p.name||'Property')+' stickers';
+  let lot=null, pages=[];
+  try{
+    if(!list[0]) lot=stickerCanvas(null,750).toDataURL('image/png');
+    for(let i=0;i<list.length;i+=6){
+      pages.push('<div class="page">'+list.slice(i,i+6).map(st=>`<img src="${lot||stickerCanvas(st,750).toDataURL('image/png')}" alt="">`).join('')+'</div>');
+    }
+  }catch(e){w.close();toast('❌ '+e.message);return;}
   w.document.open();
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escHtml(title)}</title><style>
-    @page{size:letter;margin:0.75in 1.25in 0.5in}
-    body{margin:0;font-family:sans-serif}
-    .tip{padding:12px 16px;background:#eef4ff;font-size:13px;margin-bottom:12px}
-    .sheet{display:grid;grid-template-columns:repeat(2,3in);gap:0;justify-content:center}
-    .sheet img{width:3in;height:3in;display:block;break-inside:avoid}
-    @media print{.tip{display:none}}
-  </style></head><body><div class="tip">${list.length} sticker${list.length===1?'':'s'} for ${escHtml(p.name||'')}. Use your browser's Print (or Save as PDF). Turn off "headers and footers" and set scale to 100%.</div><div class="sheet">${imgs}</div>
-  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escHtml((p.name||'Property')+' stickers')}</title><style>
+    @page{size:letter portrait;margin:0.5in}
+    html,body{margin:0;padding:0;font-family:sans-serif}
+    .tip{padding:12px 16px;background:#eef4ff;font-size:13px;line-height:1.5}
+    .page{display:grid;grid-template-columns:repeat(2,3in);grid-auto-rows:3in;justify-content:center;align-content:start;padding-top:0.25in;break-after:page;page-break-after:always}
+    .page:last-child{break-after:auto;page-break-after:auto}
+    .page img{width:3in;height:3in;display:block;box-sizing:border-box;border:1px dashed #b8c0cf}
+    @media print{.tip{display:none}.page{padding-top:0}}
+  </style></head><body><div class="tip"><strong>${list.length} sticker${list.length===1?'':'s'} · ${pages.length} page${pages.length===1?'':'s'}</strong> for ${escHtml(p.name||'')}.<br>In the print window set <strong>Scale: 100%</strong> (not "fit to page"). Dashed lines are cut lines.</div>${pages.join('')}
+  <script>window.onload=()=>setTimeout(()=>window.print(),400);<\/script></body></html>`);
   w.document.close();
-  logAct&&logAct('property.stickers_printed','Printed '+list.length+' Pay to Park sticker'+(list.length===1?'':'s')+(mode==='off'?'':' (stalls '+list[0]+'–'+list[list.length-1]+')'),{property_id:currentPropertyId,target:p.name||null});
+  logAct('property.stickers_printed','Printed '+list.length+' Pay to Park sticker'+(list.length===1?'':'s')+(list[0]?' (stalls '+list[0]+'–'+list[list.length-1]+')':''),{property_id:currentPropertyId,target:p.name||null});
+}
+
+// Print-ready PDF for sticker companies / sign shops:
+// one 3" x 3" sticker per page, vector (sharp at any size), 1/8" bleed, trim box set
+let _pdfLibLoading=null;
+function loadPdfLib(){
+  if(window.PDFLib) return Promise.resolve();
+  return _pdfLibLoading||(_pdfLibLoading=new Promise((ok,bad)=>{
+    const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+    sc.onload=ok;sc.onerror=()=>{_pdfLibLoading=null;bad(new Error('Could not load the PDF tool. Check your connection and try again.'));};
+    document.head.appendChild(sc);
+  }));
+}
+async function downloadStickerPDF(btn){
+  const sel=stickerList(); if(!sel) return;
+  const label=btn&&btn.textContent; if(btn){btn.disabled=true;btn.textContent='Making PDF…';}
+  try{
+    await loadPdfLib();
+    const {PDFDocument,StandardFonts,rgb}=PDFLib;
+    const hex=h=>rgb(parseInt(h.slice(1,3),16)/255,parseInt(h.slice(3,5),16)/255,parseInt(h.slice(5,7),16)/255);
+    const doc=await PDFDocument.create();
+    const font=await doc.embedFont(StandardFonts.HelveticaBold);
+    const p=payProp();
+    doc.setTitle((p.name||'Property')+' Pay to Park stickers');doc.setCreator('My Spot Parking');
+    const TRIM=216, BLEED=9, k=TRIM/750; // points: 3" trim, 1/8" bleed
+    for(const st of sel.unique){
+      const spec=stickerSpec(st);
+      const page=doc.addPage([TRIM+BLEED*2,TRIM+BLEED*2]);
+      page.setBleedBox(0,0,TRIM+BLEED*2,TRIM+BLEED*2);
+      page.setTrimBox(BLEED,BLEED,TRIM,TRIM);
+      page.drawRectangle({x:0,y:0,width:TRIM+BLEED*2,height:TRIM+BLEED*2,color:rgb(1,1,1)});
+      spec.shapes.slice(1).forEach(s=>page.drawSvgPath(s.d,{x:BLEED,y:BLEED+TRIM,scale:k,color:hex(s.fill),borderWidth:0}));
+      spec.texts.forEach(t=>{
+        const size=t.size*k, wdt=font.widthOfTextAtSize(t.t,size);
+        page.drawText(t.t,{x:BLEED+t.x*k-wdt/2,y:BLEED+(750-t.y)*k,size,font,color:hex(t.fill)});
+      });
+    }
+    saveBlob(new Blob([await doc.save()],{type:'application/pdf'}),stickerFileName('pdf',sel.unique));
+    toast(`✅ Print file ready — ${sel.unique.length} sticker${sel.unique.length===1?'':'s'}`);
+    logAct('property.stickers_printed','Downloaded print file ('+sel.unique.length+' sticker'+(sel.unique.length===1?'':'s')+')',{property_id:currentPropertyId,target:p.name||null});
+  }catch(e){toast('❌ '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent=label;}}
+}
+function downloadStickerSVG(){
+  try{
+    const sel=stickerList(); if(!sel) return;
+    const st=sel.unique[0];
+    saveBlob(new Blob([stickerSVG(st)],{type:'image/svg+xml'}),stickerFileName('svg',st?[st]:null).replace('-stalls-'+st+'-'+st,'-stall-'+st));
+    toast(st?'Design file downloaded (stall '+st+' as a sample)':'Design file downloaded');
+  }catch(e){toast('❌ '+e.message);}
+}
+function downloadStickerCSV(){
+  const sel=stickerList(); if(!sel) return;
+  const p=payProp(), q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const rows=[['property','zone_code','stall','qr_link'].join(',')].concat(sel.unique.map(st=>[q(p.name),q(p.park_code||''),q(st||''),q(getPayLink(st))].join(',')));
+  saveBlob(new Blob([rows.join('\n')+'\n'],{type:'text/csv'}),stickerFileName('csv',sel.unique[0]?sel.unique:null));
+  toast('Stall list downloaded');
 }
 
 function copyPayLink(){
