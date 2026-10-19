@@ -747,6 +747,13 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
           <div style="display:flex;justify-content:flex-end;gap:10px;">
             <button class="btn btn-primary" id="gp-save" onclick="gpSave()">Save Guest Pass Settings</button>
           </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-top:18px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+              <div><div style="font-size:16px;font-weight:700;">Guest passes given</div><div style="font-size:12px;color:var(--text2);margin-top:3px;">Most recent 200 at this property.</div></div>
+              <input class="form-input" id="gp-log-q" type="search" placeholder="Search plate, code or name" style="width:240px;" oninput="gpRenderLog()">
+            </div>
+            <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Given</th><th class="gp-word-cap">Unit</th><th>Pass</th><th>Plate / Code</th><th>Status</th><th>Valid</th><th>By</th></tr></thead><tbody id="gp-log"></tbody></table></div>
+          </div>
         </div>
       </div>
 
@@ -2082,6 +2089,32 @@ async function loadGuestSettings(propId){
   gpTypes=(data||[]).map(t=>({...t,window_start:(t.window_start||'').slice(0,5),window_end:(t.window_end||'').slice(0,5)}));
   gpRemoved=[];
   gpRenderTypes();
+  document.querySelectorAll('#pdip-guests .gp-word-cap').forEach(e=>e.textContent=w);
+  const {data:allTypes}=await sb.from('guest_pass_types').select('id,name').eq('property_id',propId);
+  gpTypeNames=Object.fromEntries((allTypes||[]).map(t=>[t.id,t.name]));
+  const {data:log}=await sb.from('guest_passes').select('*').eq('property_id',propId).order('created_at',{ascending:false}).limit(200);
+  gpLog=log||[];
+  gpRenderLog();
+}
+let gpLog=[], gpTypeNames={};
+function gpRenderLog(){
+  const q=(document.getElementById('gp-log-q')?.value||'').trim().toLowerCase();
+  const now=new Date(), fmt=d=>d?new Date(d).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
+  const rows=gpLog.filter(g=>!q||[g.guest_plate,g.code,g.guest_name,g.issued_by_name,g.unit_number,g.guest_vehicle].join(' ').toLowerCase().includes(q));
+  const status=g=>{
+    if(g.status==='issued') return g.code_expires_at&&new Date(g.code_expires_at)<=now?['Code expired','pill-expired']:['Code not used','pill-expired'];
+    if(g.status==='active') return new Date(g.ends_at)<=now?['Ended','pill-expired']:new Date(g.starts_at)>now?['Starts later','pill-active']:['Active','pill-active'];
+    return [{ended:'Ended early',cancelled:'Cancelled',expired:'Code expired'}[g.status]||g.status,'pill-expired'];
+  };
+  document.getElementById('gp-log').innerHTML=rows.map(g=>{const [st,cls]=status(g);return `<tr>
+    <td style="font-size:12px;color:var(--text3)">${fmt(g.created_at)}</td>
+    <td style="font-size:12px;font-weight:600">${escHtml(g.unit_number||'—')}</td>
+    <td style="font-size:12px">${escHtml(gpTypeNames[g.pass_type_id]||'Guest pass')}</td>
+    <td><strong style="font-family:'JetBrains Mono',monospace;font-size:12px;">${escHtml(g.guest_plate||g.code||'—')}</strong>${g.guest_vehicle?`<div style="font-size:11px;color:var(--text3)">${escHtml(g.guest_vehicle)}</div>`:''}</td>
+    <td><span class="pill ${cls}">${escHtml(st)}</span></td>
+    <td style="font-size:12px;color:var(--text2)">${g.starts_at?fmt(g.starts_at)+' – '+fmt(g.ends_at):'—'}</td>
+    <td style="font-size:12px;color:var(--text2)">${escHtml(g.issued_by_name||'')}${g.guest_name?`<div style="font-size:11px;color:var(--text3)">Guest: ${escHtml(g.guest_name)}</div>`:''}</td>
+  </tr>`;}).join('')||`<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--text3)">${q?'No passes match your search.':'No guest passes given yet.'}</td></tr>`;
 }
 function gpRenderTypes(){
   const extras=document.getElementById('gp-extras').checked;

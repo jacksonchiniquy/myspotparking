@@ -71,6 +71,22 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 /* ── UNIT HEADER ── */
 .unit-header{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px;box-shadow:var(--shadow);}
 .unit-header-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px;}
+.gp-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+.gp-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;}
+.gp-card b{display:block;font-size:13px;}
+.gp-card .n{font-size:24px;font-weight:800;color:var(--blue);line-height:1.15;margin-top:4px;}
+.gp-card .n span{font-size:13px;color:var(--text2);font-weight:600;}
+.gp-card small{display:block;font-size:11px;color:var(--text3);margin-top:2px;}
+.gp-opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;}
+.gp-opt input{margin-top:3px;}
+.gp-opt b{display:block;font-size:14px;}
+.gp-opt small{display:block;font-size:12px;color:var(--text2);margin-top:2px;line-height:1.4;}
+.gp-opt.off{opacity:.5;cursor:default;}
+.gp-row{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 14px;margin-bottom:8px;}
+.gp-row b{font-size:14px;}
+.gp-row small{display:block;font-size:12px;color:var(--text2);margin-top:2px;}
+.gp-pill{font-size:11px;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap;}
+.gp-code{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;letter-spacing:.08em;text-align:center;background:#f2f6ff;border-radius:12px;padding:14px 0;margin:12px 0 6px;}
 .gate-note{display:none;background:#eef4ff;border:1px solid #c9dafb;border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;line-height:1.55;color:#1b2340;}
 .gate-note.show{display:block;}
 .gate-note a.btn{color:#fff;text-decoration:none;display:flex;justify-content:center;}
@@ -336,6 +352,18 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
       <div id="my-vehicles-list"></div>
 
+      <!-- GUEST PASSES (only when the property offers them) -->
+      <div id="guest-section" style="display:none;">
+        <div class="section-head" style="margin-top:8px;">
+          <div class="section-title">Guest Passes</div>
+        </div>
+        <div class="gp-cards" id="gp-cards"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 10px;">
+          <button class="btn btn-primary" style="padding:11px 20px;font-size:14px;" onclick="openGiveGuest()">Give a guest pass</button>
+        </div>
+        <div id="gp-recent"></div>
+      </div>
+
       <!-- PARKING SLOTS -->
       <div class="slots-head" style="margin-top:8px;">
         <div class="slots-title">Your Parking Slots</div>
@@ -346,6 +374,36 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 </div>
 
 <!-- Edit Vehicle Modal -->
+<div class="modal-bg" id="modal-guest">
+  <div class="modal" style="max-width:480px;">
+    <div id="gg-step1">
+      <div class="modal-title">Give a guest pass</div>
+      <div class="modal-sub">Your guest gets a code to enter at myspotparking.com/park, or you can enter their plate now.</div>
+      <div class="err-msg" id="gg-err"></div>
+      <div class="form-label" style="margin-bottom:8px;">Which pass?</div>
+      <div id="gg-types" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+      <div class="form-label" style="margin-bottom:8px;">How?</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+        <label class="gp-opt"><input type="radio" name="gg-how" value="code" checked onchange="ggHow()"> <span><b>Send my guest a code</b><small>They enter their own plate. Unused codes expire and the pass comes back to you.</small></span></label>
+        <label class="gp-opt"><input type="radio" name="gg-how" value="plate" onchange="ggHow()"> <span><b>I know their plate</b><small>The pass is active for that vehicle right away.</small></span></label>
+      </div>
+      <div id="gg-plate-fields" style="display:none;">
+        <div class="form-row">
+          <div class="form-group" style="flex:0 0 80px;"><label class="form-label" for="gg-state">State</label><input class="form-input" id="gg-state" maxlength="2" value="UT" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z]/g,'')"></div>
+          <div class="form-group"><label class="form-label" for="gg-plate">Guest's plate</label><input class="form-input" id="gg-plate" maxlength="10" placeholder="ABC1234" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="gg-veh">Vehicle <span style="color:var(--text3);font-weight:400;">(optional)</span></label><input class="form-input" id="gg-veh" maxlength="60" placeholder="Blue Toyota Camry"></div>
+      </div>
+      <div class="form-group"><label class="form-label" for="gg-name">Guest's name <span style="color:var(--text3);font-weight:400;">(optional)</span></label><input class="form-input" id="gg-name" maxlength="60" placeholder="e.g. Rosa"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary" id="gg-btn" onclick="ggCreate()">Create pass</button>
+        <button class="btn btn-ghost" onclick="closeModal('modal-guest')">Cancel</button>
+      </div>
+    </div>
+    <div id="gg-step2" style="display:none;"></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-edit-vehicle">
   <div class="modal">
     <div class="modal-title">Edit Vehicle</div>
@@ -455,6 +513,93 @@ async function api(action,payload={}){
   }
   if(!res.ok) return {error:body.error||'Something went wrong. Please try again.'};
   return body;
+}
+
+// ── GUEST PASSES ──
+let guestData=null, ggChoice=null;
+const GP_STATE={issued:['Code not used yet','#b45309','#fdf1df'],active:['Active','#1d7a4a','#e3f5ea'],upcoming:['Starts later','#1e40af','#e8efff'],
+  done:['Ended','#55607d','#eef1f6'],ended:['Ended early','#55607d','#eef1f6'],cancelled:['Cancelled','#55607d','#eef1f6'],expired:['Code expired','#55607d','#eef1f6']};
+async function loadGuests(){
+  const r=await api('guestSummary');
+  const sec=document.getElementById('guest-section');
+  if(r.error||!r.enabled){sec.style.display='none';guestData=null;return;}
+  guestData=r;sec.style.display='block';
+  const types=r.types.filter(t=>!t.needsApproval);
+  document.getElementById('gp-cards').innerHTML=types.map(t=>`<div class="gp-card"><b>${escapeHtml(t.name)}</b>
+    ${t.allowance===null?`<div class="n" style="font-size:16px;">No limit</div>`:`<div class="n">${t.left}<span> of ${t.allowance} left</span></div><small>Refills ${escapeHtml(t.refills)}</small>`}
+    <small>${escapeHtml(t.describe)}</small></div>`).join('');
+  document.getElementById('gp-recent').innerHTML=r.recent.length?'<div class="form-label" style="margin:6px 0 8px;">Recent</div>'+r.recent.map(p=>{
+    const st=GP_STATE[p.state]||[p.state,'#55607d','#eef1f6'];
+    const who=p.plate?`<span style="font-family:'JetBrains Mono',monospace;">${escapeHtml(p.plate)}</span>`:p.code?`code <span style="font-family:'JetBrains Mono',monospace;">${escapeHtml(p.code)}</span>`:'';
+    const when=p.state==='issued'?`Code expires ${escapeHtml(p.codeExpires||'')}`:p.state==='upcoming'?`Starts ${escapeHtml(p.starts)}`:p.state==='active'?`Until ${escapeHtml(p.ends)}`:p.ends?`Ended ${escapeHtml(p.ends)}`:`Created ${escapeHtml(p.created)}`;
+    const btn=p.state==='issued'?`<button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;" onclick="ggCancel('${p.id}',true)">Cancel</button>`
+      :(p.state==='active'||p.state==='upcoming')?`<button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;" onclick="ggCancel('${p.id}',false)">End now</button>`:'';
+    const share=p.state==='issued'?`<button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;" onclick="ggShowCode('${p.code}')">Share</button>`:'';
+    return `<div class="gp-row"><div><b>${escapeHtml(p.type)}</b> · ${who}${p.guestName?' · '+escapeHtml(p.guestName):''}<small>${when}</small></div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;"><span class="gp-pill" style="color:${st[1]};background:${st[2]};">${st[0]}</span>${share}${btn}</div></div>`;}).join(''):'';
+}
+function openGiveGuest(){
+  if(!guestData) return;
+  const types=guestData.types.filter(t=>!t.needsApproval);
+  if(!types.length){toast('No guest passes are set up yet. Ask your property manager.');return;}
+  ggChoice=(types.find(t=>t.left===null||t.left>0)||types[0]).id;
+  document.getElementById('gg-types').innerHTML=types.map(t=>{
+    const out=t.left!==null&&t.left<=0;
+    return `<label class="gp-opt${out?' off':''}"><input type="radio" name="gg-type" value="${t.id}" ${t.id===ggChoice?'checked':''} ${out?'disabled':''} onchange="ggChoice=this.value">
+      <span><b>${escapeHtml(t.name)} · ${escapeHtml(t.describe)}</b><small>${t.allowance===null?'No limit':out?`None left · refills ${escapeHtml(t.refills)}`:`${t.left} of ${t.allowance} left`}</small></span></label>`;}).join('');
+  ['gg-plate','gg-veh','gg-name'].forEach(id=>document.getElementById(id).value='');
+  document.querySelector('input[name="gg-how"][value="code"]').checked=true;ggHow();
+  document.getElementById('gg-err').classList.remove('show');
+  document.getElementById('gg-step1').style.display='';document.getElementById('gg-step2').style.display='none';
+  openModal('modal-guest');
+}
+function ggHow(){document.getElementById('gg-plate-fields').style.display=document.querySelector('input[name="gg-how"]:checked').value==='plate'?'':'none';}
+async function ggCreate(){
+  const err=document.getElementById('gg-err');err.classList.remove('show');
+  const how=document.querySelector('input[name="gg-how"]:checked').value;
+  const body={typeId:ggChoice,guestName:document.getElementById('gg-name').value};
+  if(how==='plate'){
+    body.plate=document.getElementById('gg-plate').value;body.state=document.getElementById('gg-state').value;body.vehicle=document.getElementById('gg-veh').value;
+    if(body.plate.length<2){err.textContent="Enter your guest's plate.";err.classList.add('show');return;}
+  }
+  const btn=document.getElementById('gg-btn');btn.disabled=true;btn.textContent='Creating…';
+  const r=await api('guestIssue',body);
+  btn.disabled=false;btn.textContent='Create pass';
+  if(r.error){err.textContent=r.error;err.classList.add('show');return;}
+  loadGuests();
+  if(r.pass.code) ggShowCode(r.pass.code,r.link);
+  else{
+    document.getElementById('gg-step1').style.display='none';
+    const s2=document.getElementById('gg-step2');s2.style.display='';
+    s2.innerHTML=`<div class="modal-title">Guest pass active</div>
+      <div class="modal-sub">${escapeHtml(r.pass.type)} for <b style="font-family:'JetBrains Mono',monospace;">${escapeHtml(r.pass.plate)}</b></div>
+      <div style="background:#eefaf2;border:1px solid #bfe5cc;border-radius:12px;padding:14px;font-size:14px;line-height:1.6;margin-bottom:16px;">
+      ${r.pass.state==='upcoming'?'Starts '+escapeHtml(r.pass.starts)+'<br>':''}Valid until <b>${escapeHtml(r.pass.ends)}</b></div>
+      <button class="btn btn-primary" onclick="closeModal('modal-guest')">Done</button>`;
+  }
+}
+function ggShowCode(code,link){
+  link=link||(location.origin+'/guest?c='+encodeURIComponent(code));
+  const msg=`You have a guest parking pass at ${guestData?.propertyName||'my place'}. Enter code ${code} at ${link.replace(/\?.*$/,'')} or open: ${link}`;
+  document.getElementById('gg-step1').style.display='none';
+  const s2=document.getElementById('gg-step2');s2.style.display='';
+  s2.innerHTML=`<div class="modal-title">Send this code to your guest</div>
+    <div class="modal-sub">They enter it at myspotparking.com/park and add their plate.</div>
+    <div class="gp-code">${escapeHtml(code)}</div>
+    <div style="font-size:12px;color:var(--text3);text-align:center;margin-bottom:14px;">One vehicle per code. If it isn't used, it expires and the pass comes back to you.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-primary" style="flex:1;text-decoration:none;" href="sms:?&body=${encodeURIComponent(msg)}">Text to guest</a>
+      <button class="btn btn-ghost" style="flex:1;" onclick="navigator.clipboard.writeText(${JSON.stringify(msg).replace(/"/g,'&quot;')}).then(()=>toast('Copied — paste it into a message'))">Copy message</button>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="closeModal('modal-guest')">Done</button>`;
+  if(!document.getElementById('modal-guest').classList.contains('open')) openModal('modal-guest');
+}
+async function ggCancel(id,unused){
+  if(!confirm(unused?'Cancel this code? It will stop working and the pass comes back to you.':'End this guest pass now? The guest\'s car will no longer be covered. This pass still counts.')) return;
+  const r=await api('guestCancel',{id});
+  if(r.error){toast(r.error);return;}
+  toast(unused?'Code cancelled — pass returned':'Guest pass ended');
+  loadGuests();
 }
 
 // ── PAID SPOTS ──
@@ -653,6 +798,7 @@ async function loadUnitData(){
   renderHeader();
   renderMyVehicles();
   renderSlots();
+  loadGuests();
 
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('unit-header').style.display='block';

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guest Pass — My Spot Parking</title>
+<meta name="description" content="Activate the guest parking pass a resident sent you. Free, no account needed.">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#2859a8;--green:#15803d;--ink:#1b2340;--slate:#55607d;--off:#f5f7fb;--border:#e1e6f0;--red:#c62828;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;}
+.wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:28px 16px 60px;}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:24px;text-decoration:none;}
+.brand-name{font-family:'Sora',sans-serif;font-size:17px;font-weight:700;line-height:1.1;}
+.card{background:#fff;border:1px solid var(--border);border-radius:20px;width:100%;max-width:440px;padding:24px 20px;box-shadow:0 4px 24px rgba(11,18,32,0.07);}
+h1{font-family:'Sora',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.03em;margin-bottom:6px;}
+.sub{font-size:14px;color:var(--slate);line-height:1.55;margin-bottom:18px;}
+.label{display:block;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate);margin-bottom:7px;}
+.label span{font-weight:400;text-transform:none;letter-spacing:0;}
+.input{width:100%;background:#f8faff;border:1.5px solid #d3d9e6;color:var(--ink);padding:13px;border-radius:12px;font-family:'Inter',sans-serif;font-size:16px;outline:none;}
+.input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(40,89,168,0.1);background:#fff;}
+.plate{font-family:'Sora',sans-serif;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;font-size:18px;}
+#code{font-family:'Sora',sans-serif;font-weight:800;font-size:22px;letter-spacing:0.08em;text-align:center;text-transform:uppercase;}
+.group{margin-bottom:14px;}
+.row{display:flex;gap:8px;}
+.found{background:#eefaf2;border:1px solid #bfe5cc;border-radius:12px;padding:12px 14px;margin-bottom:16px;}
+.found b{display:block;color:var(--green);font-size:15px;font-weight:800;}
+.found span{display:block;font-size:13px;margin-top:2px;}
+.found small{display:block;font-size:12px;color:var(--slate);margin-top:3px;}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:#fff;background:var(--green);border:none;border-radius:12px;cursor:pointer;}
+.btn.blue{background:var(--blue);}
+.btn:disabled{opacity:.5;cursor:default;}
+.err{display:none;background:#fdecec;border:1px solid #f5c2c2;color:var(--red);border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:14px;line-height:1.5;}
+.err.show{display:block;}
+.fine{font-size:12px;color:var(--slate);text-align:center;margin-top:10px;}
+.done-check{width:64px;height:64px;border-radius:50%;background:#e3f5ea;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;}
+.pass{background:#f6f8fc;border-radius:14px;padding:16px;margin:16px 0;}
+.pass-plate{display:flex;justify-content:space-between;align-items:center;font-family:'Sora',sans-serif;font-size:22px;font-weight:800;letter-spacing:.06em;margin-bottom:12px;}
+.pill{font-family:'Inter',sans-serif;font-size:11px;font-weight:700;letter-spacing:0;color:#1d7a4a;background:#e3f5ea;border-radius:999px;padding:4px 9px;}
+.pill.later{color:#b45309;background:#fdf1df;}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.k{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6b7590;}
+.v{font-size:14px;font-weight:700;margin-top:2px;}
+.emailbox{border:1px solid var(--border);border-radius:14px;padding:14px;margin-top:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="brand" href="/">
+    <svg width="36" height="38" viewBox="0 0 80 64" fill="none" aria-hidden="true"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg>
+    <span class="brand-name"><span style="color:#374269;font-weight:800;display:block;">My Spot</span><span style="color:#2859a8;font-weight:600;font-size:.75em;letter-spacing:.12em;">— PARKING —</span></span>
+  </a>
+
+  <!-- Step 1-2: code + vehicle -->
+  <form class="card" id="form" autocomplete="off">
+    <h1>Guest Pass</h1>
+    <p class="sub">Enter the guest code you were sent, then your vehicle. Free, no account needed.</p>
+    <div class="err" id="err" role="alert"></div>
+    <div class="group">
+      <label class="label" for="code">Guest code</label>
+      <input class="input" id="code" placeholder="G-XXXX-XX" maxlength="11" spellcheck="false" autocapitalize="characters">
+    </div>
+    <div class="found" id="found" style="display:none;">
+      <b id="f-from"></b><span id="f-what"></span><small id="f-when"></small>
+    </div>
+    <div id="vehicle" style="display:none;">
+      <div class="group">
+        <label class="label" for="plate">Your license plate</label>
+        <div class="row">
+          <input class="input plate" id="state" value="UT" maxlength="2" style="width:70px;text-align:center;" aria-label="Plate state">
+          <input class="input plate" id="plate" placeholder="ABC1234" maxlength="10" spellcheck="false" autocapitalize="characters">
+        </div>
+      </div>
+      <div class="group">
+        <label class="label" for="veh">Vehicle <span>(make, model, color)</span></label>
+        <input class="input" id="veh" placeholder="e.g. Blue Toyota Camry" maxlength="60">
+      </div>
+      <button class="btn" id="go" type="submit">Activate Guest Pass</button>
+      <div class="fine">One vehicle per code · Free · No account needed</div>
+    </div>
+  </form>
+
+  <!-- Step 3: confirmation -->
+  <div class="card" id="done" style="display:none;">
+    <div class="done-check"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></div>
+    <h1 style="text-align:center;">You're all set</h1>
+    <p class="sub" style="text-align:center;margin-bottom:0;" id="d-sub">Your guest pass is active. Keep this page or take a screenshot.</p>
+    <div class="pass">
+      <div class="pass-plate"><span id="d-plate"></span><span class="pill" id="d-pill">Active</span></div>
+      <div class="grid">
+        <div><div class="k">Property</div><div class="v" id="d-prop"></div></div>
+        <div><div class="k">Guest of</div><div class="v" id="d-unit"></div></div>
+        <div><div class="k">Pass</div><div class="v" id="d-type"></div></div>
+        <div><div class="k">Valid until</div><div class="v" id="d-ends"></div></div>
+      </div>
+      <div style="font-size:12px;color:var(--slate);margin-top:10px;" id="d-starts"></div>
+    </div>
+    <form class="emailbox" id="emailform">
+      <label class="label" for="em" style="text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink);">Email me this pass <span style="color:var(--slate);">(optional)</span></label>
+      <div class="row">
+        <input class="input" id="em" type="email" placeholder="you@example.com" style="min-width:0;">
+        <button class="btn blue" type="submit" id="em-btn" style="width:auto;padding:0 18px;min-height:48px;">Send</button>
+      </div>
+      <div class="fine" style="text-align:left;" id="em-note">We'll also remind you about an hour before it ends.</div>
+    </form>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+let current=null;
+function showErr(m){$('err').textContent=m||'';$('err').classList.toggle('show',!!m);}
+function clean(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function fmt(v){const c=clean(v).replace(/^G/,'');return c?('G-'+c.slice(0,4)+(c.length>4?'-'+c.slice(4,6):'')):'';}
+async function api(body){
+  const r=await fetch('/.netlify/functions/guest-pass',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json().catch(()=>({error:'Something went wrong. Please try again.'}));
+  return r.ok?d:{error:d.error||'Something went wrong. Please try again.'};
+}
+function showDone(d){
+  $('form').style.display='none';$('done').style.display='block';
+  $('d-plate').textContent=(d.state?d.state+' · ':'')+d.plate;
+  $('d-prop').textContent=d.propertyName;$('d-unit').textContent=d.unitLabel;$('d-type').textContent=d.typeName;$('d-ends').textContent=d.ends;
+  const later=d.startsLater;
+  $('d-pill').textContent=d.status==='ended'?'Ended':later?'Starts later':'Active';$('d-pill').classList.toggle('later',!!later);
+  $('d-starts').textContent=later?'Starts '+d.starts+'. Parking before then isn\'t covered.':'Started '+d.starts;
+  if(d.status==='ended'){$('d-sub').textContent='This guest pass has ended.';$('emailform').style.display='none';}
+  if(d.emailed){$('em-note').textContent='This pass was emailed. You can send it to another address.';}
+}
+let t=null,lastAsked='';
+async function lookup(code){
+  lastAsked=code;showErr('');
+  const d=await api({code});
+  if(code!==lastAsked) return;
+  if(d.error){$('found').style.display='none';$('vehicle').style.display='none';showErr(d.error);return;}
+  current=code;
+  if(d.status==='active'||d.status==='ended'){showDone(d);return;}
+  $('f-from').textContent='Guest pass from '+d.unitLabel;
+  $('f-what').textContent=d.typeName+' · '+d.propertyName;
+  $('f-when').textContent=d.preview?(d.preview.startsLater?'Valid '+d.preview.starts+' – '+d.preview.ends:'Valid now until '+d.preview.ends):d.describe;
+  $('found').style.display='block';$('vehicle').style.display='block';$('plate').focus();
+}
+$('code').addEventListener('input',()=>{
+  const f=fmt($('code').value); if($('code').value!==f) $('code').value=f;
+  clearTimeout(t);
+  if(clean(f).length===7) t=setTimeout(()=>lookup(f),200);
+  else{$('found').style.display='none';$('vehicle').style.display='none';showErr('');}
+});
+['plate','state'].forEach(id=>$(id).addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(id==='state'?/[^A-Z]/g:/[^A-Z0-9]/g,'');}));
+$('form').addEventListener('submit',async e=>{
+  e.preventDefault(); if(!current) return;
+  if(clean($('plate').value).length<2){showErr('Enter your license plate.');return;}
+  $('go').disabled=true;$('go').textContent='Activating…';
+  const d=await api({code:current,plate:$('plate').value,state:$('state').value,vehicle:$('veh').value});
+  $('go').disabled=false;$('go').textContent='Activate Guest Pass';
+  if(d.error){showErr(d.error);return;}
+  showDone(d);
+});
+$('emailform').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const email=$('em').value.trim(); if(!email) return;
+  $('em-btn').disabled=true;$('em-btn').textContent='Sending…';
+  const d=await api({code:current,email});
+  $('em-btn').disabled=false;$('em-btn').textContent='Send';
+  $('em-note').textContent=d.error?d.error:'Sent to '+email+'. We\'ll remind you about an hour before it ends.';
+  $('em-note').style.color=d.error?'var(--red)':'var(--green)';
+});
+const c=new URLSearchParams(location.search).get('c');
+if(c){$('code').value=fmt(c);lookup(fmt(c));}else $('code').focus();
+</script>
+</body>
+</html>

@@ -21,6 +21,9 @@
 //   managerSendSpotLink { slotId, email? }   emails the resident a "Pay & Add Spot" link
 //   managerMarkPaid / managerMarkUnpaid { slotId }  outside billing (admin must allow it per property)
 //   managerMoveOutPreview / managerMoveOut { slotId }  tenant turnover for the whole unit
+//   guestSummary { token }                   guest pass types, what's left, recent passes
+//   guestIssue   { token, typeId, plate?, state?, vehicle?, guestName? }  give a guest pass
+//   guestCancel  { token, id }               cancel an unused code (pass comes back) or end a pass early
 
 const crypto = require('crypto');
 const { hashPassword, verifyPassword, isHashed, generatePassword } = require('./lib/unit-password');
@@ -30,6 +33,7 @@ const { createSpotCheckout, unitCustomer, spotProblem, makePayLink } = require('
 const { spotMonthlyCents } = require('./lib/spot-pricing');
 const stripe = () => require('stripe')(process.env.STRIPE_SECRET_KEY);
 const SITE = process.env.SITE_URL || 'https://myspotparking.com';
+const GP = require('./lib/guest-passes');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -562,7 +566,122 @@ const actions = {
     if (ids.length) await sb('PATCH', `permits?id=in.(${ids.join(',')})&property_id=eq.${q(u.propertyId)}`, { status: 'revoked' });
     return { ok: true };
   },
+
+  // ── Guest passes ──────────────────────────────────────────
+  async guestSummary({ token }, event, ctx = {}) {
+    const u = ctx.u = await authUnit(token);
+    const g = await guestContext(u);
+    if (!g.enabled) return { enabled: false };
+    return {
+      enabled: true, word: g.word, propertyName: g.property.name, extrasEnabled: !!g.rules.extras_enabled,
+      types: g.types.map(t => typeSummary(t, g.passes)),
+      recent: g.passes.slice(0, 15).map(p => passView(p, g)),
+    };
+  },
+  async guestIssue({ token, typeId, plate, state, vehicle, guestName }, event, ctx = {}) {
+    const u = ctx.u = await authUnit(token);
+    const g = await guestContext(u);
+    if (!g.enabled) throw new UserError('Guest passes are not turned on for this property.');
+    const type = g.types.find(t => t.id === typeId);
+    if (!type) throw new UserError('That pass type is no longer offered. Refresh and try again.');
+    if (type.needs_approval || type.length_kind === 'dates') throw new UserError('This pass needs manager approval. Use "Request an extended stay".');
+    const sum = typeSummary(type, g.passes);
+    if (sum.left !== null && sum.left <= 0) throw new UserError(`No ${type.name} left right now. Yours refill ${sum.refills}.`);
+    const now = new Date();
+    const tenant = (u.slots || []).find(x => x.tenant_name || x.tenant_email) || {};
+    const row = {
+      property_id: u.propertyId, pass_type_id: type.id, unit_number: u.unitNumber,
+      issued_by_name: tenant.tenant_name || tenant.tenant_email || null,
+      guest_name: typeof guestName === 'string' && guestName.trim() ? guestName.trim().slice(0, 60) : null,
+    };
+    const p = GP.normPlate(plate);
+    if (p) {
+      await checkPlateLimit(g, p, now);
+      const w = GP.passWindow(type, now);
+      Object.assign(row, { status: 'active', guest_plate: p, guest_state: cleanState(state), guest_vehicle: cleanText(vehicle, 60),
+        starts_at: w.starts.toISOString(), ends_at: w.ends.toISOString(), activated_at: now.toISOString() });
+    } else {
+      const hours = Number(g.rules.code_hours) || 48;
+      Object.assign(row, { status: 'issued', code_expires_at: new Date(now.getTime() + hours * 3600e3).toISOString() });
+    }
+    let saved;
+    for (let i = 0; i < 5 && !saved; i++) {
+      if (!p) row.code = GP.newCode();
+      try { [saved] = await sb('POST', 'guest_passes', row); }
+      catch (e) { if (!/guest_passes_code_key|duplicate key/.test(e.message) || p) throw e; }
+    }
+    u.guest = { type: type.name, plate: p || null, code: saved.code || null };
+    const view = passView(saved, g);
+    return { pass: view, link: saved.code ? `${SITE}/guest?c=${encodeURIComponent(saved.code)}` : null };
+  },
+  async guestCancel({ token, id }, event, ctx = {}) {
+    const u = ctx.u = await authUnit(token);
+    if (!UUID_RE.test(String(id || ''))) throw new UserError('Pass not found.');
+    const [g] = await sb('GET', `guest_passes?id=eq.${id}&property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}&select=*`);
+    if (!g) throw new UserError('Pass not found.');
+    const now = new Date().toISOString();
+    if (g.status === 'issued') {
+      await sb('PATCH', `guest_passes?id=eq.${id}&status=eq.issued`, { status: 'cancelled', cancelled_at: now });
+      u.guest = { how: 'cancelled', code: g.code };
+      return { ok: true, refunded: true };
+    }
+    if (g.status === 'active' && new Date(g.ends_at) > new Date()) {
+      await sb('PATCH', `guest_passes?id=eq.${id}`, { status: 'ended', ends_at: now, cancelled_at: now });
+      u.guest = { how: 'ended', plate: g.guest_plate };
+      return { ok: true, refunded: false };
+    }
+    throw new UserError('This pass has already ended.');
+  },
 };
+
+
+// ── Guest pass helpers ──────────────────────────────────────
+const cleanState = s => (typeof s === 'string' ? s.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2) : '') || null;
+const cleanText = (s, n) => (typeof s === 'string' && s.trim() ? s.trim().slice(0, n) : null);
+async function guestContext(u) {
+  let property;
+  try { [property] = await sb('GET', `properties?id=eq.${q(u.propertyId)}&select=name,space_word,guest_passes_enabled,guest_rules`); }
+  catch (e) { return { enabled: false }; }  // database not updated for guest passes yet
+  if (!property || !property.guest_passes_enabled) return { enabled: false };
+  const types = await sb('GET', `guest_pass_types?property_id=eq.${q(u.propertyId)}&active=eq.true&select=*&order=sort`);
+  const since = new Date(Date.now() - 400 * 864e5).toISOString();
+  const passes = await sb('GET', `guest_passes?property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}&created_at=gte.${since}&select=*&order=created_at.desc&limit=500`);
+  return { enabled: true, property, types, passes, rules: property.guest_rules || {}, word: (property.space_word || 'Unit').trim() || 'Unit', propertyId: u.propertyId };
+}
+function typeSummary(t, passes) {
+  const now = new Date();
+  const base = { id: t.id, name: t.name, kind: t.length_kind, describe: GP.describeType(t), needsApproval: !!t.needs_approval,
+    extraPrice: t.extra_price_cents ?? null };
+  if (t.allowance === null || t.allowance === undefined) return { ...base, allowance: null, used: null, left: null, refills: null };
+  const period = GP.allowancePeriod(t.reset_period, now);
+  const used = passes.filter(p => p.pass_type_id === t.id && new Date(p.created_at) >= period.start && GP.countsAgainstAllowance(p, now)).length;
+  return { ...base, allowance: t.allowance, used, left: Math.max(0, t.allowance - used), refills: GP.fmtDay(period.next), reset: t.reset_period };
+}
+function passView(p, g) {
+  const now = new Date();
+  const type = (g.types || []).find(t => t.id === p.pass_type_id);
+  let state = p.status;
+  if (p.status === 'issued' && p.code_expires_at && new Date(p.code_expires_at) <= now) state = 'expired';
+  if (p.status === 'active' && p.ends_at && new Date(p.ends_at) <= now) state = 'done';
+  if (p.status === 'active' && p.starts_at && new Date(p.starts_at) > now) state = 'upcoming';
+  return { id: p.id, type: type ? type.name : 'Guest pass', state, code: state === 'issued' ? p.code : null,
+    codeExpires: p.code_expires_at ? GP.fmtWhen(p.code_expires_at) : null,
+    plate: p.guest_plate || null, guestName: p.guest_name || null,
+    starts: p.starts_at ? GP.fmtWhen(p.starts_at) : null, ends: p.ends_at ? GP.fmtWhen(p.ends_at) : null,
+    created: GP.fmtWhen(p.created_at) };
+}
+// Same plate can only get so many guest passes per month at a property
+async function checkPlateLimit(g, plate, now) {
+  const limit = g.rules.plate_month_limit;
+  if (limit === null || limit === undefined || limit === '') return;
+  const since = GP.monthStart(now).toISOString();
+  const rows = await sb('GET', `guest_passes?property_id=eq.${q(g.propertyId)}&guest_plate=eq.${q(plate)}&activated_at=gte.${since}&status=in.(active,ended)&select=id`);
+  if (rows.length >= Number(limit)) {
+    await logActivity({ actorRole: 'system', portal: 'unit', action: 'guest.plate_limit', propertyId: g.propertyId, target: plate,
+      summary: `Guest pass refused: ${plate} already had ${rows.length} guest pass${rows.length === 1 ? '' : 'es'} this month (limit ${limit})` }).catch(() => {});
+    throw new UserError(`This vehicle has reached this property's guest pass limit for the month (${limit}). Please contact the property manager.`);
+  }
+}
 
 // ── Activity log entries for unit / manager actions ─────────
 const slotName = (u, id) => (u?.slots || []).find(x => x.id === id)?.slot_label || 'a spot';
@@ -581,6 +700,8 @@ const LOG = {
   managerMarkPaid:   (b, r, u) => ['billing.marked_paid', `Marked ${slotName(u, b.slotId)} as paid outside the app`],
   managerMarkUnpaid: (b, r, u) => ['billing.marked_unpaid', `Marked ${slotName(u, b.slotId)} as not paid`],
   managerCancelSpot: (b, r, u) => ['billing.spot_cancelled', `Cancelled card billing for ${(r.spots || []).join(', ')}`, { subscription: u?.cancelPlan?.subscription || null }],
+  guestIssue:  (b, r, u) => ['guest.issued', u?.guest?.plate ? `Gave a ${u.guest.type} to ${u.guest.plate}` : `Created a ${u?.guest?.type || 'guest pass'} code ${u?.guest?.code || ''}`],
+  guestCancel: (b, r, u) => ['guest.cancelled', u?.guest?.how === 'ended' ? `Ended the guest pass for ${u.guest.plate} early` : `Cancelled unused guest code ${u?.guest?.code || ''}`],
   managerMoveOut:    (b, r, u) => ['unit.moved_out', `Moved out ${u?.moveOut?.tenantName || u?.moveOut?.tenantEmail || 'the tenant'}`
     + (u?.moveOut?.plates?.length ? ` · voided ${u.moveOut.plates.join(', ')}` : '')
     + (u?.moveOut?.cardBilling ? ` · cancelled ${u.moveOut.cardBilling} card subscription${u.moveOut.cardBilling === 1 ? '' : 's'}` : '')

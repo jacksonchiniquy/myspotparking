@@ -16,3 +16,13 @@ status = 200
 from = "/login"
 to = "/login.html"
 status = 200
+
+# Guest pass "ends soon" emails
+[functions."guest-reminders"]
+schedule = "*/15 * * * *"
+
+# Guest uses a guest pass code
+[[redirects]]
+from = "/guest"
+to = "/guest.html"
+status = 200

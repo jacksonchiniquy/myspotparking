@@ -409,7 +409,7 @@ async function lookupPlate(){
     }else{
       patrolLog.unshift({plate:raw,result:'Guest Pass',time});
       resultEl.innerHTML=resultCard('valid','VALID — GUEST PASS','Resident guest · '+where,raw,[
-        ['Property',r.property],['Guest',r.guest_name],['Hosted By',[r.host_name,r.host_unit?'Unit '+r.host_unit:''].filter(Boolean).join(' · ')||'Resident'],['Pass',`${fmtDate(r.visit_date)} · ${r.duration||''}`],['Valid Until',fmtTime(r.ends_at)]]);
+        ['Property',r.property],['Guest',r.guest_name],['Vehicle',r.vehicle],['Hosted By',[r.host_name,r.host_unit?(r.host_word||'Unit')+' '+r.host_unit:''].filter(Boolean).join(' · ')||'Resident'],['Pass',r.pass_name||`${fmtDate(r.visit_date)} · ${r.duration||''}`],['Valid Until',fmtTime(r.ends_at)]]);
     }
   }else if(r.result==='possible'){
     // Look-alike or typo: nothing is logged until the officer decides
@@ -450,7 +450,7 @@ function renderPossible(raw,r,time){
     const details=[
       ['Type',kind+(m.permit_type?' · '+m.permit_type:'')],
       ['Vehicle',m.vehicle||(m.guest_name?'Guest: '+m.guest_name:'')],
-      ['Unit',m.unit_number||(m.host_unit?'Host unit '+m.host_unit:'')],
+      ['Unit',m.unit_number||(m.host_unit?'Guest of '+(m.host_word||'Unit')+' '+m.host_unit:'')],
       ['VIN (last 6)',m.vin_last6],
       ['Valid until',m.end_date?fmtDate(m.end_date):m.expires_at?fmtTime(m.expires_at):'']
     ].filter(d=>d[1]).map(([k,v])=>`<div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:3px;">${k}</div><div style="font-size:13px;font-weight:600;">${esc(v)}</div></div>`).join('');

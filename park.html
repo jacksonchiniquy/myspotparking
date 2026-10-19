@@ -45,11 +45,11 @@ h1{font-family:'Sora',sans-serif;font-size:24px;font-weight:800;letter-spacing:-
 
   <form class="card" id="park-form" autocomplete="off">
     <h1>Pay to Park</h1>
-    <p class="sub">Enter the property code printed on the parking sign.</p>
+    <p class="sub">Enter the property code printed on the parking sign, or the guest code someone sent you.</p>
 
     <div class="form-group">
-      <label class="form-label" for="code">Property Code</label>
-      <input class="form-input" id="code" placeholder="ABC-2345" maxlength="9" autocapitalize="characters" spellcheck="false">
+      <label class="form-label" for="code">Property or guest code</label>
+      <input class="form-input" id="code" placeholder="ABC-2345" maxlength="11" autocapitalize="characters" spellcheck="false">
     </div>
 
     <div class="found" id="found">
@@ -72,7 +72,9 @@ const codeEl=document.getElementById('code'), stallEl=document.getElementById('s
 let found=null, timer=null, lastAsked='';
 
 function clean(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
-function formatCode(v){const c=clean(v);return c.length>3?c.slice(0,3)+'-'+c.slice(3,7):c;}
+function formatCode(v){const c=clean(v);if(!/^[A-Z]{0,3}[0-9]{0,4}$/.test(c))return String(v).toUpperCase();return c.length>3?c.slice(0,3)+'-'+c.slice(3,7):c;}
+// Guest pass codes (G-XXXX-XX) go to the guest pass page
+function isGuestCode(c){return /^G[A-Z2-9]{6}$/.test(c)&&/[A-Z]/.test(c.slice(5));}
 
 function setFound(p){
   found=p;
@@ -100,6 +102,7 @@ async function lookup(code){
   }catch(e){if(code===lastAsked){setFound(null);document.getElementById('msg').textContent='Could not check the code. Please try again.';}}
 }
 codeEl.addEventListener('input',()=>{
+  if(isGuestCode(clean(codeEl.value))){document.getElementById('msg').textContent='';location.href='/guest?c='+encodeURIComponent(clean(codeEl.value));return;}
   const f=formatCode(codeEl.value); if(codeEl.value!==f) codeEl.value=f;
   document.getElementById('msg').textContent='';
   clearTimeout(timer);
@@ -114,7 +117,7 @@ document.getElementById('park-form').addEventListener('submit',e=>{
 });
 // Link with a code already in it (e.g. /park?c=TPP-4821)
 const q=new URLSearchParams(location.search);
-if(q.get('c')){codeEl.value=formatCode(q.get('c'));codeEl.dispatchEvent(new Event('input'));}
+if(q.get('c')){codeEl.value=q.get('c');codeEl.dispatchEvent(new Event('input'));}
 if(q.get('s')) stallEl.value=q.get('s').toUpperCase().replace(/[^A-Z0-9-]/g,'');
 </script>
 </body>
