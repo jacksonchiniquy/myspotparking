@@ -88,7 +88,9 @@ exports.handler = async (event) => {
             { name: 'Day Pass', length_kind: 'hours', hours: 12, allowance: 5, reset_period: 'monthly', sort: 1 },
             { name: 'Night Pass', length_kind: 'window', window_start: '18:00', window_end: '10:00', allowance: 10, reset_period: 'yearly', sort: 2 },
             { name: 'Extended Stay', length_kind: 'dates', max_days: 60, allowance: null, needs_approval: true, sort: 3 },
-          ].map(t => ({ property_id: body.propertyId, ...t }));
+          ].map(t => ({ // every row needs the same fields for a multi-row insert
+            property_id: body.propertyId, hours: null, window_start: null, window_end: null, max_days: null,
+            allowance: null, reset_period: 'yearly', needs_approval: false, ...t }));
           await sb('POST', 'guest_pass_types', starter);
           seeded = starter.length;
         }
