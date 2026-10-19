@@ -2099,7 +2099,9 @@ async function loadGuestSettings(propId){
 let gpLog=[], gpTypeNames={};
 function gpRenderLog(){
   const q=(document.getElementById('gp-log-q')?.value||'').trim().toLowerCase();
-  const now=new Date(), fmt=d=>d?new Date(d).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
+  // Some older columns are saved without a time zone (they're UTC): read them as UTC
+  const asDate=d=>typeof d==='string'&&!/(Z|[+-]\d\d:?\d\d)$/.test(d)?new Date(d+'Z'):new Date(d);
+  const now=new Date(), fmt=d=>d?asDate(d).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
   const rows=gpLog.filter(g=>!q||[g.guest_plate,g.code,g.guest_name,g.issued_by_name,g.unit_number,g.guest_vehicle].join(' ').toLowerCase().includes(q));
   const status=g=>{
     if(g.status==='issued') return g.code_expires_at&&new Date(g.code_expires_at)<=now?['Code expired','pill-expired']:['Code not used','pill-expired'];
