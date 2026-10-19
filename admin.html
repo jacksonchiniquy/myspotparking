@@ -317,7 +317,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
       <div id="panel-properties" class="panel">
         <div class="section-head"><div class="section-title">All Properties</div></div>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th title="Which actions enforcement officers can take at this property">Enforcement</th><th title="Code printed on Pay to Park signs, and whether drivers enter a stall number">Pay to Park</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th title="Which actions enforcement officers can take at this property">Enforcement</th><th title="Code printed on Pay to Park signs, and whether drivers enter a stall number">Pay to Park</th><th title="Lets residents give guest passes; the manager sets the pass types">Guest Passes</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
       </div>
 
       <!-- PERMITS -->
@@ -877,16 +877,17 @@ function renderProperties(data){
       </td>
       <td style="white-space:nowrap;">${enforceChips(p)}</td>
       <td style="white-space:nowrap;">${parkCell(p)}</td>
+      <td style="white-space:nowrap;">${p.guest_passes_enabled===undefined?'<span style="font-size:11px;color:var(--text3)" title="Run supabase-guest-passes-1.sql">Not set up</span>':`<button class="btn btn-sm ${p.guest_passes_enabled?'btn-primary':'btn-ghost'}" onclick="toggleGuestPasses('${p.id}',${!p.guest_passes_enabled})">${p.guest_passes_enabled?'On':'Off'}</button>`}</td>
       <td><div class="tbl-actions">
         <button class="btn btn-danger btn-sm" onclick="confirmDelete('property','${p.id}','${(p.name||'').replace(/'/g,'')}')">Delete</button>
       </div></td>
     </tr>`;
-  }).join('')||'<tr><td colspan="10" class="loading">No properties found</td></tr>';
+  }).join('')||'<tr><td colspan="11" class="loading">No properties found</td></tr>';
 }
 
 // ── ACTIVITY LOG ──────────────────────────────────────────────
 let actRows=[],actPage=0;const ACT_PAGE=200;
-const ACT_THINGS={permits:'permit',property_units:'spot',properties:'property',violations:'violation',users:'user account',vehicles:'vehicle',unit_vehicles:'unit vehicle',unit_permits:'spot assignment',guest_passes:'guest pass',enforcement_assignments:'enforcement assignment',parking_sessions:'parking session',manager_features:'plan & features'};
+const ACT_THINGS={permits:'permit',property_units:'spot',properties:'property',violations:'violation',users:'user account',vehicles:'vehicle',unit_vehicles:'unit vehicle',unit_permits:'spot assignment',guest_passes:'guest pass',enforcement_assignments:'enforcement assignment',parking_sessions:'parking session',manager_features:'plan & features',guest_pass_types:'guest pass type'};
 const ACT_ROLES={admin:['ADMIN','#a371f7'],manager:['MANAGER','#79c0ff'],enforcer:['ENFORCEMENT','#e3b341'],holder:['RESIDENT','#56d364'],unit:['UNIT PORTAL','#56d364'],driver:['PAY TO PARK','#56d364'],system:['SYSTEM','#8b949e'],database:['DATABASE','#8b949e'],visitor:['WEBSITE','#8b949e'],manager_pending:['APPLICANT','#79c0ff'],anonymous:['NOT SIGNED IN','#ff7b72']};
 const ACT_PORTALS={admin:'Admin portal',manager:'Manager portal',enforcement:'Enforcement portal',resident:'Resident portal',unit:'Unit portal',signup:'Sign-up page',pay:'Pay to Park page',website:'Website'};
 const actEsc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1023,6 +1024,21 @@ async function parkSettings(id,patch){
   }catch(e){res={ok:false};}
   if(!res.ok){toast('❌ '+(body.error||'Could not save.'));return false;}
   return true;
+}
+async function toggleGuestPasses(id,on){
+  const p=allProperties.find(x=>x.id===id);
+  if(!confirm(on?`Turn ON guest passes for ${p?.name||'this property'}? Its manager can then set pass types and residents can give guests passes.`:`Turn OFF guest passes for ${p?.name||'this property'}? Residents won't be able to give new passes. Passes already given keep working until they end.`)) return;
+  const {data:{session}}=await sb.auth.getSession();
+  let res,body={};
+  try{
+    res=await fetch('/.netlify/functions/admin-api',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body:JSON.stringify({action:'setGuestPasses',propertyId:id,on})});
+    body=await res.json().catch(()=>({}));
+  }catch(e){res={ok:false};}
+  if(!res.ok){toast('❌ '+(body.error||'Could not change guest passes.'));return;}
+  toast(on?'Guest passes turned on'+(body.seeded?' — starter pass types added':''):'Guest passes turned off');
+  loadProperties();
 }
 async function setStallMode(id,mode,sel){
   const p=allProperties.find(x=>x.id===id);

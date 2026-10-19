@@ -464,6 +464,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         <div class="inner-tab" id="pdit-expired" onclick="setPDTab('expired')">Expired / Revoked</div>
         <div class="inner-tab" id="pdit-map" onclick="setPDTab('map')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg> Lot Map</div>
         <div class="inner-tab" id="pdit-pay" onclick="setPDTab('pay')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Pay to Park</div>
+        <div class="inner-tab" id="pdit-guests" onclick="setPDTab('guests')" style="order:98;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2M13 17v2M13 11v2"/></svg> Guest Passes</div>
         <div class="inner-tab" id="pdit-history" onclick="setPDTab('history');loadTenancies(currentPropertyId).then(renderTenantHistory)" style="order:99;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg> Tenant History</div>
         <div class="inner-tab" id="pdit-units" onclick="setPDTab('units')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> <span id="pdit-units-label">Units</span></div>
       </div>
@@ -704,6 +705,47 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
               <button class="btn btn-ghost btn-sm" onclick="loadTransientSessions()">↻ Refresh</button>
             </div>
             <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Stall</th><th>Vehicle</th><th>Duration</th><th>Paid</th><th>Started</th><th>Expires</th><th>Status</th></tr></thead><tbody id="transient-sessions-body"><tr><td colspan="8" class="loading">Loading...</td></tr></tbody></table></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GUEST PASSES PANEL -->
+      <div id="pdip-guests" class="inner-panel">
+        <div id="gp-off" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center;">
+          <div style="font-size:15px;font-weight:700;margin-bottom:6px;">Guest passes aren't turned on for this property</div>
+          <div style="font-size:13px;color:var(--text2);">Residents can give guests parking passes with limits you set. Contact <a href="mailto:support@myspotparking.com">support@myspotparking.com</a> to turn it on.</div>
+        </div>
+        <div id="gp-on" style="display:none;max-width:980px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:18px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+              <div><div style="font-size:16px;font-weight:700;">Pass types</div><div style="font-size:12px;color:var(--text2);margin-top:3px;">What each <span class="gp-word">unit</span> can give their guests. Allowances refill automatically and unused passes don't roll over.</div></div>
+              <button class="btn btn-primary btn-sm" onclick="gpAddType()">+ Add pass type</button>
+            </div>
+            <div id="gp-types" style="display:flex;flex-direction:column;gap:10px;"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;margin-bottom:18px;">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;">
+              <div style="font-size:15px;font-weight:700;margin-bottom:14px;">Rules</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;font-size:13px;">
+                <label for="gp-code-hours">Unused guest codes expire after</label>
+                <select class="form-input" id="gp-code-hours" style="width:auto;"><option value="24">24 hours</option><option value="48">48 hours</option><option value="72">72 hours</option><option value="168">7 days</option></select>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;">
+                <label for="gp-plate-limit">Most passes one plate can get per month</label>
+                <input class="form-input" id="gp-plate-limit" type="number" min="0" max="31" style="width:80px;" placeholder="No limit">
+              </div>
+              <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5;">Counts across all <span class="gp-words">units</span>. Leave blank for no limit. Approved extended stays don't count.</div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <label for="gp-extras" style="font-size:15px;font-weight:700;">Extra passes for purchase</label>
+                <input type="checkbox" id="gp-extras" style="width:20px;height:20px;" onchange="gpRenderTypes()">
+              </div>
+              <div style="font-size:12px;color:var(--text2);line-height:1.55;">When on, residents who have used up a pass type can buy more. Set a price on each pass type above. Off by default.</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;">
+            <button class="btn btn-primary" id="gp-save" onclick="gpSave()">Save Guest Pass Settings</button>
           </div>
         </div>
       </div>
@@ -2017,6 +2059,105 @@ function onPermitPropertyChange(propId){
 }
 
 
+// ── GUEST PASS SETTINGS ─────────────────────────────────────
+let gpTypes=[], gpRemoved=[];
+const GP_RESETS={monthly:'Monthly',quarterly:'Quarterly',semiannual:'Every 6 months',yearly:'Yearly'};
+function gpTime(t){if(!t)return '';const [h,m]=String(t).split(':').map(Number);return ((h%12)||12)+(m?':'+String(m).padStart(2,'0'):'')+' '+(h<12?'AM':'PM');}
+async function loadGuestSettings(propId){
+  const p=allProperties.find(x=>x.id===propId)||{};
+  const w=propWord(p);
+  document.querySelectorAll('#pdip-guests .gp-word').forEach(e=>e.textContent=w.toLowerCase());
+  document.querySelectorAll('#pdip-guests .gp-words').forEach(e=>e.textContent=spacePlural(w).toLowerCase());
+  const on=!!p.guest_passes_enabled;
+  document.getElementById('gp-off').style.display=on?'none':'block';
+  document.getElementById('gp-on').style.display=on?'block':'none';
+  if(!on) return;
+  const rules=p.guest_rules||{};
+  document.getElementById('gp-code-hours').value=String(rules.code_hours||48);
+  document.getElementById('gp-plate-limit').value=rules.plate_month_limit??'';
+  document.getElementById('gp-extras').checked=!!rules.extras_enabled;
+  document.getElementById('gp-types').innerHTML='<div style="color:var(--text3);font-size:13px;padding:10px;">Loading…</div>';
+  const {data,error}=await sb.from('guest_pass_types').select('*').eq('property_id',propId).eq('active',true).order('sort');
+  if(error){document.getElementById('gp-types').innerHTML='<div style="color:var(--red);font-size:13px;">Could not load pass types: '+escHtml(error.message)+'</div>';return;}
+  gpTypes=(data||[]).map(t=>({...t,window_start:(t.window_start||'').slice(0,5),window_end:(t.window_end||'').slice(0,5)}));
+  gpRemoved=[];
+  gpRenderTypes();
+}
+function gpRenderTypes(){
+  const extras=document.getElementById('gp-extras').checked;
+  const box=document.getElementById('gp-types');
+  if(!gpTypes.length){box.innerHTML='<div style="color:var(--text3);font-size:13px;padding:10px;">No pass types yet. Add one to let residents give guest passes.</div>';return;}
+  const opt=(v,cur,l)=>`<option value="${v}"${v===cur?' selected':''}>${l}</option>`;
+  box.innerHTML=gpTypes.map((t,i)=>{
+    const len=t.length_kind==='hours'
+      ?`<input class="form-input" type="number" min="1" max="720" value="${t.hours||12}" style="width:70px;" oninput="gpTypes[${i}].hours=parseInt(this.value)||null" aria-label="Hours"> <span>hours</span>`
+      :t.length_kind==='window'
+      ?`<input class="form-input" type="time" value="${t.window_start||'18:00'}" style="width:115px;" oninput="gpTypes[${i}].window_start=this.value" aria-label="Starts"> <span>to</span> <input class="form-input" type="time" value="${t.window_end||'10:00'}" style="width:115px;" oninput="gpTypes[${i}].window_end=this.value" aria-label="Ends"> <span style="font-size:11px;color:var(--text3);">(next day if earlier)</span>`
+      :`<span>up to</span> <input class="form-input" type="number" min="1" max="365" value="${t.max_days||30}" style="width:70px;" oninput="gpTypes[${i}].max_days=parseInt(this.value)||null" aria-label="Max days"> <span>days</span>`;
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <input class="form-input" value="${escHtml(t.name||'')}" maxlength="40" style="flex:1;min-width:160px;font-weight:700;" placeholder="Pass name" oninput="gpTypes[${i}].name=this.value" aria-label="Pass name">
+        <select class="form-input" style="width:auto;" onchange="gpTypes[${i}].length_kind=this.value;gpRenderTypes()" aria-label="Length">
+          ${opt('hours',t.length_kind,'Set number of hours')}${opt('window',t.length_kind,'Time window (e.g. overnight)')}${opt('dates',t.length_kind,'Resident picks dates')}
+        </select>
+        <button class="btn btn-danger btn-sm" onclick="gpRemoveType(${i})" aria-label="Remove pass type">✕</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;">${len}</div>
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:13px;">
+        <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" ${t.needs_approval?'checked':''} onchange="gpTypes[${i}].needs_approval=this.checked;gpRenderTypes()"> Needs manager approval</label>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <input class="form-input" type="number" min="0" max="1000" value="${t.allowance??''}" placeholder="No limit" style="width:90px;" oninput="gpTypes[${i}].allowance=this.value===''?null:parseInt(this.value)" aria-label="Passes per ${escHtml(propWord(allProperties.find(x=>x.id===currentPropertyId)).toLowerCase())}">
+          <span>per ${escHtml(propWord(allProperties.find(x=>x.id===currentPropertyId)).toLowerCase())}, resets</span>
+          <select class="form-input" style="width:auto;" onchange="gpTypes[${i}].reset_period=this.value" aria-label="Resets">${Object.entries(GP_RESETS).map(([v,l])=>opt(v,t.reset_period||'yearly',l)).join('')}</select>
+        </span>
+        ${extras&&!t.needs_approval?`<span style="display:flex;align-items:center;gap:6px;">Extra pass price $<input class="form-input" type="number" min="0" step="0.5" value="${t.extra_price_cents!=null?(t.extra_price_cents/100).toFixed(2):''}" placeholder="—" style="width:80px;" oninput="gpTypes[${i}].extra_price_cents=this.value===''?null:Math.round(parseFloat(this.value)*100)" aria-label="Extra pass price"></span>`:''}
+      </div>
+    </div>`;}).join('');
+}
+function gpAddType(){
+  gpTypes.push({name:'',length_kind:'hours',hours:12,allowance:5,reset_period:'monthly',needs_approval:false,sort:gpTypes.length+1});
+  gpRenderTypes();
+  const inputs=document.querySelectorAll('#gp-types input[aria-label="Pass name"]');inputs[inputs.length-1]?.focus();
+}
+function gpRemoveType(i){
+  const t=gpTypes[i];
+  if(t.id&&!confirm(`Remove "${t.name}"? Residents won't be able to give this pass anymore. Passes already given keep working.`)) return;
+  if(t.id) gpRemoved.push(t.id);
+  gpTypes.splice(i,1);gpRenderTypes();
+}
+async function gpSave(){
+  const btn=document.getElementById('gp-save');
+  for(const t of gpTypes){
+    if(!String(t.name||'').trim()){toast('Give every pass type a name');return;}
+    if(t.length_kind==='hours'&&!(t.hours>=1)){toast(`Set the hours for ${t.name}`);return;}
+    if(t.length_kind==='window'&&(!t.window_start||!t.window_end)){toast(`Set the start and end time for ${t.name}`);return;}
+    if(t.length_kind==='dates'&&!(t.max_days>=1)){toast(`Set the most days for ${t.name}`);return;}
+  }
+  btn.disabled=true;btn.textContent='Saving…';
+  const pid=currentPropertyId;
+  const limit=document.getElementById('gp-plate-limit').value;
+  const rules={code_hours:parseInt(document.getElementById('gp-code-hours').value)||48,plate_month_limit:limit===''?null:Math.max(0,parseInt(limit)||0),extras_enabled:document.getElementById('gp-extras').checked};
+  let err=null;
+  const r1=await sb.from('properties').update({guest_rules:rules}).eq('id',pid);err=r1.error;
+  if(!err&&gpRemoved.length){const r=await sb.from('guest_pass_types').update({active:false}).in('id',gpRemoved);err=r.error;}
+  for(let i=0;!err&&i<gpTypes.length;i++){
+    const t=gpTypes[i];
+    const row={property_id:pid,name:t.name.trim(),length_kind:t.length_kind,
+      hours:t.length_kind==='hours'?t.hours:null,
+      window_start:t.length_kind==='window'?t.window_start:null,window_end:t.length_kind==='window'?t.window_end:null,
+      max_days:t.length_kind==='dates'?t.max_days:null,
+      allowance:t.allowance??null,reset_period:t.reset_period||'yearly',needs_approval:!!t.needs_approval,
+      extra_price_cents:t.extra_price_cents??null,sort:i+1,updated_at:new Date().toISOString()};
+    const r=t.id?await sb.from('guest_pass_types').update(row).eq('id',t.id):await sb.from('guest_pass_types').insert(row);
+    err=r.error;
+  }
+  btn.disabled=false;btn.textContent='Save Guest Pass Settings';
+  if(err){toast('❌ '+err.message);return;}
+  const p=allProperties.find(x=>x.id===pid); if(p) p.guest_rules=rules;
+  toast('✅ Guest pass settings saved');
+  loadGuestSettings(pid);
+}
+
 // ── SPACE WORD ("Unit", "Suite", "Bay"…) chosen per property ──
 function spacePlural(w){w=String(w||'Unit');if(/[^aeiou]y$/i.test(w))return w.slice(0,-1)+'ies';if(/(s|x|z|ch|sh)$/i.test(w))return w+'es';return w+'s';}
 function propWord(p){return ((p&&p.space_word)||'Unit').trim()||'Unit';}
@@ -2655,7 +2796,7 @@ function renderPropertyDetail(propId){
 }
 
 function setPDTab(name){
-  ['all','active','expired','map','pay','units','history'].forEach(n=>{
+  ['all','active','expired','map','pay','units','guests','history'].forEach(n=>{
     document.getElementById('pdit-'+n)?.classList.remove('active');
     document.getElementById('pdip-'+n)?.classList.remove('active');
   });
@@ -2678,6 +2819,10 @@ function setPDTab(name){
   }
   if(name==='units'){
     loadUnitsTab(currentPropertyId);
+    return;
+  }
+  if(name==='guests'){
+    loadGuestSettings(currentPropertyId);
     return;
   }
   if(name==='map'){

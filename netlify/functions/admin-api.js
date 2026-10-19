@@ -5,6 +5,7 @@
 //   setOutsideBilling { propertyId, on }   lets that property's managers "Mark as Paid"
 //   setEnforcementActions { propertyId, actions: ['tow','boot','ticket'] }
 //                                          which actions officers can take there
+//   setGuestPasses { propertyId, on }      guest passes on/off (adds starter pass types the first time)
 //   setParkSettings { propertyId, stallMode?, parkCode? }
 //                                          Pay to Park stall numbers / property code
 
@@ -73,6 +74,30 @@ exports.handler = async (event) => {
         summary: `Set enforcement options to ${actions.map(a => words[a]).join(', ')}`,
         details: { before: before?.enforcement_actions || null, after: actions } });
       return reply(200, { ok: true, actions });
+    }
+    if (body.action === 'setGuestPasses') {
+      if (!UUID_RE.test(String(body.propertyId || ''))) return reply(400, { error: 'Property not found.' });
+      const rows = await sb('PATCH', `properties?id=eq.${body.propertyId}`, { guest_passes_enabled: !!body.on });
+      if (!rows?.length) return reply(404, { error: 'Property not found.' });
+      let seeded = 0;
+      if (body.on) {
+        const existing = await sb('GET', `guest_pass_types?property_id=eq.${body.propertyId}&select=id&limit=1`);
+        if (!existing.length) {
+          // Starter pass types the manager can change or remove
+          const starter = [
+            { name: 'Day Pass', length_kind: 'hours', hours: 12, allowance: 5, reset_period: 'monthly', sort: 1 },
+            { name: 'Night Pass', length_kind: 'window', window_start: '18:00', window_end: '10:00', allowance: 10, reset_period: 'yearly', sort: 2 },
+            { name: 'Extended Stay', length_kind: 'dates', max_days: 60, allowance: null, needs_approval: true, sort: 3 },
+          ].map(t => ({ property_id: body.propertyId, ...t }));
+          await sb('POST', 'guest_pass_types', starter);
+          seeded = starter.length;
+        }
+      }
+      const { logActivity, userActor } = require('./lib/activity');
+      await logActivity({ ...(await userActor(admin.id)), actorRole: 'admin', portal: 'admin', action: 'property.guest_passes',
+        propertyId: body.propertyId, target: rows[0].name || null,
+        summary: `Turned Guest Passes ${body.on ? 'ON' : 'OFF'}${seeded ? ' (added starter pass types)' : ''}` });
+      return reply(200, { ok: true, seeded });
     }
     if (body.action === 'setParkSettings') {
       if (!UUID_RE.test(String(body.propertyId || ''))) return reply(400, { error: 'Property not found.' });
