@@ -11,6 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="violations-pager.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <style>
 :root{--bg:#f4f7ff;--surface:#ffffff;--surface2:#f0f4ff;--border:rgba(15,23,42,0.09);--border2:rgba(15,23,42,0.05);--blue:#1a6fff;--blue2:#4d8fff;--bluelight:#e8f1ff;--text:#0f172a;--text2:#475569;--text3:#94a3b8;--green:#00c87a;--amber:#f59e0b;--red:#ef4444;--shadow:0 1px 4px rgba(15,23,42,0.06),0 4px 16px rgba(15,23,42,0.04);}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
@@ -638,23 +639,45 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div id="pdip-pay" class="inner-panel">
         <div style="max-width:800px;">
 
-          <!-- QR Code & Link -->
+          <!-- Signs: property code, QR, stickers -->
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;margin-bottom:20px;">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;">
-              <div style="flex:1;min-width:200px;">
-                <div style="font-size:16px;font-weight:700;margin-bottom:6px;">QR Code for this property</div>
-                <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;">Post this QR code at your lot entrance or stalls. Visitors scan it with their phone, enter their plate, and pay instantly — no app required.</div>
+              <div style="flex:1;min-width:240px;">
+                <div style="font-size:16px;font-weight:700;margin-bottom:12px;">Signs for this property</div>
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+                  <div>
+                    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--text3);font-family:'JetBrains Mono',monospace;">PROPERTY CODE</div>
+                    <div id="pay-code" style="font-size:28px;font-weight:800;letter-spacing:.06em;line-height:1.1;">—</div>
+                  </div>
+                  <span id="pay-code-lock" style="font-size:11px;font-weight:600;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:4px 10px;">🔒 Permanent — printed on signs</span>
+                </div>
+                <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;">Put the sticker on a My Spot Pay to Park sign. Drivers scan it, or enter the code at <strong>myspotparking.com/park</strong>. No app or account needed.</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                  <button class="btn btn-primary btn-sm" onclick="downloadQR()">Download QR Code</button>
+                  <button class="btn btn-primary btn-sm" onclick="downloadSticker()">Download Sticker</button>
                   <button class="btn btn-ghost btn-sm" onclick="copyPayLink()">Copy Pay Link</button>
-                  <a id="pay-link-open" class="btn btn-ghost btn-sm" href="#" target="_blank">↗ Open Pay Page</a>
+                  <a id="pay-link-open" class="btn btn-ghost btn-sm" href="#" target="_blank" rel="noopener">↗ Open Pay Page</a>
                 </div>
                 <div style="margin-top:12px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text3);word-break:break-all;" id="pay-link-display"></div>
               </div>
               <div style="flex-shrink:0;text-align:center;">
-                <canvas id="qr-canvas" width="160" height="160" style="border:1px solid var(--border);border-radius:10px;display:block;"></canvas>
-                <div style="font-size:10px;color:var(--text3);margin-top:6px;">Scan to pay for parking</div>
+                <canvas id="qr-canvas" width="180" height="180" style="width:180px;height:180px;border:1px solid var(--border);border-radius:10px;display:block;background:#fff;"></canvas>
+                <div style="font-size:10px;color:var(--text3);margin-top:6px;">Scan with your phone to test</div>
               </div>
+            </div>
+            <!-- Print stickers -->
+            <div style="border-top:1px solid var(--border);margin-top:22px;padding-top:18px;">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+                <div style="font-size:14px;font-weight:700;">Print stickers</div>
+                <span id="pay-stall-pill" style="font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;"></span>
+              </div>
+              <div id="pay-print-note" style="font-size:12px;color:var(--text2);margin-bottom:12px;"></div>
+              <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                <div id="pay-print-copies"><label class="form-label" for="pay-copies">How many</label><input class="form-input" id="pay-copies" type="number" min="1" max="60" value="6" style="width:110px;"></div>
+                <div id="pay-print-from" style="display:none;"><label class="form-label" for="pay-stall-from">From stall</label><input class="form-input" id="pay-stall-from" type="number" min="1" value="1" style="width:110px;"></div>
+                <div id="pay-print-to" style="display:none;"><label class="form-label" for="pay-stall-to">To stall</label><input class="form-input" id="pay-stall-to" type="number" min="1" value="50" style="width:110px;"></div>
+                <button class="btn btn-ghost btn-sm" style="height:42px;" onclick="printStickers()">🖨 Print Sticker Sheet</button>
+              </div>
+              <div style="font-size:11px;color:var(--text3);margin-top:8px;">Prints 3" × 3" stickers, 6 per letter-size page. Use weatherproof label sheets, or send the PDF to a sticker printer.</div>
             </div>
           </div>
 
@@ -677,7 +700,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
               <div style="font-size:16px;font-weight:700;">Recent Pay-to-Park Sessions</div>
               <button class="btn btn-ghost btn-sm" onclick="loadTransientSessions()">↻ Refresh</button>
             </div>
-            <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Vehicle</th><th>Duration</th><th>Paid</th><th>Started</th><th>Expires</th><th>Status</th></tr></thead><tbody id="transient-sessions-body"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody></table></div>
+            <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Stall</th><th>Vehicle</th><th>Duration</th><th>Paid</th><th>Started</th><th>Expires</th><th>Status</th></tr></thead><tbody id="transient-sessions-body"><tr><td colspan="8" class="loading">Loading...</td></tr></tbody></table></div>
           </div>
         </div>
       </div>
@@ -2495,6 +2518,7 @@ function openPropertyDetail(propId){
     <span style="${pillStyle}">${pillSvg('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>')} Default: $${p.monthly_rate||0}/mo</span>
     ${buildRatePills(p.parking_rates)}`;
   renderPropertyDetail(propId);
+  initPayPanel(); // link, QR code and rates always match the property being shown
   showPage('property-detail', null);
   history.replaceState(null,'','#property/'+propId);
   // Keep Properties tab highlighted
@@ -2717,75 +2741,139 @@ let lotImportMode='image'; // 'image' | 'text'
 
 let transientRates=[];
 
-function getPayLink(){
-  return window.location.origin+'/pay.html?lot='+currentPropertyId;
+function payProp(){return allProperties.find(p=>p.id===currentPropertyId)||{};}
+// The address inside the QR code. Uses the short property code when there is one.
+function getPayLink(stall){
+  const p=payProp();
+  const base=window.location.origin+'/pay.html?';
+  const s=stall?'&s='+encodeURIComponent(stall):'';
+  return p.park_code?base+'c='+encodeURIComponent(p.park_code)+s:base+'lot='+currentPropertyId+s;
 }
 
 function initPayPanel(){
+  if(!document.getElementById('pay-link-display')) return;
+  const p=payProp();
   const link=getPayLink();
   document.getElementById('pay-link-display').textContent=link;
+  document.getElementById('pay-code').textContent=p.park_code||'—';
+  document.getElementById('pay-code-lock').style.display=p.park_code?'':'none';
   const openEl=document.getElementById('pay-link-open');
   if(openEl) openEl.href=link;
-  generateQR(link);
+  // Stall setting (set by My Spot Parking)
+  const mode=p.stall_mode||'off';
+  const pill=document.getElementById('pay-stall-pill');
+  pill.textContent=mode==='off'?'Open lot — one sticker for the whole property':'Stall numbers: '+(mode==='required'?'Required':'Optional');
+  pill.style.cssText+=mode==='off'?';background:var(--surface2);color:var(--text2);':';background:rgba(0,200,122,.12);color:#007a4a;';
+  document.getElementById('pay-print-note').textContent=mode==='off'
+    ?'Every sticker for this property is the same. Put one at each entrance or pay station.'
+    :'Each sticker has its own stall number built into the QR code, so drivers don\'t have to type it.';
+  document.getElementById('pay-print-copies').style.display=mode==='off'?'':'none';
+  document.getElementById('pay-print-from').style.display=mode==='off'?'none':'';
+  document.getElementById('pay-print-to').style.display=mode==='off'?'none':'';
+  const canvas=document.getElementById('qr-canvas');
+  if(canvas) drawQR(canvas,link,180);
   loadTransientRates();
   loadTransientSessions();
 }
 
-function generateQR(url){
-  const canvas=document.getElementById('qr-canvas');
-  if(!canvas) return;
-  const ctx=canvas.getContext('2d');
-  const size=160;
-  // Simple QR visual placeholder — in production use a QR library
-  ctx.fillStyle='#fff';ctx.fillRect(0,0,size,size);
-  ctx.fillStyle='#0B1220';
-  // Draw finder patterns + data representation
-  const cellSize=5;
-  const cols=size/cellSize;
-  // Seed with URL hash for deterministic pattern
-  let hash=0;
-  for(let i=0;i<url.length;i++) hash=(hash<<5)-hash+url.charCodeAt(i);
-  for(let r=0;r<cols;r++){
-    for(let c=0;c<cols;c++){
-      // Finder patterns (corners)
-      const inFinder=(r<7&&c<7)||(r<7&&c>cols-8)||(r>cols-8&&c<7);
-      if(inFinder){
-        const edge=(r===0||r===6||c===0||c===6);
-        const inner=(r>=2&&r<=4&&c>=2&&c<=4)||(r>=2&&r<=4&&c>=cols-6&&c<=cols-4)||(r>=cols-6&&r<=cols-4&&c>=2&&c<=4);
-        if(edge||inner){ctx.fillRect(c*cellSize,r*cellSize,cellSize,cellSize);}
-      } else {
-        // Data cells
-        const seed=(r*cols+c+hash)%7;
-        if(seed<3){ctx.fillRect(c*cellSize,r*cellSize,cellSize,cellSize);}
-      }
-    }
+// Draws a real, scannable QR code (with the My Spot pin in the middle) onto a canvas
+function drawQR(canvas,url,size,ctxIn,ox,oy){
+  if(typeof qrcode!=='function'){ // library didn't load: show the link instead of a fake code
+    const c=canvas.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,size,size);
+    c.fillStyle='#8899aa';c.font='12px sans-serif';c.textAlign='center';c.fillText('QR unavailable — refresh',size/2,size/2);return;
   }
-  // Center logo — map pin (white background, blue pin with P)
-  const cx=80,cy=80,pr=18;
-  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,pr+2,0,Math.PI*2);ctx.fill();
-  // Pin body (teardrop)
-  ctx.fillStyle='#1a6fff';
-  ctx.beginPath();
-  ctx.arc(cx,cy-6,10,0,Math.PI*2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(cx-5,cy-2);ctx.lineTo(cx,cy+11);ctx.lineTo(cx+5,cy-2);
-  ctx.closePath();ctx.fill();
-  // White circle inside pin
-  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy-6,4.5,0,Math.PI*2);ctx.fill();
-  // "P" letter
-  ctx.fillStyle='#1a6fff';ctx.font='bold 6px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText('P',cx,cy-6);
+  const qr=qrcode(0,'H');qr.addData(url);qr.make();
+  const n=qr.getModuleCount(), quiet=2, cell=size/(n+quiet*2);
+  const ctx=ctxIn||canvas.getContext('2d');
+  ox=ox||0;oy=oy||0;
+  if(!ctxIn){ctx.clearRect(0,0,size,size);}
+  ctx.fillStyle='#fff';ctx.fillRect(ox,oy,size,size);
+  ctx.fillStyle='#0B1220';
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++){
+    if(qr.isDark(r,c)) ctx.fillRect(ox+Math.floor((c+quiet)*cell),oy+Math.floor((r+quiet)*cell),Math.ceil(cell),Math.ceil(cell));
+  }
+  // Center pin (error correction 'H' keeps the code readable under it)
+  const cx=ox+size/2, cy=oy+size/2, R=size*0.1;
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,R*1.25,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#2859a8';
+  ctx.beginPath();ctx.arc(cx,cy-R*0.25,R*0.62,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.moveTo(cx-R*0.45,cy+R*0.05);ctx.lineTo(cx,cy+R*0.85);ctx.lineTo(cx+R*0.45,cy+R*0.05);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy-R*0.25,R*0.27,0,Math.PI*2);ctx.fill();
 }
 
-function downloadQR(){
-  const canvas=document.getElementById('qr-canvas');
-  if(!canvas) return;
-  const link=document.createElement('a');
-  link.download='parking-qr-'+currentPropertyId+'.png';
-  link.href=canvas.toDataURL();
-  link.click();
-  toast('QR code downloaded!');
+// One 3" x 3" sticker as an image (750 x 750 px)
+function makeSticker(stall){
+  const p=payProp(), S=750;
+  const cv=document.createElement('canvas');cv.width=S;cv.height=S;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,S,S);
+  ctx.strokeStyle='#d5dbe8';ctx.lineWidth=3;ctx.strokeRect(1.5,1.5,S-3,S-3);
+  const font=(w,px)=>`${w} ${px}px Sora, 'Arial Black', Arial, sans-serif`;
+  ctx.textAlign='center';ctx.textBaseline='alphabetic';
+  if(!stall){
+    drawQR(cv,getPayLink(),470,ctx,(S-470)/2,40);
+    ctx.fillStyle='#5d6886';ctx.font=font(700,26);ctx.fillText('PROPERTY CODE',S/2,560);
+    ctx.fillStyle='#1b2340';ctx.font=font(800,78);ctx.fillText(p.park_code||'',S/2,645);
+    ctx.fillStyle='#5d6886';ctx.font=font(600,24);ctx.fillText('myspotparking.com/park',S/2,700);
+  }else{
+    drawQR(cv,getPayLink(stall),420,ctx,(S-420)/2,34);
+    // Zone code on the left, big stall number on the right
+    ctx.fillStyle='#5d6886';ctx.font=font(700,22);ctx.fillText('ZONE',215,505);
+    ctx.fillStyle='#1b2340';ctx.font=font(800,52);ctx.fillText(p.park_code||'',215,565);
+    ctx.fillStyle='#5d6886';ctx.font=font(600,21);ctx.fillText('myspotparking.com/park',215,610);
+    ctx.fillStyle='#374269';
+    const bx=420,by=470,bw=270,bh=230,rad=22;
+    ctx.beginPath();ctx.moveTo(bx+rad,by);ctx.arcTo(bx+bw,by,bx+bw,by+bh,rad);ctx.arcTo(bx+bw,by+bh,bx,by+bh,rad);ctx.arcTo(bx,by+bh,bx,by,rad);ctx.arcTo(bx,by,bx+bw,by,rad);ctx.fill();
+    ctx.fillStyle='#c9d4f0';ctx.font=font(700,24);ctx.fillText('STALL',bx+bw/2,by+52);
+    ctx.fillStyle='#fff';
+    let px=130;ctx.font=font(800,px);
+    while(ctx.measureText(String(stall)).width>bw-30&&px>40){px-=6;ctx.font=font(800,px);}
+    ctx.fillText(String(stall),bx+bw/2,by+bh-44);
+  }
+  return cv;
+}
+
+async function downloadSticker(){
+  const p=payProp();
+  if(document.fonts&&document.fonts.ready) await document.fonts.ready;
+  const a=document.createElement('a');
+  a.download='my-spot-sticker-'+(p.park_code||currentPropertyId)+'.png';
+  a.href=makeSticker(null).toDataURL('image/png');
+  a.click();
+  toast('Sticker downloaded');
+}
+
+async function printStickers(){
+  const p=payProp(), mode=p.stall_mode||'off';
+  let list=[];
+  if(mode==='off'){
+    const n=Math.min(60,Math.max(1,parseInt(document.getElementById('pay-copies').value)||1));
+    list=Array(n).fill(null);
+  }else{
+    const from=parseInt(document.getElementById('pay-stall-from').value), to=parseInt(document.getElementById('pay-stall-to').value);
+    if(!(from>=1)||!(to>=from)){toast('Enter a stall range, like 1 to 50');return;}
+    if(to-from+1>300){toast('Print up to 300 stalls at a time');return;}
+    for(let i=from;i<=to;i++) list.push(String(i));
+  }
+  const w=window.open('','_blank');
+  if(!w){toast('Allow pop-ups to print stickers');return;}
+  w.document.write('<p style="font-family:sans-serif;padding:24px">Preparing '+list.length+' stickers…</p>');
+  if(document.fonts&&document.fonts.ready) await document.fonts.ready;
+  const lot=mode==='off'?makeSticker(null).toDataURL('image/png'):null;
+  const imgs=list.map(st=>`<img src="${lot||makeSticker(st).toDataURL('image/png')}" alt="">`).join('');
+  const title=(p.name||'Property')+' stickers';
+  w.document.open();
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escHtml(title)}</title><style>
+    @page{size:letter;margin:0.75in 1.25in 0.5in}
+    body{margin:0;font-family:sans-serif}
+    .tip{padding:12px 16px;background:#eef4ff;font-size:13px;margin-bottom:12px}
+    .sheet{display:grid;grid-template-columns:repeat(2,3in);gap:0;justify-content:center}
+    .sheet img{width:3in;height:3in;display:block;break-inside:avoid}
+    @media print{.tip{display:none}}
+  </style></head><body><div class="tip">${list.length} sticker${list.length===1?'':'s'} for ${escHtml(p.name||'')}. Use your browser's Print (or Save as PDF). Turn off "headers and footers" and set scale to 100%.</div><div class="sheet">${imgs}</div>
+  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
+  w.document.close();
+  logAct&&logAct('property.stickers_printed','Printed '+list.length+' Pay to Park sticker'+(list.length===1?'':'s')+(mode==='off'?'':' (stalls '+list[0]+'–'+list[list.length-1]+')'),{property_id:currentPropertyId,target:p.name||null});
 }
 
 function copyPayLink(){
@@ -2857,14 +2945,14 @@ async function saveRates(){
 async function loadTransientSessions(){
   const body=document.getElementById('transient-sessions-body');
   if(!body) return;
-  body.innerHTML='<tr><td colspan="7" class="loading">Loading sessions...</td></tr>';
+  body.innerHTML='<tr><td colspan="8" class="loading">Loading sessions...</td></tr>';
   const {data,error}=await sb.from('parking_sessions')
     .select('*')
     .eq('property_id',currentPropertyId)
     .order('created_at',{ascending:false})
     .limit(50);
   if(error||!data||!data.length){
-    body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text3);">No pay-to-park sessions yet.</td></tr>';
+    body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3);">No pay-to-park sessions yet.</td></tr>';
     return;
   }
   const now=new Date();
@@ -2876,8 +2964,9 @@ async function loadTransientSessions(){
       :s.status==='pending'?'<span class="pill pill-expired">pending</span>'
       :'<span class="pill pill-expired">expired</span>';
     return`<tr>
-      <td><strong style="font-family:'JetBrains Mono',monospace;font-size:12px;">${s.plate}</strong></td>
-      <td style="font-size:12px;color:var(--text2);">${s.vehicle_desc||'—'}</td>
+      <td><strong style="font-family:'JetBrains Mono',monospace;font-size:12px;">${escHtml(s.plate)}</strong></td>
+      <td style="font-size:12px;font-weight:700;">${escHtml(s.stall||'—')}</td>
+      <td style="font-size:12px;color:var(--text2);">${escHtml(s.vehicle_desc||'—')}</td>
       <td style="font-size:12px;">${formatMins(s.duration_minutes)}</td>
       <td style="font-size:12px;font-weight:600;color:var(--green);">$${(s.amount_paid/100).toFixed(2)}</td>
       <td style="font-size:12px;color:var(--text3);">${new Date(s.started_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</td>

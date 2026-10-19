@@ -5,6 +5,8 @@
 //   setOutsideBilling { propertyId, on }   lets that property's managers "Mark as Paid"
 //   setEnforcementActions { propertyId, actions: ['tow','boot','ticket'] }
 //                                          which actions officers can take there
+//   setParkSettings { propertyId, stallMode?, parkCode? }
+//                                          Pay to Park stall numbers / property code
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -71,6 +73,39 @@ exports.handler = async (event) => {
         summary: `Set enforcement options to ${actions.map(a => words[a]).join(', ')}`,
         details: { before: before?.enforcement_actions || null, after: actions } });
       return reply(200, { ok: true, actions });
+    }
+    if (body.action === 'setParkSettings') {
+      if (!UUID_RE.test(String(body.propertyId || ''))) return reply(400, { error: 'Property not found.' });
+      const [before] = await sb('GET', `properties?id=eq.${body.propertyId}&select=name,park_code,stall_mode`);
+      if (!before) return reply(404, { error: 'Property not found.' });
+      const patch = {};
+      if (body.stallMode !== undefined) {
+        if (!['off', 'optional', 'required'].includes(body.stallMode)) return reply(400, { error: 'Unknown stall setting.' });
+        patch.stall_mode = body.stallMode;
+      }
+      if (body.parkCode !== undefined) {
+        const raw = String(body.parkCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const m = raw.match(/^([A-Z]{3})([0-9]{4})$/);
+        if (!m) return reply(400, { error: 'Codes are 3 letters and 4 numbers, like TPP-4821.' });
+        patch.park_code = `${m[1]}-${m[2]}`;
+        if (patch.park_code !== before.park_code) {
+          const taken = await sb('GET', `properties?park_code=eq.${patch.park_code}&id=neq.${body.propertyId}&select=id`);
+          if (taken.length) return reply(409, { error: `${patch.park_code} is already used by another property.` });
+        }
+      }
+      if (!Object.keys(patch).length) return reply(400, { error: 'Nothing to change.' });
+      const rows = await sb('PATCH', `properties?id=eq.${body.propertyId}`, patch);
+      const words = { off: 'Off', optional: 'Optional', required: 'Required' };
+      const said = [];
+      if (patch.stall_mode && patch.stall_mode !== before.stall_mode) said.push(`stall numbers ${words[before.stall_mode] || 'Off'} → ${words[patch.stall_mode]}`);
+      if (patch.park_code && patch.park_code !== before.park_code) said.push(`property code ${before.park_code || '(none)'} → ${patch.park_code}`);
+      if (said.length) {
+        const { logActivity, userActor } = require('./lib/activity');
+        await logActivity({ ...(await userActor(admin.id)), actorRole: 'admin', portal: 'admin', action: 'property.park_settings',
+          propertyId: body.propertyId, target: before.name || null, summary: 'Changed Pay to Park ' + said.join(', '),
+          details: { before: { park_code: before.park_code, stall_mode: before.stall_mode }, after: patch } });
+      }
+      return reply(200, { ok: true, property: rows[0] });
     }
     return reply(400, { error: 'Unknown action' });
   } catch (err) {

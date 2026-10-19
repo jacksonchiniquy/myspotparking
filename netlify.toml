@@ -4,3 +4,9 @@ package = "@netlify/plugin-functions-install-core"
 [build.environment]
 SECRETS_SCAN_OMIT_KEYS = "SUPABASE_SERVICE_KEY"
  
+
+# Short address printed on Pay to Park signs
+[[redirects]]
+from = "/park"
+to = "/park.html"
+status = 200

@@ -317,7 +317,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
       <div id="panel-properties" class="panel">
         <div class="section-head"><div class="section-title">All Properties</div></div>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th title="Which actions enforcement officers can take at this property">Enforcement</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th title="Which actions enforcement officers can take at this property">Enforcement</th><th title="Code printed on Pay to Park signs, and whether drivers enter a stall number">Pay to Park</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
       </div>
 
       <!-- PERMITS -->
@@ -876,11 +876,12 @@ function renderProperties(data){
         ${outsidePaidCounts[p.id]?`<div style="font-size:11px;color:var(--amber,#b45309);margin-top:4px;">${outsidePaidCounts[p.id]} spot${outsidePaidCounts[p.id]===1?'':'s'} paid outside</div>`:''}
       </td>
       <td style="white-space:nowrap;">${enforceChips(p)}</td>
+      <td style="white-space:nowrap;">${parkCell(p)}</td>
       <td><div class="tbl-actions">
         <button class="btn btn-danger btn-sm" onclick="confirmDelete('property','${p.id}','${(p.name||'').replace(/'/g,'')}')">Delete</button>
       </div></td>
     </tr>`;
-  }).join('')||'<tr><td colspan="9" class="loading">No properties found</td></tr>';
+  }).join('')||'<tr><td colspan="10" class="loading">No properties found</td></tr>';
 }
 
 // ── ACTIVITY LOG ──────────────────────────────────────────────
@@ -998,6 +999,43 @@ async function toggleEnforcement(id,action){
   p.enforcement_actions=body.actions||next;
   toast(`${p.name}: ${p.enforcement_actions.map(a=>ENF_LABEL[a]).join(', ')}`);
   loadProperties();
+}
+
+function parkCell(p){
+  if(p.park_code===undefined) return '<span style="font-size:11px;color:var(--text3)" title="Run supabase-park-codes.sql">Not set up</span>';
+  const mode=p.stall_mode||'off';
+  return `<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
+    <button class="btn btn-ghost btn-sm" style="font-family:'JetBrains Mono',monospace;font-weight:700;padding:3px 8px;" title="Change code (signs already printed will stop working)" onclick="changeParkCode('${p.id}')">${p.park_code||'—'}</button>
+    <select class="form-input" style="padding:3px 6px;font-size:11px;width:auto;" title="Ask drivers for a stall number" onchange="setStallMode('${p.id}',this.value,this)">
+      <option value="off"${mode==='off'?' selected':''}>Stalls: Off</option>
+      <option value="optional"${mode==='optional'?' selected':''}>Stalls: Optional</option>
+      <option value="required"${mode==='required'?' selected':''}>Stalls: Required</option>
+    </select></div>`;
+}
+async function parkSettings(id,patch){
+  const {data:{session}}=await sb.auth.getSession();
+  let res,body={};
+  try{
+    res=await fetch('/.netlify/functions/admin-api',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body:JSON.stringify(Object.assign({action:'setParkSettings',propertyId:id},patch))});
+    body=await res.json().catch(()=>({}));
+  }catch(e){res={ok:false};}
+  if(!res.ok){toast('❌ '+(body.error||'Could not save.'));return false;}
+  return true;
+}
+async function setStallMode(id,mode,sel){
+  const p=allProperties.find(x=>x.id===id);
+  if(!(await parkSettings(id,{stallMode:mode}))){if(sel&&p)sel.value=p.stall_mode||'off';return;}
+  toast(`${p?.name||'Property'}: stall numbers ${mode==='off'?'off':mode}`);
+  loadProperties();
+}
+async function changeParkCode(id){
+  const p=allProperties.find(x=>x.id===id); if(!p) return;
+  const next=prompt(`Property code for ${p.name}\n\nWARNING: stickers and signs already printed with ${p.park_code} will stop working.\n\nNew code (3 letters, 4 numbers):`,p.park_code||'');
+  if(next===null||next.trim().toUpperCase()===(p.park_code||'')) return;
+  if(!confirm(`Change ${p.park_code} to ${next.trim().toUpperCase()}? Any printed stickers with the old code will need to be replaced.`)) return;
+  if(await parkSettings(id,{parkCode:next})){toast('Property code changed');loadProperties();}
 }
 
 async function toggleOutsideBilling(id,on){

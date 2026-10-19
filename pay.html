@@ -9,7 +9,6 @@
 <title>Pay for Parking — My Spot Parking</title>
 <meta name="description" content="Pay for parking quickly and securely. No app required.">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://js.stripe.com/v3/"></script>
 <style>
 :root{
@@ -37,6 +36,10 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
 .prop-header{padding:24px 28px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(27,111,255,0.04),white);}
 .prop-name{font-family:'Sora',sans-serif;font-size:20px;font-weight:800;letter-spacing:-0.03em;margin-bottom:4px;}
 .prop-address{font-size:13px;color:var(--slate2);}
+.prop-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.prop-chips:empty{display:none;}
+.prop-chip{font-size:12px;font-weight:700;background:#eef2fa;color:#374269;border-radius:999px;padding:5px 11px;}
+.prop-chip.dark{background:#374269;color:#fff;}
 .prop-loading{color:var(--slate2);font-size:14px;}
 
 /* STEPS */
@@ -134,7 +137,7 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
     <div class="notfound-screen" id="screen-notfound">
       <div class="notfound-icon">🔍</div>
       <div class="notfound-h">Lot not found</div>
-      <p class="notfound-sub">This parking lot could not be found. Please check the QR code or contact the property manager.</p>
+      <p class="notfound-sub">This parking lot could not be found. Check the code on the sign and try again at <a href="/park" style="color:var(--blue);font-weight:600;">myspotparking.com/park</a>.</p>
     </div>
 
     <!-- PAYMENT FORM -->
@@ -142,6 +145,7 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
       <div class="prop-header">
         <div class="prop-name" id="prop-name">—</div>
         <div class="prop-address" id="prop-address"></div>
+        <div class="prop-chips" id="prop-chips"></div>
       </div>
 
       <div class="steps-wrap">
@@ -158,6 +162,10 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
         <!-- STEP 2: VEHICLE INFO -->
         <div class="vehicle-section">
           <div class="section-label">Your Vehicle</div>
+          <div class="form-group" id="stall-group" style="display:none;">
+            <label class="form-label" for="stall">Stall Number <span id="stall-need" style="color:var(--slate2);font-weight:400;text-transform:none;letter-spacing:0;"></span></label>
+            <input class="form-input plate-input" id="stall" type="text" placeholder="e.g. 112" maxlength="12" inputmode="text" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9\-]/g,'');updateSummary()">
+          </div>
           <div class="form-group">
             <label class="form-label">License Plate *</label>
             <input class="form-input plate-input" id="plate" type="text" placeholder="ABC-1234" maxlength="10" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9\-]/g,'');updateSummary()">
@@ -177,6 +185,10 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
           <div class="summary-row">
             <span class="summary-label">Duration</span>
             <span class="summary-val" id="sum-duration">—</span>
+          </div>
+          <div class="summary-row" id="sum-stall-row" style="display:none;">
+            <span class="summary-label">Stall</span>
+            <span class="summary-val" id="sum-stall">—</span>
           </div>
           <div class="summary-row">
             <span class="summary-label">Plate</span>
@@ -215,6 +227,7 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
         <div style="font-size:13px;color:var(--slate2);" id="ss-vehicle"></div>
         <div class="sc-fields">
           <div><div class="sc-field-label">Location</div><div class="sc-field-val" id="ss-prop">—</div></div>
+          <div id="ss-stall-wrap" style="display:none;"><div class="sc-field-label">Stall</div><div class="sc-field-val" id="ss-stall">—</div></div>
           <div><div class="sc-field-label">Duration</div><div class="sc-field-val" id="ss-duration">—</div></div>
           <div><div class="sc-field-label">Started</div><div class="sc-field-val" id="ss-start">—</div></div>
           <div><div class="sc-field-label">Expires</div><div class="sc-field-val" id="ss-expires">—</div></div>
@@ -227,13 +240,6 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
 </div>
 
 <script>
-const SUPABASE_URL='https://ajadbfojccztiauxyxos.supabase.co';
-const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYWRiZm9qY2N6dGlhdXh5eG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTU1NDcsImV4cCI6MjA5MjM3MTU0N30.dHMc-kGb0YFHnTfxnwGYfikmKZBLPzS5lfe6SyRsguU';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON,{
-  auth:{storageKey:'msp-auth-pay',persistSession:false},
-  global:{headers:{'x-msp-portal':'pay'}},
-});
-
 let currentProperty=null;
 let selectedRate=null;
 let selectedRateIndex=0;
@@ -241,6 +247,9 @@ let selectedRateIndex=0;
 // Get property ID from URL
 const params=new URLSearchParams(window.location.search);
 const propId=params.get('lot')||params.get('property');
+const propCode=params.get('c')||params.get('code');
+const stallFromLink=(params.get('s')||params.get('stall')||'').toUpperCase().replace(/[^A-Z0-9-]/g,'').slice(0,12);
+const escH=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 // Check for returning from Stripe
 const sessionId=params.get('session_id');
@@ -262,35 +271,43 @@ async function init(){
     return;
   }
 
-  if(!propId){showScreen('notfound');return;}
+  if(!propId&&!propCode){showScreen('notfound');return;}
 
-  const {data:prop,error}=await sb.from('properties').select('*').eq('id',propId).single();
-  if(error||!prop){showScreen('notfound');return;}
+  let prop=null;
+  try{
+    const res=await fetch('/.netlify/functions/park-lookup',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(propId?{id:propId}:{code:propCode})});
+    if(res.ok) prop=(await res.json()).property;
+  }catch(e){}
+  if(!prop){showScreen('notfound');return;}
 
+  prop.transient_rates=prop.rates;
   currentProperty=prop;
   document.getElementById('prop-name').textContent=prop.name;
   document.getElementById('prop-address').textContent=prop.address||'';
+  const chips=[];
+  if(prop.park_code) chips.push(`<span class="prop-chip">Code ${escH(prop.park_code)}</span>`);
+  if(prop.stall_mode!=='off'&&stallFromLink) chips.push(`<span class="prop-chip dark">Stall ${escH(stallFromLink)}</span>`);
+  document.getElementById('prop-chips').innerHTML=chips.join('');
 
-  // Build rate options
-  const rates=prop.transient_rates||[];
-  if(!rates.length){
-    // Default rates if none configured
-    rates.push(
-      {id:'1h',name:'1 Hour',minutes:60,amount:300,desc:'Short stay'},
-      {id:'2h',name:'2 Hours',minutes:120,amount:500,desc:'Most popular'},
-      {id:'4h',name:'4 Hours',minutes:240,amount:800,desc:'Half day'},
-      {id:'day',name:'Full Day',minutes:480,amount:1200,desc:'All day parking'}
-    );
+  // Stall number (only for properties that use them)
+  const stallGroup=document.getElementById('stall-group');
+  if(prop.stall_mode==='off'){stallGroup.style.display='none';}
+  else{
+    stallGroup.style.display='';
+    document.getElementById('stall-need').textContent=prop.stall_mode==='required'?'*':'(if the sign shows one)';
+    document.getElementById('stall').value=stallFromLink;
   }
 
+  const rates=prop.rates||[];
   const grid=document.getElementById('rate-grid');
   grid.innerHTML=rates.map((r,i)=>`
     <div class="rate-option${i===1?' selected':''}" onclick="selectRate(${i})" id="rate-${i}">
       <div class="rate-left">
-        <div class="rate-name">${r.name}</div>
-        <div class="rate-desc">${r.desc||''}</div>
+        <div class="rate-name">${escH(r.name)}</div>
+        <div class="rate-desc">${escH(r.desc||'')}</div>
       </div>
-      <div class="rate-price">$${(r.amount/100).toFixed(2)}<span>/${r.minutes>=480?'day':r.minutes>=60?'hr':'min'}</span></div>
+      <div class="rate-price">$${(r.amount/100).toFixed(2)}</div>
     </div>
   `).join('');
 
@@ -302,12 +319,7 @@ async function init(){
 }
 
 function selectRate(idx){
-  const rates=currentProperty.transient_rates||[
-    {id:'1h',name:'1 Hour',minutes:60,amount:300},
-    {id:'2h',name:'2 Hours',minutes:120,amount:500},
-    {id:'4h',name:'4 Hours',minutes:240,amount:800},
-    {id:'day',name:'Full Day',minutes:480,amount:1200}
-  ];
+  const rates=currentProperty.rates||[];
   selectedRate=rates[idx];
   selectedRateIndex=idx;
   document.querySelectorAll('.rate-option').forEach((el,i)=>{
@@ -321,7 +333,15 @@ function updateSummary(){
   const btn=document.getElementById('pay-btn');
   const box=document.getElementById('summary-box');
 
-  if(selectedRate&&plate.length>=2){
+  const stall=currentProperty&&currentProperty.stall_mode!=='off'?document.getElementById('stall').value.trim():'';
+  const stallOk=!(currentProperty&&currentProperty.stall_mode==='required')||!!stall;
+  document.getElementById('sum-stall-row').style.display=stall?'':'none';
+  document.getElementById('sum-stall').textContent=stall;
+  if(selectedRate){
+    const amt='$'+(selectedRate.amount/100).toFixed(2);
+    btn.lastChild.textContent=' Pay '+amt+' & Park';
+  }
+  if(selectedRate&&plate.length>=2&&stallOk){
     box.style.display='block';
     document.getElementById('sum-duration').textContent=selectedRate.name;
     document.getElementById('sum-plate').textContent=plate;
@@ -357,6 +377,7 @@ async function startPayment(){
         plate,
         vehicleDesc:desc,
         email:email||null,
+        stall:currentProperty.stall_mode!=='off'?document.getElementById('stall').value.trim():'',
         rateId:selectedRate.id||null,
         rateIndex:selectedRateIndex
       })
@@ -406,6 +427,7 @@ function showSuccessScreen(session){
   document.getElementById('ss-plate').textContent=session.plate;
   document.getElementById('ss-vehicle').textContent=session.vehicle_desc||'';
   document.getElementById('ss-prop').textContent=session.property_name||'—';
+  if(session.stall){document.getElementById('ss-stall').textContent=session.stall;document.getElementById('ss-stall-wrap').style.display='';}
   document.getElementById('ss-duration').textContent=formatMinutes(session.duration_minutes);
   document.getElementById('ss-start').textContent=formatTime(session.started_at);
   document.getElementById('ss-expires').textContent=formatTime(session.expires_at);

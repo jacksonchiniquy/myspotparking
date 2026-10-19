@@ -24,7 +24,7 @@ exports.handler = async (event) => {
     if (!row) return reply(404, { error: 'Session not found' });
     const [property] = await sb('GET', `properties?id=eq.${row.property_id}&select=name`);
     return reply(200, {
-      status: row.status, plate: row.plate, vehicle_desc: row.vehicle_desc, property_name: property?.name || '',
+      status: row.status, plate: row.plate, vehicle_desc: row.vehicle_desc, stall: row.stall || null, property_name: property?.name || '',
       duration_minutes: row.duration_minutes, started_at: row.started_at, expires_at: row.expires_at,
     });
   } catch (err) {

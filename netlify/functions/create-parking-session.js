@@ -31,6 +31,11 @@ exports.handler = async (event) => {
     const [property] = await sb('GET', `properties?id=eq.${propertyId}&select=*`);
     if (!property) return reply(404, { error: 'Property not found.' });
 
+    // Stall number: required, optional or not used, as the property is set up
+    const stallMode = property.stall_mode || 'off';
+    const stall = stallMode === 'off' ? '' : String(body.stall || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 12);
+    if (stallMode === 'required' && !stall) return reply(400, { error: 'Please enter the stall number from the sign.' });
+
     const rates = ratesFor(property);
     const rate = rates.find(r => r.id && r.id === body.rateId) || rates[Number(body.rateIndex)];
     const amount = Math.round(Number(rate && rate.amount));
@@ -49,18 +54,19 @@ exports.handler = async (event) => {
           unit_amount: amount,
           product_data: {
             name: `Parking — ${property.name}`,
-            description: `${rate.name} · Plate: ${plate}${vehicleDesc ? ' · ' + vehicleDesc : ''}`,
+            description: `${rate.name} · Plate: ${plate}${stall ? ' · Stall ' + stall : ''}${vehicleDesc ? ' · ' + vehicleDesc : ''}`,
           },
         },
         quantity: 1,
       }],
-      metadata: { kind: 'parking_session', property_id: property.id, plate, duration_minutes: String(minutes), rate_name: String(rate.name || '') },
+      metadata: { kind: 'parking_session', property_id: property.id, plate, stall, duration_minutes: String(minutes), rate_name: String(rate.name || '') },
       success_url: `${SITE}/pay.html?lot=${property.id}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${SITE}/pay.html?lot=${property.id}`,
+      cancel_url: `${SITE}/pay.html?lot=${property.id}${stall ? '&s=' + encodeURIComponent(stall) : ''}`,
     });
 
     await sb('POST', 'parking_sessions', {
       property_id: property.id, plate, vehicle_desc: vehicleDesc || null, email,
+      ...(stall ? { stall } : {}),
       rate_name: rate.name || null, amount_paid: amount /* cents */, duration_minutes: minutes,
       stripe_session_id: checkout.id, status: 'pending',
       // Placeholder; replaced with the real times when payment is confirmed.

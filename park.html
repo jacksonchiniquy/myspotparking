@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pay to Park — My Spot Parking</title>
+<meta name="description" content="Enter the property code on the parking sign to pay for parking. No app or account needed.">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#1B6FFF;--ink:#0B1220;--slate:#5A6A85;--slate2:#6B7A90;--off:#F7F8FA;--border:rgba(11,18,32,0.09);--green:#0f8a55;--red:#d93636;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;}
+.page-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;}
+.pay-header{display:flex;align-items:center;gap:10px;margin-bottom:32px;padding-top:8px;text-decoration:none;}
+.pay-brand{font-family:'Sora',sans-serif;font-size:17px;font-weight:700;letter-spacing:-0.025em;line-height:1.1;}
+.card{background:#fff;border:1px solid var(--border);border-radius:20px;width:100%;max-width:440px;padding:28px 24px;box-shadow:0 4px 24px rgba(11,18,32,0.07);}
+h1{font-family:'Sora',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.03em;margin-bottom:6px;}
+.sub{font-size:14px;color:var(--slate);line-height:1.55;margin-bottom:22px;}
+.form-group{margin-bottom:16px;}
+.form-label{display:block;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate2);margin-bottom:7px;}
+.form-label span{font-weight:400;text-transform:none;letter-spacing:0;}
+.form-input{width:100%;background:var(--off);border:1.5px solid var(--border);color:var(--ink);padding:14px;border-radius:12px;font-family:'Sora',sans-serif;font-size:18px;font-weight:700;text-align:center;outline:none;-webkit-appearance:none;text-transform:uppercase;letter-spacing:0.08em;}
+.form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(27,111,255,0.1);background:#fff;}
+.form-input::placeholder{color:#A0AEC0;font-weight:500;letter-spacing:0.04em;}
+#code{font-size:26px;font-weight:800;}
+.found{display:none;align-items:center;gap:12px;background:#eef6ff;border:1px solid #cfe1fb;border-radius:12px;padding:12px 14px;margin-bottom:16px;}
+.found.show{display:flex;}
+.found-name{font-weight:700;font-size:15px;}
+.found-addr{font-size:12px;color:var(--slate);}
+.msg{font-size:13px;color:var(--red);margin:-6px 0 14px;min-height:0;}
+.btn{width:100%;min-height:54px;font-family:'Inter',sans-serif;font-size:17px;font-weight:700;color:#fff;background:var(--blue);border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 16px rgba(27,111,255,0.3);}
+.btn:disabled{opacity:.45;cursor:default;box-shadow:none;}
+.note{font-size:12px;color:var(--slate2);text-align:center;margin-top:18px;line-height:1.5;max-width:440px;}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <a class="pay-header" href="/">
+    <svg width="36" height="38" viewBox="0 0 80 64" fill="none" aria-hidden="true"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg>
+    <span class="pay-brand"><span style="color:#374269;font-weight:800;display:block;">My Spot</span><span style="color:#2859a8;font-weight:600;font-size:.75em;letter-spacing:.12em;text-transform:uppercase;">— PARKING —</span></span>
+  </a>
+
+  <form class="card" id="park-form" autocomplete="off">
+    <h1>Pay to Park</h1>
+    <p class="sub">Enter the property code printed on the parking sign.</p>
+
+    <div class="form-group">
+      <label class="form-label" for="code">Property Code</label>
+      <input class="form-input" id="code" placeholder="ABC-2345" maxlength="9" autocapitalize="characters" spellcheck="false">
+    </div>
+
+    <div class="found" id="found">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0f8a55" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+      <div><div class="found-name" id="found-name"></div><div class="found-addr" id="found-addr"></div></div>
+    </div>
+    <div class="msg" id="msg" role="status"></div>
+
+    <div class="form-group" id="stall-group" style="display:none;">
+      <label class="form-label" for="stall">Stall Number <span id="stall-need"></span></label>
+      <input class="form-input" id="stall" placeholder="e.g. 112" maxlength="12" spellcheck="false">
+    </div>
+
+    <button class="btn" id="go" type="submit" disabled>Continue</button>
+  </form>
+  <p class="note">The property name appears once the code is found, so you can confirm you're at the right lot.<br>No app or account needed.</p>
+</div>
+<script>
+const codeEl=document.getElementById('code'), stallEl=document.getElementById('stall'), go=document.getElementById('go');
+let found=null, timer=null, lastAsked='';
+
+function clean(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function formatCode(v){const c=clean(v);return c.length>3?c.slice(0,3)+'-'+c.slice(3,7):c;}
+
+function setFound(p){
+  found=p;
+  document.getElementById('found').classList.toggle('show',!!p);
+  const sg=document.getElementById('stall-group');
+  if(p){
+    document.getElementById('found-name').textContent=p.name;
+    document.getElementById('found-addr').textContent=p.address||'';
+    sg.style.display=p.stall_mode==='off'?'none':'';
+    document.getElementById('stall-need').textContent=p.stall_mode==='required'?'*':'(if the sign shows one)';
+  }else sg.style.display='none';
+  refresh();
+}
+function refresh(){
+  const needStall=found&&found.stall_mode==='required'&&!clean(stallEl.value);
+  go.disabled=!found||needStall;
+}
+async function lookup(code){
+  lastAsked=code;
+  try{
+    const res=await fetch('/.netlify/functions/park-lookup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
+    if(code!==lastAsked) return;
+    if(res.ok){document.getElementById('msg').textContent='';setFound((await res.json()).property);}
+    else{setFound(null);document.getElementById('msg').textContent='No property found with that code. Check the sign and try again.';}
+  }catch(e){if(code===lastAsked){setFound(null);document.getElementById('msg').textContent='Could not check the code. Please try again.';}}
+}
+codeEl.addEventListener('input',()=>{
+  const f=formatCode(codeEl.value); if(codeEl.value!==f) codeEl.value=f;
+  document.getElementById('msg').textContent='';
+  clearTimeout(timer);
+  if(clean(f).length===7) timer=setTimeout(()=>lookup(f),250); else setFound(null);
+});
+stallEl.addEventListener('input',()=>{stallEl.value=stallEl.value.toUpperCase().replace(/[^A-Z0-9-]/g,'');refresh();});
+document.getElementById('park-form').addEventListener('submit',e=>{
+  e.preventDefault();
+  if(!found||go.disabled) return;
+  const s=found.stall_mode==='off'?'':stallEl.value.trim();
+  location.href='/pay.html?lot='+encodeURIComponent(found.id)+(s?'&s='+encodeURIComponent(s):'');
+});
+// Link with a code already in it (e.g. /park?c=TPP-4821)
+const q=new URLSearchParams(location.search);
+if(q.get('c')){codeEl.value=formatCode(q.get('c'));codeEl.dispatchEvent(new Event('input'));}
+if(q.get('s')) stallEl.value=q.get('s').toUpperCase().replace(/[^A-Z0-9-]/g,'');
+</script>
+</body>
+</html>
