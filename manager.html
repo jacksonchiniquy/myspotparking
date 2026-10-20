@@ -988,8 +988,8 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-add-property">
   <div class="modal" style="width:580px;">
     <button class="modal-close" onclick="closeModal('modal-add-property')">✕</button>
-    <div class="modal-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><polyline points="8 7 8 12 16 12 16 7"/></svg>Add Property</div>
-    <div class="modal-sub">Register a new parking location</div>
+    <div class="modal-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><polyline points="8 7 8 12 16 12 16 7"/></svg><span id="pp-title">Add Property</span></div>
+    <div class="modal-sub" id="pp-sub">Register a new parking location</div>
     <div class="err-msg" id="pp-err"></div>
     <!-- Management Type -->
     <div class="form-group">
@@ -4721,6 +4721,10 @@ function openEditProperty(){
   });
   document.getElementById('pp-btn').textContent='Save Changes';
   document.getElementById('pp-btn').onclick=()=>saveEditProperty(p.id);
+  document.getElementById('pp-title').textContent='Edit Property';
+  document.getElementById('pp-sub').textContent='Update the details for '+(p.name||'this property');
+  document.getElementById('pp-err').classList.remove('show');
+  _ppEditing=true;
   openModal('modal-add-property');
 }
 
@@ -4804,7 +4808,23 @@ function setIT(name){
   document.getElementById('it-'+name)?.classList.add('active');
   document.getElementById('ip-'+name)?.classList.add('active');
 }
-function openModal(id){document.getElementById(id).classList.add('open');}
+// The property window is shared by Add and Edit. Opening it any way other
+// than Edit Property starts a fresh, empty Add Property form.
+let _ppEditing=false;
+function resetAddPropertyForm(){
+  ['pp-name','pp-addr','pp-spots','pp-zones','pp-rate','pp-units'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['standard','reserved','handicap','ev','guest','moto','carport','garage','yard','storage','loading'].forEach(id=>{const el=document.getElementById('rate-'+id);if(el)el.value='';});
+  if(typeof setPropType==='function') setPropType('linked');
+  if(typeof setPpWord==='function') setPpWord('Unit');
+  const btn=document.getElementById('pp-btn');btn.textContent='Add Property';btn.onclick=addProperty;btn.disabled=false;
+  document.getElementById('pp-title').textContent='Add Property';
+  document.getElementById('pp-sub').textContent='Register a new parking location';
+  document.getElementById('pp-err').classList.remove('show');
+}
+function openModal(id){
+  if(id==='modal-add-property'){if(!_ppEditing) resetAddPropertyForm();_ppEditing=false;}
+  document.getElementById(id).classList.add('open');
+}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
 let toastTimer;

@@ -103,6 +103,30 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 #toast.show{opacity:1;transform:translateY(0);}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
 @media(max-width:900px){.sidebar{display:none;}.main{margin-left:0;padding:20px;}.stat-grid{grid-template-columns:1fr 1fr;}.form-row{grid-template-columns:1fr;}}
+/* Phone tab bar (the left menu is hidden on small screens) */
+.mtabs{display:none;}
+@media(max-width:900px){
+  .mtabs{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:600;background:rgba(255,255,255,.97);border-top:1px solid var(--border);padding:6px 4px calc(6px + env(safe-area-inset-bottom));}
+  .mtab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;font-family:inherit;font-size:11px;font-weight:600;color:#64748b;padding:6px 2px;border-radius:10px;cursor:pointer;}
+  .mtab span{font-size:18px;line-height:1;}
+  .mtab.active{color:#b45309;background:rgba(255,170,0,.1);}
+  .main{padding-bottom:96px;}
+  #toast{bottom:84px;}
+}
+/* Phones: keep the top bar on one line */
+@media(max-width:700px){
+  .nav{padding:0 12px;gap:8px;}
+  .nav-badge,#nav-name{display:none;}
+  .logo-text{font-size:15px;white-space:nowrap;}
+  #patrol-status{padding:6px 10px !important;font-size:12px !important;white-space:nowrap;}
+  .btn-signout{padding:6px 10px;}
+  .main{padding:16px 14px 96px;}
+  .scan-box{padding:18px;}
+  .main{min-width:0;}
+  .plate-input{width:0;min-width:0;font-size:18px;padding:12px;letter-spacing:.08em;}
+  .stat-grid{gap:10px;}
+}
+@media(max-width:400px){.logo-text span:last-child{display:none;}}
 </style>
 </head>
 <body>
@@ -164,6 +188,13 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
       <div class="sidebar-label">Account</div>
       <div class="sidebar-item" onclick="setTab('account',this)"><span class="sidebar-icon">⚙️</span>Account</div>
     </aside>
+
+    <nav class="mtabs" aria-label="Sections">
+      <button class="mtab active" data-tab="console" onclick="setTab('console')"><span>🔍</span>Lookup</button>
+      <button class="mtab" data-tab="violations" onclick="setTab('violations')"><span>🚨</span>Violations</button>
+      <button class="mtab" data-tab="summary" onclick="setTab('summary')"><span>📊</span>Summary</button>
+      <button class="mtab" data-tab="account" onclick="setTab('account')"><span>⚙️</span>Account</button>
+    </nav>
 
     <main class="main">
       <!-- CONSOLE -->
@@ -601,7 +632,10 @@ function setTab(name,el){
   tabNames.forEach(t=>document.getElementById('tab-'+t)?.classList.remove('active'));
   document.getElementById('tab-'+name)?.classList.add('active');
   document.querySelectorAll('.sidebar-item').forEach(s=>s.classList.remove('active'));
+  if(!el) el=document.querySelector(`.sidebar-item[onclick*="'${name}'"]`);
   if(el)el.classList.add('active');
+  document.querySelectorAll('.mtab').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  window.scrollTo(0,0);
   history.replaceState(null,'','#'+name);
 }
 
