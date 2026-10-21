@@ -174,7 +174,7 @@ footer{padding:20px;text-align:center;font-size:11px;color:var(--text3);}
       <div class="success-icon">✅</div>
       <div class="success-title">You're all set!</div>
       <div class="success-sub">
-        Your payment was successful and your parking permit is now active.<br><br>
+        <span id="success-lead">Your payment was successful and your parking permit is now active.</span><br><br>
         <strong>Check your email</strong> — we sent your login credentials to <span id="success-email" style="color:var(--blue);font-weight:600;"></span>
       </div>
       <a class="btn btn-primary" href="unit.html">Log In to Your Portal →</a>
@@ -391,6 +391,8 @@ async function goToPayment() {
       });
       const data = await res.json();
       if (data.success) {
+        document.getElementById('success-lead').textContent = 'Your signup is complete and your parking permit is now active.';
+        document.getElementById('success-email').textContent = email;
         goToStep(3);
       } else {
         showErr('err-2', data.error || 'Signup failed. Please try again.');
