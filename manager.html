@@ -1102,13 +1102,11 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div class="form-row">
       <div class="form-group" style="position:relative;">
         <label class="form-label">Make</label>
-        <input class="form-input" id="ip-make" type="text" placeholder="Toyota" autocomplete="off" oninput="vehicleMakeSuggest(this.value)">
-        <div id="ip-make-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:200;max-height:180px;overflow-y:auto;"></div>
+        <input class="form-input" id="ip-make" type="text" placeholder="Toyota" autocomplete="off">
       </div>
       <div class="form-group" style="position:relative;">
         <label class="form-label">Model</label>
-        <input class="form-input" id="ip-model" type="text" placeholder="Camry" autocomplete="off" oninput="vehicleModelSuggest(this.value)">
-        <div id="ip-model-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:200;max-height:180px;overflow-y:auto;"></div>
+        <input class="form-input" id="ip-model" type="text" placeholder="Camry" autocomplete="off">
       </div>
     </div>
     <div class="form-row">
@@ -5708,5 +5706,7 @@ async function saveManagerAssign(){
 
 checkExistingSession();
 </script>
+<script src="vehicle-picker.js"></script>
+<script>VehiclePicker.attach({year:'ip-year',make:'ip-make',model:'ip-model'});</script>
 </body>
 </html>

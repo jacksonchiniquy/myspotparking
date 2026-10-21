@@ -1220,5 +1220,7 @@ function logAct(action,summary,extra){
     sb.from('activity_log').insert(Object.assign({actor_id:id,action:action,summary:summary,portal:'resident',source:'app'},extra||{})).then(()=>{},()=>{});}).catch(()=>{});}catch(e){}
 }
 </script>
+<script src="vehicle-picker.js"></script>
+<script>VehiclePicker.attach({year:'av-year',make:'av-make',model:'av-model'});</script>
 </body>
 </html>
