@@ -119,6 +119,12 @@ function vehicleFields(v) {
   };
 }
 
+// "Maria Lopez · Unit 101" for the terms acceptance record
+function unitWho(u) {
+  const name = (u.slots || []).find(s => s.tenant_name)?.tenant_name || (u.slots || []).find(s => s.tenant_email)?.tenant_email || '';
+  return `${name ? name + ' · ' : ''}Unit ${u.unitNumber}`;
+}
+
 async function propertyName(propertyId) {
   const rows = await sb('GET', `properties?id=eq.${q(propertyId)}&select=name`);
   return rows?.[0]?.name || 'Property';
@@ -299,12 +305,19 @@ const actions = {
       slots: u.slots.map(publicSlot), unitPermits, vehicles,
       tenantEmail: u.slots.find(s => s.tenant_email)?.tenant_email || '',
       propertyName: await propertyName(u.propertyId), unitNumber: u.unitNumber,
+      terms: await require('./lib/terms').termsFor(u.propertyId, 'unit_vehicle'),
     };
   },
 
-  async addVehicle({ token, vehicle }, event, ctx = {}) {
+  async addVehicle({ token, vehicle, termsVersion }, event, ctx = {}) {
     const u = ctx.u = await authUnit(token);
-    await sb('POST', 'unit_vehicles', { property_id: u.propertyId, unit_number: u.unitNumber, ...vehicleFields(vehicle || {}) });
+    const terms = require('./lib/terms');
+    const termsErr = await terms.checkAccepted(u.propertyId, 'unit_vehicle', termsVersion);
+    if (termsErr) throw new UserError(termsErr);
+    const fields = vehicleFields(vehicle || {});
+    await sb('POST', 'unit_vehicles', { property_id: u.propertyId, unit_number: u.unitNumber, ...fields });
+    await terms.recordAcceptance({ propertyId: u.propertyId, placement: 'unit_vehicle', version: termsVersion, plate: fields.plate,
+      acceptedBy: unitWho(u), event });
     return { ok: true };
   },
 
@@ -324,8 +337,11 @@ const actions = {
     return { ok: true };
   },
 
-  async assign({ token, slotId, vehicleId }, event, ctx = {}) {
+  async assign({ token, slotId, vehicleId, termsVersion }, event, ctx = {}) {
     const u = ctx.u = await authUnit(token);
+    const terms = require('./lib/terms');
+    const termsErr = await terms.checkAccepted(u.propertyId, 'unit_vehicle', termsVersion);
+    if (termsErr) throw new UserError(termsErr);
     const slot = u.slots.find(s => s.id === slotId);
     if (!slot) throw new UserError('That parking spot is not part of this unit.', 403);
     if (slot.managed_by === 'manager') throw new UserError('This spot is manager-assigned. Contact your property manager.', 403);
@@ -336,6 +352,8 @@ const actions = {
     const veh = await sb('GET', `unit_vehicles?id=eq.${vehicleId}&property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}&select=*`);
     if (!veh?.length) throw new UserError('Vehicle not found.', 404);
     await assignToSlot({ ...u, slotId, vehicle: veh[0], assignedBy: 'tenant' });
+    await terms.recordAcceptance({ propertyId: u.propertyId, placement: 'unit_vehicle', version: termsVersion, plate: veh[0].plate,
+      acceptedBy: unitWho(u), event });
     return { ok: true, plate: veh[0].plate };
   },
 

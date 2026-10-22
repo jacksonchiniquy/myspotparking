@@ -66,6 +66,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 .content{padding:24px 28px 60px;flex:1;}
 .panel{display:none;}
 .panel.active{display:block;}
+@media(max-width:1000px){.tm-grid{grid-template-columns:1fr !important;}}
 
 /* ── STAT CARDS ── */
 .stat-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:28px;}
@@ -231,6 +232,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div class="sb-section">Platform</div>
       <button class="sb-item" id="sb-managers" onclick="showPanel('managers',this)">🏢 Managers<span class="sb-count" id="cnt-managers">0</span><span class="sb-count" id="cnt-pending" title="Pending access requests" style="display:none;background:#d97706;color:#fff;margin-left:4px;">0</span></button>
       <button class="sb-item" id="sb-properties" onclick="showPanel('properties',this)">🗺 Properties<span class="sb-count" id="cnt-properties">0</span></button>
+      <button class="sb-item" id="sb-terms" onclick="showPanel('terms',this);loadTermsAdmin()">📜 Parking Terms</button>
       <button class="sb-item" id="sb-permits" onclick="showPanel('permits',this)">🎫 Permits<span class="sb-count" id="cnt-permits">0</span></button>
       <button class="sb-item" id="sb-residents" onclick="showPanel('residents',this)">👥 Residents<span class="sb-count" id="cnt-residents">0</span></button>
       <button class="sb-item" id="sb-violations" onclick="showPanel('violations',this)">🚨 Violations<span class="sb-count" id="cnt-violations">0</span></button>
@@ -318,6 +320,53 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div id="panel-properties" class="panel">
         <div class="section-head"><div class="section-title">All Properties</div></div>
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th title="Which actions enforcement officers can take at this property">Enforcement</th><th title="Code printed on Pay to Park signs, and whether drivers enter a stall number">Pay to Park</th><th title="Lets residents give guest passes; the manager sets the pass types">Guest Passes</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
+      </div>
+
+      <!-- PARKING TERMS -->
+      <div id="panel-terms" class="panel">
+        <div class="section-head"><div><div class="section-title">Parking Terms</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px;max-width:760px;">The wording people agree to (a required checkbox) when they add or change a plate. Write it once; the blanks in curly brackets fill in for each property. Every save becomes a new version, and people are asked to agree again the next time they add a plate.</div></div>
+          <span id="tm-current" style="font-size:12px;color:var(--text2);"></span></div>
+        <div id="tm-missing" style="display:none;background:rgba(210,153,34,.1);border:1px solid rgba(210,153,34,.35);color:#e3b341;border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:14px;">The Parking Terms database step hasn't been run yet. Run <b>supabase-parking-terms.sql</b> in Supabase, then refresh this page.</div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start;" class="tm-grid">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;">
+            <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="tm-title" type="text" maxlength="120" placeholder="Parking Terms"></div>
+            <div class="form-group"><label class="form-label">Wording</label>
+              <textarea class="form-input" id="tm-body" rows="18" style="font-size:13px;line-height:1.55;resize:vertical;font-family:inherit;"></textarea></div>
+            <div style="font-size:12px;color:var(--text2);margin:-4px 0 14px;line-height:1.7;">Blanks you can use (click to insert):
+              <span id="tm-chips"></span></div>
+            <div class="form-label" style="margin-top:4px;">Ask people to agree when they…</div>
+            <div id="tm-places" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:13px;margin-bottom:16px;"></div>
+            <div class="err-msg" id="tm-err"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-primary" id="tm-save" onclick="saveTermsAdmin()">Save as new version</button>
+              <button class="btn btn-ghost" onclick="loadTermsAdmin(true)">Discard changes</button>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-top:10px;">Have an attorney review this wording. My Spot Parking provides the tool, not legal advice.</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;">
+              <div class="form-label">Preview for a property</div>
+              <div style="display:flex;gap:8px;margin-bottom:10px;"><select class="form-input" id="tm-prev-prop" style="flex:1;"></select><button class="btn btn-ghost" onclick="previewTermsAdmin()">Preview</button></div>
+              <div id="tm-preview" style="font-size:12.5px;line-height:1.6;color:var(--text);white-space:pre-wrap;max-height:380px;overflow-y:auto;background:var(--surface2);border-radius:8px;padding:12px;">Pick a property and click Preview to see the wording with its names filled in.</div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;">
+              <div class="form-label">Versions</div>
+              <div id="tm-versions" style="font-size:12.5px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-head" style="margin-top:22px;"><div><div class="section-title">Names and rules for each property</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px;">Fills in {owner} and {manager}. Leave a name blank to use the manager's company, or “the property owner”.</div></div></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Owner / HOA</th><th>Management company</th><th>Property rules</th><th>Checkbox</th><th></th></tr></thead><tbody id="tbl-terms-props"></tbody></table></div>
+
+        <div class="section-head" style="margin-top:22px;"><div><div class="section-title">Who agreed</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px;">The latest 100 agreements. Search by plate or property.</div></div>
+          <div style="display:flex;gap:8px;"><input class="form-input" id="tm-acc-plate" placeholder="Plate" style="width:130px;padding:6px 10px;" onkeydown="if(event.key==='Enter')loadTermsAcceptances()">
+          <select class="form-input" id="tm-acc-prop" style="width:200px;padding:6px 10px;" onchange="loadTermsAcceptances()"></select>
+          <button class="btn btn-ghost btn-sm" onclick="loadTermsAcceptances()">Search</button></div></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>When</th><th>Plate</th><th>Property</th><th>Where</th><th>Who</th><th>Version</th></tr></thead><tbody id="tbl-terms-acc"></tbody></table></div>
       </div>
 
       <!-- PERMITS -->
@@ -441,6 +490,19 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <!-- MODALS -->
 
 <!-- Add Manager -->
+<div class="modal-overlay" id="modal-terms-prop">
+  <div class="modal" style="width:540px;">
+    <button class="modal-close" onclick="closeModal('modal-terms-prop')">✕</button>
+    <div class="modal-title">📜 Parking Terms · <span id="tp-name"></span></div>
+    <div class="modal-sub">These fill in the blanks in the wording for this property only.</div>
+    <div class="err-msg" id="tp-err"></div>
+    <div class="form-group"><label class="form-label">Owner / HOA name {owner}</label><input class="form-input" id="tp-owner" maxlength="120" placeholder="e.g. Maple Grove HOA"></div>
+    <div class="form-group"><label class="form-label">Management company {manager}</label><input class="form-input" id="tp-manager" maxlength="120" placeholder="Blank = the manager's company on file"></div>
+    <div class="form-group"><label class="form-label">Property rules (optional)</label><textarea class="form-input" id="tp-rules" rows="5" maxlength="4000" style="resize:vertical;font-family:inherit;" placeholder="e.g. Guest stalls are 24 hours max. No parking in fire lanes. Boats and trailers need manager approval."></textarea></div>
+    <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:16px;"><input type="checkbox" id="tp-enabled"> Show the Parking Terms checkbox at this property</label>
+    <div style="display:flex;gap:8px;"><button class="btn btn-primary" id="tp-save" onclick="savePropTerms()">Save</button><button class="btn btn-ghost" onclick="closeModal('modal-terms-prop')">Cancel</button></div>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-add-manager">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-add-manager')">✕</button>
@@ -1494,8 +1556,8 @@ function propMgrId(propId){
   return allProperties.find(p=>p.id===propId)?.manager_id||null;
 }
 
-const PANELS=['activity','dashboard','managers','properties','permits','residents','violations','plans','staff'];
-const PANEL_TITLES={activity:'Activity',dashboard:'Dashboard',managers:'Managers',properties:'Properties',permits:'Permits',residents:'Residents / Holders',violations:'Violations',plans:'Plans & Features',staff:'Staff Access'};
+const PANELS=['activity','dashboard','managers','properties','terms','permits','residents','violations','plans','staff'];
+const PANEL_TITLES={activity:'Activity',dashboard:'Dashboard',managers:'Managers',properties:'Properties',terms:'Parking Terms',permits:'Permits',residents:'Residents / Holders',violations:'Violations',plans:'Plans & Features',staff:'Staff Access'};
 function showPanel(name,el){
   PANELS.forEach(p=>document.getElementById('panel-'+p)?.classList.remove('active'));
   document.getElementById('panel-'+name)?.classList.add('active');
@@ -1511,6 +1573,125 @@ function restoreFromHash(){
   const sbEl=document.getElementById('sb-'+hash);
   if(sbEl) showPanel(hash,sbEl);
   if(hash==='activity') setTimeout(loadActivity,300);
+  if(hash==='terms') setTimeout(loadTermsAdmin,300);
+}
+
+// ── PARKING TERMS ──
+const TERMS_PLACES={pay:'Pay to Park (before paying)',guest:'Activate a guest pass',unit_vehicle:'Unit tenant adds or swaps a car',resident_vehicle:'Resident adds a vehicle',signup:'Tenant signs up from an invite'};
+const TERMS_CHIPS=['property_name','property_address','owner','manager','responsible_parties','enforcement_company'];
+const TERMS_WHERE={pay:'Pay to Park',guest:'Guest pass',unit_vehicle:'Unit vehicle',resident_vehicle:'Resident vehicle',signup:'Signup'};
+let _termsVersions=[];
+async function adminApi(payload){
+  const {data:{session}}=await sb.auth.getSession();
+  let res,body={};
+  try{
+    res=await fetch('/.netlify/functions/admin-api',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body:JSON.stringify(payload)});
+    body=await res.json().catch(()=>({}));
+  }catch(e){res={ok:false};body={error:'Could not reach the server.'};}
+  if(!res.ok) return Object.assign({error:body.error||'Something went wrong.'},body,{failed:true});
+  return body;
+}
+function escA(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function termsPropOptions(sel,withAll){
+  const el=document.getElementById(sel);if(!el) return;
+  const cur=el.value;
+  el.innerHTML=(withAll?'<option value="">All properties</option>':'')+allProperties.map(p=>`<option value="${p.id}">${escA(p.name)}</option>`).join('');
+  if(cur) el.value=cur;
+}
+function fillTermsEditor(v){
+  document.getElementById('tm-title').value=v?v.title:'Parking Terms';
+  document.getElementById('tm-body').value=v?v.body:'';
+  const pl=(v&&v.placements)||{};
+  document.getElementById('tm-places').innerHTML=Object.keys(TERMS_PLACES).map(k=>`<label style="display:flex;gap:7px;align-items:center;"><input type="checkbox" id="tm-pl-${k}" ${pl[k]!==false?'checked':''}> ${TERMS_PLACES[k]}</label>`).join('');
+}
+async function loadTermsAdmin(discard){
+  document.getElementById('tm-chips').innerHTML=TERMS_CHIPS.map(c=>`<button class="btn btn-ghost btn-sm" style="padding:2px 7px;font-family:'JetBrains Mono',monospace;font-size:11px;margin:2px;" onclick="insertTermsChip('${c}')">{${c}}</button>`).join('');
+  termsPropOptions('tm-prev-prop',false);termsPropOptions('tm-acc-prop',true);
+  renderTermsProps();
+  const r=await adminApi({action:'getTerms'});
+  document.getElementById('tm-missing').style.display=r.missing?'block':'none';
+  _termsVersions=r.versions||[];
+  const cur=_termsVersions[0];
+  document.getElementById('tm-current').textContent=cur?`Live: version ${cur.version} · saved ${new Date(cur.created_at).toLocaleDateString()}`:'';
+  fillTermsEditor(cur);
+  document.getElementById('tm-versions').innerHTML=_termsVersions.length?_termsVersions.map((v,i)=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--border2);">
+    <span><b>v${v.version}</b>${i===0?' <span style="color:var(--green);font-size:11px;">live</span>':''} · ${new Date(v.created_at).toLocaleString([], {month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}<span style="color:var(--text3);"> · ${escA(v.created_by||'')}</span></span>
+    <button class="btn btn-ghost btn-sm" style="padding:2px 8px;" onclick="fillTermsEditor(_termsVersions[${i}]);toast('Loaded v${v.version} into the editor. Save to make it live again.')">Load</button></div>`).join(''):'<div style="color:var(--text3);">No versions yet.</div>';
+  loadTermsAcceptances();
+}
+function insertTermsChip(c){
+  const ta=document.getElementById('tm-body');const t='{'+c+'}';
+  const a=ta.selectionStart??ta.value.length,b=ta.selectionEnd??a;
+  ta.value=ta.value.slice(0,a)+t+ta.value.slice(b);ta.focus();ta.selectionStart=ta.selectionEnd=a+t.length;
+}
+async function saveTermsAdmin(){
+  const err=document.getElementById('tm-err');err.classList.remove('show');
+  const body=document.getElementById('tm-body').value;
+  const unknown=[...new Set((body.match(/\{(\w+)\}/g)||[]).map(x=>x.slice(1,-1)).filter(x=>!TERMS_CHIPS.includes(x)))];
+  if(unknown.length&&!confirm(`These blanks aren't recognized and will show as typed: ${unknown.map(u=>'{'+u+'}').join(', ')}. Save anyway?`)) return;
+  if(!confirm('Save this as the new live version? People will be asked to agree to it the next time they add or change a plate.')) return;
+  const placements={};Object.keys(TERMS_PLACES).forEach(k=>placements[k]=document.getElementById('tm-pl-'+k).checked);
+  const btn=document.getElementById('tm-save');btn.disabled=true;btn.textContent='Saving…';
+  const r=await adminApi({action:'saveTerms',title:document.getElementById('tm-title').value,body,placements});
+  btn.disabled=false;btn.textContent='Save as new version';
+  if(r.failed){err.textContent=r.error;err.classList.add('show');return;}
+  toast('✅ Saved — version '+r.version+' is live');
+  loadTermsAdmin();
+}
+async function previewTermsAdmin(){
+  const box=document.getElementById('tm-preview');
+  const pid=document.getElementById('tm-prev-prop').value;
+  box.textContent='Loading…';
+  const r=await adminApi({action:'previewTerms',propertyId:pid,title:document.getElementById('tm-title').value,body:document.getElementById('tm-body').value});
+  if(r.failed){box.textContent=r.error;return;}
+  box.innerHTML='<b style="font-size:14px;">'+escA(r.title)+'</b>\n\n'+escA(r.body)+(r.rules?'\n\n<b>Property rules</b>\n'+escA(r.rules):'');
+}
+function renderTermsProps(){
+  const tb=document.getElementById('tbl-terms-props');if(!tb) return;
+  if(!allProperties.length){tb.innerHTML='<tr><td colspan="6" style="color:var(--text3);">No properties yet.</td></tr>';return;}
+  tb.innerHTML=allProperties.map(p=>{
+    if(p.terms_enabled===undefined) return `<tr><td>${escA(p.name)}</td><td colspan="5" style="color:var(--text3);font-size:12px;">Run supabase-parking-terms.sql</td></tr>`;
+    const rules=(p.terms_rules||'').trim();
+    return `<tr><td><b>${escA(p.name)}</b></td><td>${escA(p.terms_owner||'')||'<span style="color:var(--text3)">the property owner</span>'}</td>
+      <td>${escA(p.terms_manager||'')||'<span style="color:var(--text3)">manager’s company</span>'}</td>
+      <td style="max-width:260px;font-size:12px;color:var(--text2);">${rules?escA(rules.length>80?rules.slice(0,80)+'…':rules):'<span style="color:var(--text3)">—</span>'}</td>
+      <td>${p.terms_enabled===false?'<span class="pill pill-expired">Off</span>':'<span class="pill pill-active">On</span>'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openPropTerms('${p.id}')">Edit</button></td></tr>`;}).join('');
+}
+let _tpId=null;
+function openPropTerms(id){
+  const p=allProperties.find(x=>x.id===id);if(!p) return;
+  _tpId=id;
+  document.getElementById('tp-name').textContent=p.name;
+  document.getElementById('tp-owner').value=p.terms_owner||'';
+  document.getElementById('tp-manager').value=p.terms_manager||'';
+  document.getElementById('tp-rules').value=p.terms_rules||'';
+  document.getElementById('tp-enabled').checked=p.terms_enabled!==false;
+  document.getElementById('tp-err').classList.remove('show');
+  openModal('modal-terms-prop');
+}
+async function savePropTerms(){
+  const err=document.getElementById('tp-err');err.classList.remove('show');
+  const payload={action:'setPropertyTerms',propertyId:_tpId,owner:g('tp-owner'),manager:g('tp-manager'),rules:document.getElementById('tp-rules').value,enabled:document.getElementById('tp-enabled').checked};
+  const btn=document.getElementById('tp-save');btn.disabled=true;
+  const r=await adminApi(payload);btn.disabled=false;
+  if(r.failed){err.textContent=r.error;err.classList.add('show');return;}
+  const p=allProperties.find(x=>x.id===_tpId);
+  if(p) Object.assign(p,{terms_owner:payload.owner||null,terms_manager:payload.manager||null,terms_rules:payload.rules.trim()||null,terms_enabled:payload.enabled});
+  closeModal('modal-terms-prop');renderTermsProps();toast('✅ Saved');
+}
+async function loadTermsAcceptances(){
+  const tb=document.getElementById('tbl-terms-acc');if(!tb) return;
+  tb.innerHTML='<tr><td colspan="6" style="color:var(--text3);">Loading…</td></tr>';
+  const r=await adminApi({action:'termsAcceptances',propertyId:document.getElementById('tm-acc-prop').value,plate:g('tm-acc-plate')});
+  const rows=r.rows||[];
+  const pname=id=>(allProperties.find(p=>p.id===id)||{}).name||'—';
+  tb.innerHTML=rows.length?rows.map(a=>`<tr><td style="white-space:nowrap;font-size:12px;">${new Date(a.created_at).toLocaleString([], {month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}</td>
+    <td style="font-family:'JetBrains Mono',monospace;">${escA(a.plate||'—')}</td><td>${escA(pname(a.property_id))}</td><td>${TERMS_WHERE[a.context]||escA(a.context)}</td>
+    <td style="font-size:12px;">${escA(a.accepted_by||'')}${a.ip?'<div style="color:var(--text3);font-size:11px;">'+escA(a.ip)+'</div>':''}</td><td>v${a.terms_version}</td></tr>`).join('')
+    :'<tr><td colspan="6" style="color:var(--text3);">No agreements yet.</td></tr>';
 }
 
 function openModal(id){document.getElementById(id).classList.add('open');}

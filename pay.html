@@ -10,6 +10,7 @@
 <meta name="description" content="Pay for parking quickly and securely. No app required.">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://js.stripe.com/v3/"></script>
+<script src="terms-box.js"></script>
 <style>
 :root{
   --blue:#1B6FFF; --blue-dark:#0D5AE5;
@@ -201,6 +202,7 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
         </div>
 
         <!-- PAY BUTTON -->
+        <div id="pay-terms"></div>
         <button class="btn-pay" id="pay-btn" onclick="startPayment()" disabled>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           Pay & Park
@@ -277,12 +279,13 @@ async function init(){
   try{
     const res=await fetch('/.netlify/functions/park-lookup',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify(propId?{id:propId}:{code:propCode})});
-    if(res.ok) prop=(await res.json()).property;
+    if(res.ok){const d=await res.json();prop=d.property;window.__parkLookupTerms=d.terms||null;}
   }catch(e){}
   if(!prop){showScreen('notfound');return;}
 
   prop.transient_rates=prop.rates;
   currentProperty=prop;
+  payTerms=TermsBox.mount('pay-terms',(window.__parkLookupTerms)||null);
   document.getElementById('prop-name').textContent=prop.name;
   document.getElementById('prop-address').textContent=prop.address||'';
   const chips=[];
@@ -353,6 +356,7 @@ function updateSummary(){
   }
 }
 
+let payTerms=null;
 async function startPayment(){
   const plate=document.getElementById('plate').value.trim();
   const desc=document.getElementById('vehicle-desc').value.trim();
@@ -363,6 +367,7 @@ async function startPayment(){
 
   if(!plate){err.textContent='Please enter your license plate.';err.classList.add('show');return;}
   if(!selectedRate){err.textContent='Please select a parking duration.';err.classList.add('show');return;}
+  if(payTerms&&!payTerms.ok()) return;
 
   btn.disabled=true;btn.innerHTML='<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div> Processing...';
 
@@ -379,7 +384,8 @@ async function startPayment(){
         email:email||null,
         stall:currentProperty.stall_mode!=='off'?document.getElementById('stall').value.trim():'',
         rateId:selectedRate.id||null,
-        rateIndex:selectedRateIndex
+        rateIndex:selectedRateIndex,
+        termsVersion:payTerms?payTerms.version:null
       })
     });
 

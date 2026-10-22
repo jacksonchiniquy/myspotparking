@@ -49,7 +49,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { inviteCode, propertyId, unitNumber, tenantName, tenantEmail } = JSON.parse(event.body);
+    const { inviteCode, propertyId, unitNumber, tenantName, tenantEmail, termsVersion } = JSON.parse(event.body);
 
     if (!inviteCode || !propertyId || !tenantEmail) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Missing required fields' }) };
@@ -64,6 +64,10 @@ exports.handler = async (event) => {
     if (unit.invite_used) {
       return { statusCode: 400, body: JSON.stringify({ error: 'This invite has already been used' }) };
     }
+    const terms = require('./lib/terms');
+    const termsErr = await terms.checkAccepted(unit.property_id, 'signup', termsVersion);
+    if (termsErr) return { statusCode: 400, body: JSON.stringify({ error: termsErr, terms: true }) };
+
     // Signing up without paying is allowed when the unit has at least one free spot
     // (the resident can skip paid spots; those stay unusable until paid for)
     const spots = await unitSpots(unit);
@@ -153,6 +157,8 @@ exports.handler = async (event) => {
       action: 'unit.signed_up', propertyId, target: `Unit ${unitNumber}`,
       summary: `Signed up with invite ${inviteCode} (no payment)`, details: { email: tenantEmail },
     });
+    await terms.recordAcceptance({ propertyId: unit.property_id, placement: 'signup', version: termsVersion,
+      acceptedBy: `${tenantName ? tenantName + ' · ' : ''}${tenantEmail} · Unit ${unit.unit_number}`, userId, event });
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },

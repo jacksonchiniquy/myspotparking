@@ -66,7 +66,8 @@ exports.handler = async (event) => {
         return reply(410, { error: 'This guest code has expired. Ask the resident for a new one.' });
       if (!property.guest_passes_enabled) return reply(410, { error: 'Guest passes are no longer offered at this property.' });
       const w = GP.passWindow(type, now);
-      return reply(200, view(ctx, { preview: w ? { starts: GP.fmtWhen(w.starts), ends: GP.fmtWhen(w.ends), startsLater: w.starts > now } : null }));
+      const terms = await require('./lib/terms').termsFor(g.property_id, 'guest');
+      return reply(200, view(ctx, { terms, preview: w ? { starts: GP.fmtWhen(w.starts), ends: GP.fmtWhen(w.ends), startsLater: w.starts > now } : null }));
     }
 
     // ── Activate ──
@@ -75,6 +76,9 @@ exports.handler = async (event) => {
     if (!property.guest_passes_enabled) return reply(410, { error: 'Guest passes are no longer offered at this property.' });
     const plate = GP.normPlate(body.plate);
     if (plate.length < 2) return reply(400, { error: 'Enter your license plate.' });
+    const terms = require('./lib/terms');
+    const termsErr = await terms.checkAccepted(g.property_id, 'guest', body.termsVersion);
+    if (termsErr) return reply(400, { error: termsErr, terms: true });
 
     const limit = (property.guest_rules || {}).plate_month_limit;
     if (limit !== null && limit !== undefined && limit !== '') {
@@ -98,6 +102,8 @@ exports.handler = async (event) => {
     if (!updated || !updated.length) return reply(409, { error: 'This code has already been used for a vehicle.' });
     await logActivity({ actorName: `Guest (${plate})`, actorRole: 'guest', portal: 'guest', action: 'guest.activated', propertyId: g.property_id,
       target: ctx.unitLabel, summary: `Guest activated ${type.name} ${code} for ${plate}${vehicle ? ' (' + vehicle + ')' : ''}` }).catch(() => {});
+    await terms.recordAcceptance({ propertyId: g.property_id, placement: 'guest', version: body.termsVersion, plate,
+      acceptedBy: `Guest of ${ctx.unitLabel}`, event });
     ctx.g = updated[0];
     return reply(200, view(ctx));
   } catch (err) {

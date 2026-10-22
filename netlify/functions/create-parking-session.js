@@ -36,6 +36,10 @@ exports.handler = async (event) => {
     const stall = stallMode === 'off' ? '' : String(body.stall || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 12);
     if (stallMode === 'required' && !stall) return reply(400, { error: 'Please enter the stall number from the sign.' });
 
+    const terms = require('./lib/terms');
+    const termsErr = await terms.checkAccepted(property.id, 'pay', body.termsVersion);
+    if (termsErr) return reply(400, { error: termsErr, terms: true });
+
     const rates = ratesFor(property);
     const rate = rates.find(r => r.id && r.id === body.rateId) || rates[Number(body.rateIndex)];
     const amount = Math.round(Number(rate && rate.amount));
@@ -74,6 +78,9 @@ exports.handler = async (event) => {
       started_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + minutes * 60000).toISOString(),
     });
+
+    await terms.recordAcceptance({ propertyId: property.id, placement: 'pay', version: body.termsVersion, plate,
+      acceptedBy: email || 'Pay to Park visitor', event });
 
     return reply(200, { url: checkout.url });
   } catch (err) {

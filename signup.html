@@ -166,6 +166,7 @@ footer{padding:20px;text-align:center;font-size:11px;color:var(--text3);}
       <div id="free-parking-notice" style="display:none;background:rgba(0,200,122,0.08);border:1px solid rgba(0,200,122,0.25);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:13px;color:#007a4a;">
         ✅ <strong>Free parking included</strong> — <span id="free-notice-text">no payment required for this spot.</span>
       </div>
+      <div id="su-terms"></div>
       <button class="btn btn-primary" id="btn-to-pay" onclick="goToPayment()">Continue to Payment →</button>
     </div>
 
@@ -185,11 +186,13 @@ footer{padding:20px;text-align:center;font-size:11px;color:var(--text3);}
 
 <footer>© 2026 My Spot Parking Inc. · Payments secured by Stripe</footer>
 
+<script src="terms-box.js"></script>
 <script>
 const SUPABASE_URL = 'https://ajadbfojccztiauxyxos.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYWRiZm9qY2N6dGlhdXh5eG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTU1NDcsImV4cCI6MjA5MjM3MTU0N30.dHMc-kGb0YFHnTfxnwGYfikmKZBLPzS5lfe6SyRsguU';
 
 let _unit = null;
+let suTerms = null;
 let _property = null;
 let _selectedBilling = 'monthly';
 
@@ -250,7 +253,9 @@ async function lookupInvite() {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }),
     });
     if (!res.ok) throw new Error('lookup failed');
-    const found = (await res.json()).unit;
+    const lookup = await res.json();
+    const found = lookup.unit;
+    suTerms = TermsBox.mount('su-terms', lookup.terms || null);
     const rows = found ? [found] : [];
 
     if (!rows?.length) {
@@ -368,6 +373,7 @@ async function goToPayment() {
 
   if (!name) { showErr('err-2', 'Please enter your full name.'); return; }
   if (!email || !email.includes('@')) { showErr('err-2', 'Please enter a valid email address.'); return; }
+  if (suTerms && !suTerms.ok()) return;
   hideErr('err-2');
 
   const btn = document.getElementById('btn-to-pay');
@@ -387,6 +393,7 @@ async function goToPayment() {
           unitNumber: _unit.unit_number,
           tenantName: name,
           tenantEmail: email,
+          termsVersion: suTerms ? suTerms.version : null,
         }),
       });
       const data = await res.json();
@@ -424,6 +431,7 @@ async function goToPayment() {
         tenantEmail: email,
         billingInterval: _selectedBilling,
         spotIds: [..._chosen],
+        termsVersion: suTerms ? suTerms.version : null,
         // price is worked out by the server from each chosen spot's price
       }),
     });

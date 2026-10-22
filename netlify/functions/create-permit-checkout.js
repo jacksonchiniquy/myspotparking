@@ -45,6 +45,9 @@ exports.handler = async (event) => {
     const [unit] = await res.json();
     if (!unit) return reply(400, { error: 'Invite code not found.' });
     if (unit.invite_used) return reply(400, { error: 'This invite code has already been used.' });
+    const terms = require('./lib/terms');
+    const termsErr = await terms.checkAccepted(unit.property_id, 'signup', body.termsVersion);
+    if (termsErr) return reply(400, { error: termsErr, terms: true });
 
     // The paid spots the resident ticked, each at its own price
     const property = unit.properties || {};
@@ -90,6 +93,8 @@ exports.handler = async (event) => {
       cancel_url: `${SITE}/signup.html?invite=${encodeURIComponent(inviteCode)}&cancelled=true`,
     });
 
+    await terms.recordAcceptance({ propertyId: unit.property_id, placement: 'signup', version: body.termsVersion,
+      acceptedBy: `${tenantEmail} · Unit ${unit.unit_number}`, event });
     return reply(200, { url: session.url });
   } catch (err) {
     console.error('create-permit-checkout error:', err);

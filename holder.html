@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://js.stripe.com/v3/"></script>
+<script src="terms-box.js"></script>
 <style>
 :root{
   --bg:#f0f4ff;--surface:#ffffff;--surface2:#f4f7ff;
@@ -460,6 +461,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
       </label>
     </div>
     <div id="av-sub-warning" style="display:none;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:12px;">⚠️ You need an active permit to add a vehicle. Contact your manager.</div>
+    <div id="hv-terms"></div>
     <button class="btn btn-green btn-full" id="av-btn" onclick="saveUnitVehicle()">Add Vehicle</button>
     <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="closeModal('modal-add-vehicle')">Cancel</button>
   </div>
@@ -1019,7 +1021,17 @@ function openAddVehicleModal(){
   document.getElementById('av-err').classList.remove('show');
   const warn=document.getElementById('av-sub-warning');
   warn.style.display=(!targetPermit&&!hasSubscription)?'block':'none';
+  mountResidentTerms(targetPermit?.property_id,'');
   openModal('modal-add-vehicle');
+}
+
+// Parking Terms checkbox for the property this vehicle's permit belongs to
+let hvTerms=null, hvTermsProp=null, hvOrigPlate='';
+function mountResidentTerms(propertyId,origPlate){
+  hvTerms=null;hvTermsProp=propertyId||null;hvOrigPlate=(origPlate||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  TermsBox.mount('hv-terms',null);
+  if(!propertyId) return;
+  TermsBox.fetchTerms(propertyId,'resident_vehicle').then(t=>{if(hvTermsProp===propertyId) hvTerms=TermsBox.mount('hv-terms',t);});
 }
 
 function openEditVehicle(vehicleId){
@@ -1035,6 +1047,7 @@ function openEditVehicle(vehicleId){
   document.getElementById('av-color').value=v.color||'';
   const vinEditEl=document.getElementById('av-vin');if(vinEditEl)vinEditEl.value=v.vin_last6||'';
   document.getElementById('av-set-active').checked=v.is_active;
+  mountResidentTerms((unitPermits.find(p=>p.id===v.permit_id)||{}).property_id,v.plate);
   document.getElementById('av-modal-title').textContent='✏️ Edit Vehicle';
   document.getElementById('av-modal-sub').textContent='Update vehicle details';
   document.getElementById('av-btn').textContent='Save Changes';
@@ -1058,10 +1071,18 @@ async function saveUnitVehicle(){
   const btn=document.getElementById('av-btn');
 
   if(!plate){err.textContent='License plate is required.';err.classList.add('show');return;}
+  const plateChanged=!editId||plate.toUpperCase().replace(/[^A-Z0-9]/g,'')!==hvOrigPlate;
+  if(plateChanged&&hvTerms&&!hvTerms.ok()) return;
 
   btn.disabled=true;btn.textContent='Saving...';err.classList.remove('show');
 
   try {
+    if(plateChanged&&hvTerms&&hvTerms.required){
+      const {data:{session}}=await sb.auth.getSession();
+      const tr=await fetch('/.netlify/functions/terms',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+        body:JSON.stringify({action:'accept',propertyId:hvTermsProp,version:hvTerms.version,plate})});
+      if(!tr.ok){const tb=await tr.json().catch(()=>({}));throw new Error(tb.error||'Could not save your agreement to the Parking Terms.');}
+    }
     if(editId){
       // Update existing
       const updates={plate,make,model,year,color,state,vin_last6:vinLast6||null,updated_at:new Date().toISOString()};

@@ -344,6 +344,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
           <input class="form-input" id="av-vin" type="text" placeholder="A1B2C3" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
           <div class="vin-hint">Found on your dashboard, door frame, or registration. Helps enforcement verify your permit if a plate is misread.</div>
         </div>
+        <div id="av-terms"></div>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-primary" onclick="saveNewVehicle()">Save Vehicle</button>
           <button class="btn btn-ghost" onclick="closeAddVehicle()">Cancel</button>
@@ -487,6 +488,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
 <div id="toast"></div>
 
+<script src="terms-box.js"></script>
 <script>
 // Everything goes through the private unit service (unit-api) and property search.
 
@@ -494,6 +496,7 @@ let session=null;
 let unitSlots=[];
 let unitPermits={};
 let myVehicles=[];
+let unitTerms=null, avTerms=null; const pickerTerms={};
 
 // ── SERVER CALLS ──
 // All unit data goes through the private unit service; the browser never
@@ -792,6 +795,7 @@ async function loadUnitData(){
   unitSlots=r.slots||[];
   unitPermits=r.unitPermits||{};
   myVehicles=r.vehicles||[];
+  unitTerms=r.terms||null;
   session.tenantEmail=r.tenantEmail||'';
   session.propertyName=r.propertyName||session.propertyName;
 
@@ -852,6 +856,7 @@ function renderMyVehicles(){
 // ── ADD VEHICLE ──
 function openAddVehicle(){
   document.getElementById('add-vehicle-form').classList.add('open');
+  avTerms=TermsBox.mount('av-terms',unitTerms);
   document.getElementById('av-plate').focus();
 }
 function closeAddVehicle(){
@@ -864,6 +869,7 @@ function closeAddVehicle(){
 async function saveNewVehicle(){
   const plate=document.getElementById('av-plate').value.trim();
   if(!plate){toast('Enter a license plate.');return;}
+  if(avTerms&&!avTerms.ok()) return;
   const payload={
     property_id:session.propertyId,
     unit_number:session.unitNumber,
@@ -875,7 +881,7 @@ async function saveNewVehicle(){
     color:document.getElementById('av-color').value.trim()||null,
     vin_last6:document.getElementById('av-vin').value.trim()||null
   };
-  const r=await api('addVehicle',{vehicle:payload});
+  const r=await api('addVehicle',{vehicle:payload,termsVersion:avTerms?avTerms.version:null});
   if(r.error){toast(r.error);return;}
   toast('Vehicle saved.');
   closeAddVehicle();
@@ -1007,6 +1013,7 @@ function renderSlots(){
               I understand the current permit will be voided.
             </label>
           </div>`:''}
+          <div id="terms-${slot.id}"></div>
           <div class="swap-actions">
             <button class="btn btn-primary" id="swap-btn-${slot.id}" onclick="doSwap('${slot.id}')" disabled>Assign to This Spot →</button>
             <button class="btn btn-ghost" onclick="closePicker('${slot.id}')">Cancel</button>
@@ -1044,6 +1051,7 @@ let pickerSelected={}; // slotId -> vehicleId
 
 function openPicker(slotId){
   document.getElementById('picker-'+slotId).classList.add('open');
+  pickerTerms[slotId]=TermsBox.mount('terms-'+slotId,unitTerms);
   document.getElementById('swap-trigger-'+slotId).style.display='none';
   pickerSelected[slotId]=null;
 }
@@ -1082,10 +1090,12 @@ async function doSwap(slotId){
   if(!vehicleId){toast('Select a vehicle first.');return;}
   const vehicle=myVehicles.find(v=>v.id===vehicleId);
   if(!vehicle){toast('Vehicle not found.');return;}
+  const pt=pickerTerms[slotId];
+  if(pt&&!pt.ok()) return;
 
   const btn=document.getElementById('swap-btn-'+slotId);
   btn.disabled=true;btn.textContent='Saving…';
-  const r=await api('assign',{slotId,vehicleId});
+  const r=await api('assign',{slotId,vehicleId,termsVersion:pt?pt.version:null});
   if(r.error){
     if(!r.signedOut){toast(r.error);btn.disabled=false;btn.textContent='Assign to This Spot →';}
     return;

@@ -6,6 +6,9 @@
 //   setEnforcementActions { propertyId, actions: ['tow','boot','ticket'] }
 //                                          which actions officers can take there
 //   setGuestPasses { propertyId, on }      guest passes on/off (adds starter pass types the first time)
+//   getTerms / saveTerms { title, body, placements } / previewTerms { propertyId, title, body }
+//   setPropertyTerms { propertyId, owner, manager, rules, enabled } / termsAcceptances { propertyId?, plate? }
+//                                          Parking Terms wording, per-property names, and who agreed
 //   setParkSettings { propertyId, stallMode?, parkCode? }
 //                                          Pay to Park stall numbers / property code
 
@@ -48,6 +51,61 @@ exports.handler = async (event) => {
   try {
     const admin = await requireAdmin(event);
     if (!admin) return reply(403, { error: 'Admin access required. Sign in again.' });
+
+    // ── Parking terms ──
+    if (body.action === 'getTerms') {
+      const T = require('./lib/terms');
+      let versions = [];
+      try { versions = await sb('GET', 'parking_terms?select=version,title,body,placements,created_at,created_by&order=version.desc&limit=25'); }
+      catch (e) { return reply(200, { missing: true, versions: [] }); }
+      return reply(200, { versions, placements: T.PLACEMENTS });
+    }
+    if (body.action === 'saveTerms') {
+      const T = require('./lib/terms');
+      const title = String(body.title || '').trim().slice(0, 120) || 'Parking Terms';
+      const text = String(body.body || '').replace(/\r\n/g, '\n').trim();
+      if (text.length < 20) return reply(400, { error: 'The terms wording is too short.' });
+      if (text.length > 20000) return reply(400, { error: 'The terms wording is too long (20,000 characters max).' });
+      const placements = {};
+      T.PLACEMENTS.forEach(k => { placements[k] = !!(body.placements && body.placements[k]); });
+      const [last] = await sb('GET', 'parking_terms?select=version&order=version.desc&limit=1');
+      const version = (last ? last.version : 0) + 1;
+      const [row] = await sb('POST', 'parking_terms', { version, title, body: text, placements, created_by: admin.email || 'admin' });
+      T.clearCache();
+      const { logActivity, userActor } = require('./lib/activity');
+      await logActivity({ ...(await userActor(admin.id)), actorRole: 'admin', portal: 'admin', action: 'terms.saved',
+        summary: `Saved Parking Terms version ${version}` });
+      return reply(200, { ok: true, version: row.version });
+    }
+    if (body.action === 'previewTerms') {
+      if (!UUID_RE.test(String(body.propertyId || ''))) return reply(400, { error: 'Pick a property to preview.' });
+      const T = require('./lib/terms');
+      const f = await T.fillFor(body.propertyId, { title: String(body.title || 'Parking Terms'), body: String(body.body || '') });
+      if (!f) return reply(404, { error: 'Property not found.' });
+      return reply(200, { title: f.title, body: f.body, rules: f.rules, values: f.values });
+    }
+    if (body.action === 'setPropertyTerms') {
+      if (!UUID_RE.test(String(body.propertyId || ''))) return reply(400, { error: 'Property not found.' });
+      const clean = (v, n) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
+      const patch = { terms_owner: clean(body.owner, 120), terms_manager: clean(body.manager, 120),
+        terms_rules: clean(body.rules, 4000), terms_enabled: body.enabled !== false };
+      const rows = await sb('PATCH', `properties?id=eq.${body.propertyId}`, patch);
+      if (!rows?.length) return reply(404, { error: 'Property not found.' });
+      require('./lib/terms').clearCache();
+      const { logActivity, userActor } = require('./lib/activity');
+      await logActivity({ ...(await userActor(admin.id)), actorRole: 'admin', portal: 'admin', action: 'terms.property',
+        propertyId: body.propertyId, target: rows[0].name || null,
+        summary: `Updated Parking Terms details${patch.terms_enabled ? '' : ' (terms turned OFF)'}` });
+      return reply(200, { ok: true });
+    }
+    if (body.action === 'termsAcceptances') {
+      let path = 'terms_acceptances?select=id,property_id,terms_version,plate,context,accepted_by,ip,created_at&order=created_at.desc&limit=100';
+      if (UUID_RE.test(String(body.propertyId || ''))) path += `&property_id=eq.${body.propertyId}`;
+      const plate = String(body.plate || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+      if (plate) path += `&plate=eq.${plate}`;
+      try { return reply(200, { rows: await sb('GET', path) }); }
+      catch (e) { return reply(200, { rows: [], missing: true }); }
+    }
 
     if (body.action === 'setOutsideBilling') {
       if (!UUID_RE.test(String(body.propertyId || ''))) return reply(400, { error: 'Property not found.' });

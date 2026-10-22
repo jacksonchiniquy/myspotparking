@@ -42,7 +42,10 @@ exports.handler = async (event) => {
     }
     const p = rows && rows[0];
     if (!p) return reply(404, { error: 'Property code not found.' });
+    const { termsFor } = require('./lib/terms');
+    const terms = await termsFor(p.id, 'pay');
     return reply(200, {
+      terms,
       property: {
         id: p.id, name: p.name, address: p.address || '',
         park_code: p.park_code || null,

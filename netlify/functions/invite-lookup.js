@@ -35,6 +35,7 @@ exports.handler = async (event) => {
         properties: { name: p.name },
         spots,
       },
+      terms: u.invite_used ? { required: false } : await require('./lib/terms').termsFor(u.property_id, 'signup'),
     });
   } catch (err) {
     console.error('invite-lookup error:', err);

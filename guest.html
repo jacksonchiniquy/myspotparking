@@ -79,6 +79,7 @@ h1{font-family:'Sora',sans-serif;font-size:24px;font-weight:800;letter-spacing:-
         <label class="label" for="veh">Vehicle <span>(make, model, color)</span></label>
         <input class="input" id="veh" placeholder="e.g. Blue Toyota Camry" maxlength="60">
       </div>
+      <div id="g-terms"></div>
       <button class="btn" id="go" type="submit">Activate Guest Pass</button>
       <div class="fine">One vehicle per code · Free · No account needed</div>
     </div>
@@ -109,9 +110,10 @@ h1{font-family:'Sora',sans-serif;font-size:24px;font-weight:800;letter-spacing:-
     </form>
   </div>
 </div>
+<script src="terms-box.js"></script>
 <script>
 const $=id=>document.getElementById(id);
-let current=null;
+let current=null, gTerms=null;
 function showErr(m){$('err').textContent=m||'';$('err').classList.toggle('show',!!m);}
 function clean(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
 function fmt(v){const c=clean(v).replace(/^G/,'');return c?('G-'+c.slice(0,4)+(c.length>4?'-'+c.slice(4,6):'')):'';}
@@ -141,6 +143,7 @@ async function lookup(code){
   $('f-from').textContent='Guest pass from '+d.unitLabel;
   $('f-what').textContent=d.typeName+' · '+d.propertyName;
   $('f-when').textContent=d.preview?(d.preview.startsLater?'Valid '+d.preview.starts+' – '+d.preview.ends:'Valid now until '+d.preview.ends):d.describe;
+  gTerms=TermsBox.mount('g-terms',d.terms||null);
   $('found').style.display='block';$('vehicle').style.display='block';$('plate').focus();
 }
 $('code').addEventListener('input',()=>{
@@ -153,8 +156,9 @@ $('code').addEventListener('input',()=>{
 $('form').addEventListener('submit',async e=>{
   e.preventDefault(); if(!current) return;
   if(clean($('plate').value).length<2){showErr('Enter your license plate.');return;}
+  if(gTerms&&!gTerms.ok()) return;
   $('go').disabled=true;$('go').textContent='Activating…';
-  const d=await api({code:current,plate:$('plate').value,state:$('state').value,vehicle:$('veh').value});
+  const d=await api({code:current,plate:$('plate').value,state:$('state').value,vehicle:$('veh').value,termsVersion:gTerms?gTerms.version:null});
   $('go').disabled=false;$('go').textContent='Activate Guest Pass';
   if(d.error){showErr(d.error);return;}
   showDone(d);
