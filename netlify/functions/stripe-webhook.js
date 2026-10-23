@@ -284,7 +284,7 @@ function emailShell(color, title, intro, rows, button, footnote) {
   <p style="text-align:center;margin:0 0 20px;"><a href="${button[1]}" style="display:inline-block;background:${color};color:#ffffff;text-decoration:none;padding:13px 28px;border-radius:9px;font-weight:700;">${escH(button[0])}</a></p>
   ${footnote ? `<p style="color:#94a3b8;font-size:12px;text-align:center;">${footnote}</p>` : ''}
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
-  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc.</p>
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ</p>
 </body></html>`;
 }
 async function spotAddedEmails(meta, session) {

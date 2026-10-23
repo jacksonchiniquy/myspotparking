@@ -6,7 +6,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Permits — My Spot Parking</title>
+<title>My Permits — LotHQ</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://js.stripe.com/v3/"></script>
@@ -187,13 +187,13 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <div class="tn-logo-mark" style="width:36px;height:38px;">
           <svg width="36" height="38" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="#374269" opacity="0.2"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg>
         </div>
-        <span style="font-size:20px;font-weight:700;letter-spacing:-.03em;line-height:1.1;"><span style="color:#374269;font-weight:800;display:block;">My Spot</span><span style="color:#2859a8;font-weight:600;font-size:.65em;letter-spacing:.14em;text-transform:uppercase;">— PARKING —</span></span>
+        <span style="font-size:20px;font-weight:700;letter-spacing:-.03em;line-height:1.1;"><span style="color:#374269;font-weight:800;display:block;">Lot<b style="color:#2859a8;font-weight:inherit;">HQ</b></span><span style="color:#2859a8;font-weight:600;font-size:.65em;letter-spacing:.14em;text-transform:uppercase;">— PARKING —</span></span>
       </div>
     </div>
     <div style="background:#fff;border:1px solid var(--border);border-radius:22px;padding:36px;box-shadow:0 8px 40px rgba(15,23,42,.1);">
       <!-- SIGNUP -->
       <div id="panel-signup" style="display:none;">
-        <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(0,200,122,.1);border:1px solid rgba(0,200,122,.2);border-radius:20px;padding:4px 13px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:14px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M5 12h14"/></svg> My Spot Login</div>
+        <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(0,200,122,.1);border:1px solid rgba(0,200,122,.2);border-radius:20px;padding:4px 13px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:14px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M5 12h14"/></svg> LotHQ Login</div>
         <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Create your account</div>
         <div style="font-size:13px;color:var(--text2);margin-bottom:24px;">Get your digital parking permit</div>
         <div class="err-msg" id="su-err"></div>
@@ -224,7 +224,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
             </div>
           </div>
         </div>
-        <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(0,200,122,.1);border:1px solid rgba(0,200,122,.2);border-radius:20px;padding:4px 13px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:14px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M5 12h14"/></svg> My Spot Login</div>
+        <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(0,200,122,.1);border:1px solid rgba(0,200,122,.2);border-radius:20px;padding:4px 13px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:14px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M5 12h14"/></svg> LotHQ Login</div>
         <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Welcome back</div>
         <div style="font-size:13px;color:var(--text2);margin-bottom:18px;">Sign in to manage your permits</div>
         <div id="si-prop" style="display:none;justify-content:space-between;align-items:center;gap:10px;background:#f6f8fc;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:18px;">
@@ -238,8 +238,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <div style="text-align:center;margin-top:10px;"><a onclick="handleForgotPassword()" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline;">Forgot password?</a></div>
         <div class="divider">or</div>
         <button class="btn btn-ghost btn-full" onclick="toast('Google sign-in coming soon')">Continue with Google</button>
-        <div class="modal-switch" style="margin-top:18px;">New to My Spot Parking? <a onclick="switchPanel('signup')">Create an account</a></div>
-        <div style="text-align:center;margin-top:10px;"><a href="login.html" style="font-size:12px;color:var(--text3);text-decoration:none;">← My Spot Login</a></div>
+        <div class="modal-switch" style="margin-top:18px;">New to LotHQ? <a onclick="switchPanel('signup')">Create an account</a></div>
+        <div style="text-align:center;margin-top:10px;"><a href="login.html" style="font-size:12px;color:var(--text3);text-decoration:none;">← LotHQ Login</a></div>
       </div>
     </div>
   </div>
@@ -248,7 +248,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 <!-- ══ APP ══ -->
 <div id="app">
   <nav class="topnav">
-    <a class="tn-logo" href="#" onclick="return false;"><div class="tn-logo-mark"><svg width="30" height="30" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="#374269" opacity="0.2"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg></div><span class="tn-logo-text"><span style="color:#374269;font-weight:800;">My Spot</span> <span style="color:#2859a8;font-weight:600;font-size:.75em;letter-spacing:.1em;text-transform:uppercase;">Parking</span></span></a>
+    <a class="tn-logo" href="#" onclick="return false;"><div class="tn-logo-mark"><svg width="30" height="30" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="#374269" opacity="0.2"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg></div><span class="tn-logo-text"><span style="color:#374269;font-weight:800;">Lot<b style="color:#2859a8;font-weight:inherit;">HQ</b></span> <span style="color:#2859a8;font-weight:600;font-size:.75em;letter-spacing:.1em;text-transform:uppercase;">Parking</span></span></a>
     <div class="tn-right">
       <div class="tn-sub-status inactive" id="sub-nav-status"><div class="tn-sub-dot" id="sub-nav-dot" style="background:var(--red)"></div><span id="sub-nav-label">No Subscription</span></div>
       <span class="tn-badge">Permit Holder</span>
@@ -354,7 +354,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
       <!-- SUBSCRIPTION -->
       <div id="panel-subscription" class="panel">
         <div class="panel-title">Subscription</div>
-        <div class="panel-sub">Manage your My Spot Parking billing plan</div>
+        <div class="panel-sub">Manage your LotHQ billing plan</div>
 
         <!-- Billing status card (shown when has a unit permit with billing) -->
         <div id="billing-status-card" class="billing-status-card" style="display:none;">
@@ -970,7 +970,7 @@ function pcardHTML(p,isMgr=false,isEditable=false){
   const displayPlate=activeVeh?activeVeh.plate:(p.plate||'NO PLATE');
   const displayVeh=activeVeh?[activeVeh.year,activeVeh.make,activeVeh.model].filter(Boolean).join(' '):(p.vehicle||'—');
   return `<div class="pcard">
-    <div class="pcard-watermark">MY SPOT PARKING</div>
+    <div class="pcard-watermark">LOTHQ</div>
     <div class="pcard-top">
       <div class="pcard-meta">
         <div>
@@ -1220,7 +1220,7 @@ async function saveAccount(){
 
 // ── BOOT ──────────────────────────────────────────────────────────────
 checkExistingSession();
-// Opened from My Spot Login with a property (?property=…): show it, or send unit-based properties to unit sign-in
+// Opened from LotHQ Login with a property (?property=…): show it, or send unit-based properties to unit sign-in
 (async()=>{
   const id=new URLSearchParams(location.search).get('property');
   if(!id) return;

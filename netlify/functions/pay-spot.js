@@ -12,7 +12,7 @@ function page(title, msg) {
     body: `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title></head>
 <body style="margin:0;background:#f4f7ff;font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:16px;">
 <div style="background:#fff;border:1px solid rgba(15,23,42,.1);border-radius:16px;padding:32px;max-width:420px;width:100%;text-align:center;">
-<div style="font-weight:800;color:#2859a8;margin-bottom:18px;">My Spot <span style="font-size:11px;letter-spacing:.14em;">PARKING</span></div>
+<div style="font-weight:800;color:#2859a8;margin-bottom:18px;">LotHQ <span style="font-size:11px;letter-spacing:.14em;">PARKING</span></div>
 <h1 style="font-size:20px;margin:0 0 10px;">${esc(title)}</h1><p style="color:#475569;line-height:1.55;margin:0 0 20px;">${esc(msg)}</p>
 <a href="${SITE}/unit.html" style="display:inline-block;background:#1a6fff;color:#fff;text-decoration:none;padding:11px 22px;border-radius:9px;font-weight:600;">Go to My Unit</a></div></body></html>`,
   };

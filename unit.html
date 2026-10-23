@@ -6,7 +6,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Spot Login — My Spot Parking</title>
+<title>LotHQ Login</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -208,7 +208,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <nav class="topnav">
   <a class="tn-logo" href="#" onclick="return false;">
     <div class="tn-logo-mark"><svg width="30" height="30" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="#374269" opacity="0.2"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg></div>
-    <span class="tn-logo-text"><span style="color:#374269;font-weight:800;">My Spot</span> <span style="color:#2859a8;font-weight:600;font-size:.75em;letter-spacing:.1em;text-transform:uppercase;">Parking</span></span>
+    <span class="tn-logo-text"><span style="color:#374269;font-weight:800;">Lot<b style="color:#2859a8;font-weight:inherit;">HQ</b></span> <span style="color:#2859a8;font-weight:600;font-size:.75em;letter-spacing:.1em;text-transform:uppercase;">Parking</span></span>
   </a>
   <div class="tn-right">
     <span class="tn-badge" id="unit-badge" style="display:none;">Unit —</span>
@@ -220,7 +220,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <!-- GATE: unit login -->
 <div id="gate">
   <div class="gate-card">
-    <div class="gate-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="4"/><path d="M12 8h8"/><path d="M16 8v4"/><path d="M20 8v4"/></svg> My Spot Login</div>
+    <div class="gate-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="4"/><path d="M12 8h8"/><path d="M16 8v4"/><path d="M20 8v4"/></svg> LotHQ Login</div>
     <div class="gate-title">Sign in</div>
     <div class="gate-sub" id="gate-sub">Sign in with your unit number and password to manage your parking.</div>
     <div class="err-msg" id="gate-err"></div>
@@ -242,7 +242,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <input class="form-input" id="gate-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <button class="btn btn-primary btn-full" style="font-size:15px;padding:13px;" id="gate-btn" onclick="doLogin()">Sign In →</button>
-    <div class="back-link"><a href="login.html">← My Spot Login</a> · <a onclick="showForgot()">Forgot password?</a></div>
+    <div class="back-link"><a href="login.html">← LotHQ Login</a> · <a onclick="showForgot()">Forgot password?</a></div>
     <div class="back-link" style="margin-top:6px;">Have an email account instead? <a href="holder.html">Sign in with email</a></div>
   </div>
 </div>

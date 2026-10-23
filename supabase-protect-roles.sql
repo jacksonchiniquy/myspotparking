@@ -1,5 +1,5 @@
 -- ============================================================
--- My Spot Parking: protect user roles
+-- LotHQ: protect user roles
 -- Run once in Supabase > SQL Editor:
 -- https://supabase.com/dashboard/project/ajadbfojccztiauxyxos/sql/new
 -- Safe to re-run.

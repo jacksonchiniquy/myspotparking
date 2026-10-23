@@ -77,7 +77,7 @@ begin
     return new;
   end if;
   if new.park_code is distinct from old.park_code then
-    raise exception 'Property codes are printed on signs and can only be changed by My Spot Parking.';
+    raise exception 'Property codes are printed on signs and can only be changed by LotHQ.';
   end if;
   if new.stall_mode is distinct from old.stall_mode then
     raise exception 'Only an admin can change the stall number setting.';

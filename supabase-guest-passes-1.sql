@@ -26,7 +26,7 @@ begin
   if tg_op = 'INSERT' then
     new.guest_passes_enabled := false;
   elsif new.guest_passes_enabled is distinct from old.guest_passes_enabled then
-    raise exception 'Guest passes are turned on or off by My Spot Parking.';
+    raise exception 'Guest passes are turned on or off by LotHQ.';
   end if;
   return new;
 end $$;

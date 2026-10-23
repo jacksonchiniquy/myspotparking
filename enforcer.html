@@ -6,7 +6,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Enforcement — My Spot Parking</title>
+<title>Enforcement — LotHQ</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -136,7 +136,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     <div style="text-align:center;margin-bottom:36px;">
       <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;">
         <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><svg width="36" height="36" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="#374269" opacity="0.2"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg></div>
-        <span style="font-size:20px;font-weight:700;letter-spacing:-.03em;">My Spot Parking</span>
+        <span style="font-size:20px;font-weight:700;letter-spacing:-.03em;">LotHQ</span>
       </div>
     </div>
     <div style="background:#ffffff;border:1px solid rgba(15,23,42,0.12);border-radius:22px;padding:40px;box-shadow:0 24px 60px rgba(15,23,42,0.12);">
@@ -163,7 +163,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   <nav class="nav">
     <a class="nav-logo" href="index.html">
     <div style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><svg width="30" height="30" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="#374269" opacity="0.2"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg></div>
-    <span class="logo-text"><span style="color:#374269;font-weight:800;">My Spot</span> <span style="color:#2859a8;font-weight:600;font-size:.75em;letter-spacing:.1em;text-transform:uppercase;">Parking</span></span>
+    <span class="logo-text"><span style="color:#374269;font-weight:800;">Lot<b style="color:#2859a8;font-weight:inherit;">HQ</b></span> <span style="color:#2859a8;font-weight:600;font-size:.75em;letter-spacing:.1em;text-transform:uppercase;">Parking</span></span>
   </a>
     <div style="display:flex;align-items:center;gap:12px;">
       <div id="patrol-status" style="display:flex;align-items:center;gap:8px;background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.2);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--amber);cursor:pointer;" onclick="togglePatrol()">
@@ -252,7 +252,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <h2 style="font-size:20px;font-weight:800;letter-spacing:-.03em;margin-bottom:20px;">Account Settings</h2>
         <div style="background:#ffffff;border:1px solid var(--border);border-radius:14px;padding:28px;max-width:480px;">
           <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="acc-name" type="text"></div>
-          <div class="form-group"><label class="form-label">Company</label><input class="form-input" id="acc-company" type="text" readonly title="Set by My Spot Parking" style="opacity:.7;"></div>
+          <div class="form-group"><label class="form-label">Company</label><input class="form-input" id="acc-company" type="text" readonly title="Set by LotHQ" style="opacity:.7;"></div>
           <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="acc-email" type="email"></div>
           <div class="form-row">
             <div class="form-group"><label class="form-label">Badge ID</label><input class="form-input" id="acc-badge" type="text"></div>
@@ -372,7 +372,7 @@ async function loadAssignedProperties(){
     .sort((a,b)=>a.name.localeCompare(b.name));
   if(error||!assignedProperties.length){
     sel.innerHTML='<option value="">No properties assigned yet</option>';sel.disabled=true;
-    document.getElementById('patrol-property-note').textContent='Your company has no properties assigned yet. Contact My Spot Parking to get set up.';
+    document.getElementById('patrol-property-note').textContent='Your company has no properties assigned yet. Contact LotHQ to get set up.';
     patrolProperty=null;return;
   }
   sel.disabled=false;

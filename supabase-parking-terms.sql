@@ -51,7 +51,7 @@ begin
   or new.terms_manager is distinct from old.terms_manager
   or new.terms_rules   is distinct from old.terms_rules
   or new.terms_enabled is distinct from old.terms_enabled then
-    raise exception 'Parking terms can only be changed by My Spot Parking.';
+    raise exception 'Parking terms can only be changed by LotHQ.';
   end if;
   return new;
 end $$;
@@ -89,7 +89,7 @@ insert into public.parking_terms (version, title, body, created_by)
 select 1, 'Parking Terms',
 $terms$By registering a vehicle, activating a guest pass, or paying to park at {property_name} ({property_address}), you agree to these terms.
 
-1. Park at your own risk. {responsible_parties}, My Spot Parking, and their agents are not responsible for loss, theft, or damage to any vehicle or its contents, including damage caused by weather, other vehicles, or towing or booting done under these terms.
+1. Park at your own risk. {responsible_parties}, LotHQ, and their agents are not responsible for loss, theft, or damage to any vehicle or its contents, including damage caused by weather, other vehicles, or towing or booting done under these terms.
 
 2. Correct information. You confirm the license plate and vehicle details you entered are correct. A permit, guest pass, or paid session only covers the plate entered. A wrong plate may lead to enforcement.
 

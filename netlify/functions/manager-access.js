@@ -2,7 +2,7 @@
 //
 // POST { action: 'requested', userId }
 //   Called by manager.html right after someone submits the sign-up form.
-//   Emails My Spot about the request. Only works for accounts that are
+//   Emails LotHQ about the request. Only works for accounts that are
 //   still 'manager_pending' and haven't been announced yet, so it can't be
 //   used to send email to arbitrary people.
 //
@@ -61,7 +61,7 @@ function shell(color, inner) {
   return `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
   ${logoHeader(color)}${inner}
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
-  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc. · Provo, UT</p>
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ · Provo, UT</p>
 </body></html>`;
 }
 
@@ -89,7 +89,7 @@ function approvedEmail(u) {
   const first = (u.full_name || '').split(' ')[0] || 'there';
   return {
     to: u.email,
-    subject: 'Your My Spot Parking manager access is approved',
+    subject: 'Your LotHQ manager access is approved',
     html: shell('#059669', `
   <h2 style="margin:0 0 8px;">You're approved, ${esc(first)}!</h2>
   <p style="color:#475569;margin:0 0 24px;">Your manager account is active. Sign in with the email and password you chose when you requested access.</p>
@@ -103,7 +103,7 @@ function declinedEmail(u) {
   const first = (u.full_name || '').split(' ')[0] || 'there';
   return {
     to: u.email,
-    subject: 'Your My Spot Parking access request',
+    subject: 'Your LotHQ access request',
     html: shell('#475569', `
   <h2 style="margin:0 0 8px;">Thanks for your interest, ${esc(first)}</h2>
   <p style="color:#475569;margin:0 0 16px;">We weren't able to activate a manager account from this request. A member of our team will be in touch if we need more information.</p>

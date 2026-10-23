@@ -1,4 +1,4 @@
-// property-search.js — "type your property" box on My Spot Login and the sign-in pages.
+// property-search.js — "type your property" box on LotHQ Login and the sign-in pages.
 // Returns at most 8 matching properties, never the whole list, so the public
 // page can't download every customer.
 //

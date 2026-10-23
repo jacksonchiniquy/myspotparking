@@ -6,7 +6,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin — My Spot Parking</title>
+<title>Admin — LotHQ</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="violations-pager.js"></script>
@@ -203,7 +203,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
   <div class="gate-card">
     <div class="gate-logo">
       <div class="gate-logo-mark"><svg width="20" height="20" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="rgba(255,255,255,0.5)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="rgba(255,255,255,0.5)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="rgba(255,255,255,0.2)"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="white"/><circle cx="40" cy="20" r="10" fill="#2859a8"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="white">P</text></svg></div>
-      <span class="gate-logo-text"><span style="color:#374269;font-weight:800;">My Spot</span> <span style="color:#2859a8;font-weight:600;font-size:.75em;letter-spacing:.1em;text-transform:uppercase;">Parking</span></span>
+      <span class="gate-logo-text"><span style="color:#374269;font-weight:800;">Lot<b style="color:#2859a8;font-weight:inherit;">HQ</b></span> <span style="color:#2859a8;font-weight:600;font-size:.75em;letter-spacing:.1em;text-transform:uppercase;">Parking</span></span>
     </div>
     <div class="gate-eyebrow">⚡ Admin Access</div>
     <div class="gate-title">Admin Portal</div>
@@ -342,7 +342,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
               <button class="btn btn-primary" id="tm-save" onclick="saveTermsAdmin()">Save as new version</button>
               <button class="btn btn-ghost" onclick="loadTermsAdmin(true)">Discard changes</button>
             </div>
-            <div style="font-size:11px;color:var(--text3);margin-top:10px;">Have an attorney review this wording. My Spot Parking provides the tool, not legal advice.</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:10px;">Have an attorney review this wording. LotHQ provides the tool, not legal advice.</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:16px;">
             <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;">
@@ -660,7 +660,7 @@ const FEATURES=[
   {key:'enforcement',   name:'Enforcement Module',     desc:'Officer patrol app, violation logging',         tier:'pro',        alwaysOn:false},
   {key:'pay_to_park',   name:'Pay-to-Park',            desc:'Transient visitor payments via Stripe',         tier:'pro',        alwaysOn:false},
   {key:'analytics',     name:'Analytics Dashboard',    desc:'Occupancy, revenue and trend charts',           tier:'pro',        alwaysOn:false},
-  {key:'white_label',   name:'White-label Branding',   desc:'Remove My Spot Parking branding for manager',  tier:'pro',        alwaysOn:false},
+  {key:'white_label',   name:'White-label Branding',   desc:'Remove LotHQ branding for manager',  tier:'pro',        alwaysOn:false},
   {key:'tenant_billing',name:'Tenant Billing',         desc:'Automated monthly billing subscriptions per unit', tier:'enterprise', alwaysOn:false},
   {key:'pms_integration',name:'PMS Integration',       desc:'Sync with Yardi, Entrata and other PMS platforms', tier:'enterprise', alwaysOn:false},
   {key:'multi_staff',   name:'Multi-Staff Accounts',   desc:'Multiple logins per manager property',         tier:'enterprise', alwaysOn:false},
@@ -841,7 +841,7 @@ let outsidePaidCounts={};
 async function loadProperties(){
   const {data}=await sb.from('properties').select('*').order('name',{ascending:true});
   allProperties=data||[];
-  // Spots each property marked "paid outside the app" (no card payment through My Spot)
+  // Spots each property marked "paid outside the app" (no card payment through LotHQ)
   outsidePaidCounts={};
   const {data:manual}=await sb.from('property_units').select('property_id').eq('paid_via','manual').eq('spot_paid',true);
   (manual||[]).forEach(r=>{outsidePaidCounts[r.property_id]=(outsidePaidCounts[r.property_id]||0)+1;});
@@ -1118,7 +1118,7 @@ async function changeParkCode(id){
 
 async function toggleOutsideBilling(id,on){
   const msg=on
-    ?'Turn ON outside billing? This property\'s managers will be able to mark paid spots as paid outside the app (for example, included in rent). Those payments don\'t go through My Spot.'
+    ?'Turn ON outside billing? This property\'s managers will be able to mark paid spots as paid outside the app (for example, included in rent). Those payments don\'t go through LotHQ.'
     :'Turn OFF outside billing? Managers will no longer be able to mark spots as paid. Spots already marked stay paid.';
   if(!confirm(msg)) return;
   // Goes through the server: the database only lets the server or an admin change this

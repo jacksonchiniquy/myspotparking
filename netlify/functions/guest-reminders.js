@@ -28,7 +28,7 @@ exports.handler = async () => {
   <h2 style="margin:0 0 8px;">Your guest pass ends soon</h2>
   <p style="color:#475569;">The guest pass for <strong>${g.guest_plate}</strong> at <strong>${(p && p.name) || 'the property'}</strong> ends <strong>${ends}</strong>.
   Please move your vehicle by then, or ask your host for another pass.</p>
-  <p style="color:#94a3b8;font-size:11px;text-align:center;margin-top:28px;">© ${new Date().getFullYear()} My Spot Parking Inc. · Provo, UT</p>
+  <p style="color:#94a3b8;font-size:11px;text-align:center;margin-top:28px;">© ${new Date().getFullYear()} LotHQ · Provo, UT</p>
 </body></html>`,
         text: `Your guest pass for ${g.guest_plate} at ${(p && p.name) || 'the property'} ends ${ends}. Please move your vehicle by then, or ask your host for another pass.`,
       });

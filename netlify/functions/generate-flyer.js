@@ -34,7 +34,7 @@ async function buildFlyer({ propertyName, propertyAddress, unitNumber, inviteCod
   page.drawRectangle({ x: 0, y: height - 120, width, height: 120, color: blue });
 
   page.drawText('🅿', { x: 48, y: height - 72, size: 36, font: boldFont, color: white });
-  page.drawText('My Spot Parking', { x: 96, y: height - 56, size: 22, font: boldFont, color: white });
+  page.drawText('LotHQ', { x: 96, y: height - 56, size: 22, font: boldFont, color: white });
   page.drawText('Resident Parking Permit Setup', { x: 96, y: height - 80, size: 12, font: regularFont, color: rgb(0.8, 0.88, 1) });
 
   // ── Welcome text ─────────────────────────────────────────
@@ -96,7 +96,7 @@ async function buildFlyer({ propertyName, propertyAddress, unitNumber, inviteCod
 
   // ── Footer ───────────────────────────────────────────────
   page.drawLine({ start: { x: 48, y: 64 }, end: { x: width - 48, y: 64 }, thickness: 1, color: hexToRgb('#e2e8f0') });
-  page.drawText(`© ${new Date().getFullYear()} My Spot Parking Inc. · myspotparking.com`, {
+  page.drawText(`© ${new Date().getFullYear()} LotHQ · myspotparking.com`, {
     x: 48, y: 44, size: 9, font: regularFont, color: grayText,
   });
   page.drawText('Questions? Contact your property manager.', {
@@ -142,7 +142,7 @@ exports.handler = async (event) => {
         },
       });
       await ses.send(new SendEmailCommand({
-        Source: `My Spot Parking <${process.env.AWS_SES_FROM_EMAIL || 'noreply@myspotparking.com'}>`,
+        Source: `LotHQ <${process.env.AWS_SES_FROM_EMAIL || 'noreply@myspotparking.com'}>`,
         Destination: { ToAddresses: [emailTo] },
         Message: {
           Subject: { Data: `Your parking permit invite — ${propertyName} Unit ${unitNumber}` },
@@ -151,7 +151,7 @@ exports.handler = async (event) => {
               Data: `
 <!DOCTYPE html><html><body style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;">
   <div style="background:#1a6fff;border-radius:12px;padding:24px;text-align:center;margin-bottom:32px;">
-    <div style="color:#fff;font-size:20px;font-weight:700;">🅿 My Spot Parking</div>
+    <div style="color:#fff;font-size:20px;font-weight:700;">🅿 LotHQ</div>
   </div>
   <h2>Set up your parking permit</h2>
   <p style="color:#475569;">You have been invited to set up a parking permit for <strong>${propertyName}</strong> — Unit <strong>${unitNumber}</strong>.</p>
@@ -162,7 +162,7 @@ exports.handler = async (event) => {
   <a href="${signupUrl}" style="display:block;background:#1a6fff;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:600;font-size:15px;margin-bottom:16px;">Set Up My Permit →</a>
   <p style="color:#94a3b8;font-size:12px;text-align:center;">Or visit: ${signupUrl}</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
-  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc.</p>
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ</p>
 </body></html>`,
             },
             Text: { Data: `Set up your parking permit for ${propertyName} Unit ${unitNumber}.\n\nInvite code: ${inviteCode}\n\nVisit: ${signupUrl}` },

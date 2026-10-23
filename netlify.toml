@@ -11,7 +11,7 @@ from = "/park"
 to = "/park.html"
 status = 200
 
-# My Spot Login (residents, tenants, employees)
+# LotHQ Login (residents, tenants, employees)
 [[redirects]]
 from = "/login"
 to = "/login.html"

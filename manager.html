@@ -6,7 +6,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Property Manager — My Spot Parking</title>
+<title>Property Manager — LotHQ</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="violations-pager.js"></script>
@@ -149,7 +149,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         <div class="tn-logo-mark" style="width:36px;height:38px;">
           <svg width="36" height="38" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="#374269" opacity="0.2"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg>
         </div>
-        <span style="font-size:20px;font-weight:700;letter-spacing:-.03em;line-height:1.1;"><span style="color:#374269;font-weight:800;display:block;">My Spot</span><span style="color:#2859a8;font-weight:600;font-size:.65em;letter-spacing:.14em;text-transform:uppercase;">— PARKING —</span></span>
+        <span style="font-size:20px;font-weight:700;letter-spacing:-.03em;line-height:1.1;"><span style="color:#374269;font-weight:800;display:block;">Lot<b style="color:#2859a8;font-weight:inherit;">HQ</b></span><span style="color:#2859a8;font-weight:600;font-size:.65em;letter-spacing:.14em;text-transform:uppercase;">— PARKING —</span></span>
       </div>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:36px;box-shadow:0 8px 40px rgba(15,23,42,0.10);">
@@ -218,7 +218,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
 <div id="app">
   <nav class="topnav">
-    <a class="tn-logo" href="#" onclick="return false;"><div class="tn-logo-mark"><svg width="30" height="30" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="#374269" opacity="0.2"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg></div><span class="tn-logo-text"><span style="color:#374269;font-weight:800;">My Spot</span> <span style="color:#2859a8;font-weight:600;font-size:.75em;letter-spacing:.1em;text-transform:uppercase;">Parking</span></span></a>
+    <a class="tn-logo" href="#" onclick="return false;"><div class="tn-logo-mark"><svg width="30" height="30" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="#374269" opacity="0.2"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg></div><span class="tn-logo-text"><span style="color:#374269;font-weight:800;">Lot<b style="color:#2859a8;font-weight:inherit;">HQ</b></span> <span style="color:#2859a8;font-weight:600;font-size:.75em;letter-spacing:.1em;text-transform:uppercase;">Parking</span></span></a>
     <div class="tn-tabs">
       <button class="tn-tab active" onclick="showPage('dashboard',this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Dashboard</button>
       <button class="tn-tab" id="tab-prop" onclick="toggleDD('dd-prop','tab-prop')">
@@ -652,7 +652,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
                   </div>
                   <span id="pay-code-lock" style="font-size:11px;font-weight:600;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:4px 10px;">🔒 Permanent — printed on signs</span>
                 </div>
-                <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;">Put the sticker on a My Spot Pay to Park sign. Drivers scan it, or enter the code at <strong>myspotparking.com/park</strong>. No app or account needed.</div>
+                <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;">Put the sticker on a LotHQ Pay to Park sign. Drivers scan it, or enter the code at <strong>myspotparking.com/park</strong>. No app or account needed.</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                   <button class="btn btn-primary btn-sm" onclick="downloadSticker()">Download Sticker</button>
                   <button class="btn btn-ghost btn-sm" onclick="copyPayLink()">Copy Pay Link</button>
@@ -1146,7 +1146,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div class="modal-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Assign Permit to Resident</div>
     <div class="modal-sub" id="assign-modal-sub">Link this permit to a resident's account</div>
     <input type="hidden" id="assign-permit-id">
-    <div class="form-group"><label class="form-label">Resident Email</label><input class="form-input" id="assign-email" type="email" placeholder="resident@example.com"><div style="font-size:11px;color:var(--text3);margin-top:5px;">The resident must have a My Spot Parking Holder account. The permit will appear on their dashboard immediately.</div></div>
+    <div class="form-group"><label class="form-label">Resident Email</label><input class="form-input" id="assign-email" type="email" placeholder="resident@example.com"><div style="font-size:11px;color:var(--text3);margin-top:5px;">The resident must have a LotHQ Holder account. The permit will appear on their dashboard immediately.</div></div>
     <button class="btn btn-primary btn-full" onclick="doAssignPermit()">Assign Permit →</button>
     <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="closeModal('modal-assign-permit')">Cancel</button>
   </div>
@@ -2990,7 +2990,7 @@ function initPayPanel(){
   document.getElementById('pay-code-lock').style.display=p.park_code?'':'none';
   const openEl=document.getElementById('pay-link-open');
   if(openEl) openEl.href=link;
-  // Stall setting (set by My Spot Parking)
+  // Stall setting (set by LotHQ)
   const mode=p.stall_mode||'off';
   const pill=document.getElementById('pay-stall-pill');
   pill.textContent=mode==='off'?'Open lot — one sticker for the whole property':'Stall numbers: '+(mode==='required'?'Required':'Optional');
@@ -3007,7 +3007,7 @@ function initPayPanel(){
   loadTransientSessions();
 }
 
-// Draws a real, scannable QR code (with the My Spot pin in the middle) onto a canvas
+// Draws a real, scannable QR code (with the LotHQ pin in the middle) onto a canvas
 function drawQR(canvas,url,size,ctxIn,ox,oy){
   if(typeof qrcode!=='function'){ // library didn't load: show the link instead of a fake code
     const c=canvas.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,size,size);
@@ -3177,7 +3177,7 @@ async function downloadStickerPDF(btn){
     const doc=await PDFDocument.create();
     const font=await doc.embedFont(StandardFonts.HelveticaBold);
     const p=payProp();
-    doc.setTitle((p.name||'Property')+' Pay to Park stickers');doc.setCreator('My Spot Parking');
+    doc.setTitle((p.name||'Property')+' Pay to Park stickers');doc.setCreator('LotHQ');
     const TRIM=216, BLEED=9, k=TRIM/750; // points: 3" trim, 1/8" bleed
     for(const st of sel.unique){
       const spec=stickerSpec(st);

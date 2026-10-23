@@ -119,7 +119,7 @@ function passEmail(g, { propertyName, unitLabel, typeName, logoHeader }) {
   <p style="color:#475569;margin:0 0 20px;">Show this email if an enforcement officer checks your vehicle. We'll remind you about an hour before it ends.</p>
   <div style="background:#f0fdf4;border-radius:10px;padding:16px 20px;margin-bottom:20px;"><table width="100%" cellpadding="0" cellspacing="0">${table}</table></div>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
-  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc. · Provo, UT</p>
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ · Provo, UT</p>
 </body></html>`,
     text: 'Your guest pass is active\n\n' + rows.map(([k, v]) => `${k}: ${v}`).join('\n') + '\n\nShow this email if an enforcement officer checks your vehicle.',
   };

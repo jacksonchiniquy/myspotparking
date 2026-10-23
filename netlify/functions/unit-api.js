@@ -451,7 +451,7 @@ const actions = {
   <p style="text-align:center;margin:0 0 20px;"><a href="${link}" style="display:inline-block;background:#1a6fff;color:#ffffff;text-decoration:none;padding:13px 28px;border-radius:9px;font-weight:700;">Pay &amp; Add Spot →</a></p>
   <p style="color:#94a3b8;font-size:12px;text-align:center;">Billed monthly by card through Stripe. Cancel anytime from Manage Billing in your unit portal. This link works for 30 days.</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
-  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc.</p>
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ</p>
 </body></html>`,
       text: `${spot} has been added to Unit ${u.unitNumber} at ${property.name || 'your property'} (${price}).\n\nPay and add the spot: ${link}\n\nBilled monthly by card. This link works for 30 days.`,
     });
@@ -464,7 +464,7 @@ const actions = {
   async managerMarkPaid({ slotId }, event, ctx = {}) {
     const u = ctx.u = await authManagerForSlot(event, slotId);
     if (!(await propertyRow(u.propertyId)).outside_billing) {
-      throw new UserError('Outside billing isn\'t turned on for this property. Contact My Spot Parking to set it up.', 403);
+      throw new UserError('Outside billing isn\'t turned on for this property. Contact LotHQ to set it up.', 403);
     }
     const problem = spotProblem(u.slot);
     if (problem) throw new UserError(problem);

@@ -40,7 +40,7 @@ function logoHeader(accentColor = '#2859a8') {
           </tr>
           <tr>
             <td align="center">
-              <span style="color:#ffffff;font-size:22px;font-weight:800;font-family:Arial,sans-serif;letter-spacing:-0.5px;">My Spot</span>
+              <span style="color:#ffffff;font-size:22px;font-weight:800;font-family:Arial,sans-serif;letter-spacing:-0.5px;">Lot<b style="color:#2859a8;font-weight:inherit;">HQ</b></span>
               <span style="color:rgba(255,255,255,0.75);font-size:13px;font-weight:600;font-family:Arial,sans-serif;letter-spacing:2px;text-transform:uppercase;display:block;margin-top:2px;">— PARKING —</span>
             </td>
           </tr>
@@ -53,7 +53,7 @@ function logoHeader(accentColor = '#2859a8') {
 // ── Core send function ───────────────────────────────────────
 async function sendViaSES({ to, subject, html, text }) {
   const cmd = new SendEmailCommand({
-    Source: `My Spot Parking <${FROM}>`,
+    Source: `LotHQ <${FROM}>`,
     Destination: { ToAddresses: [to] },
     Message: {
       Subject: { Data: subject, Charset: 'UTF-8' },
@@ -91,9 +91,9 @@ function welcomeEmail({ name, email, password, propertyName, unitNumber, plate, 
   <a href="${loginUrl}" style="display:block;background:#2859a8;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:700;font-size:15px;margin-bottom:24px;font-family:Arial,sans-serif;">Log In to Your Portal →</a>
   <p style="color:#94a3b8;font-size:12px;">Log in using your unit number and the password above. Keep this email — it contains your login credentials.</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
-  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc. · Provo, UT</p>
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ · Provo, UT</p>
 </body></html>`,
-    text: `Welcome to My Spot Parking!\n\nProperty: ${propertyName}\nUnit: ${unitNumber}\n\nUnit Number: ${unitNumber}\nPassword: ${password}\n\nLog in at: ${loginUrl}`,
+    text: `Welcome to LotHQ!\n\nProperty: ${propertyName}\nUnit: ${unitNumber}\n\nUnit Number: ${unitNumber}\nPassword: ${password}\n\nLog in at: ${loginUrl}`,
   };
 }
 
@@ -108,7 +108,7 @@ function paymentFailedEmail({ name, email, propertyName, portalUrl }) {
   <a href="${portalUrl}" style="display:block;background:#dc2626;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:700;font-size:15px;margin-bottom:24px;font-family:Arial,sans-serif;">Update Payment Method →</a>
   <p style="color:#94a3b8;font-size:12px;">If payment is not received within 7 days your permit may be suspended. Contact your property manager if you have questions.</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
-  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc.</p>
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ</p>
 </body></html>`,
     text: `Hi ${name},\n\nYour parking permit payment for ${propertyName} failed. Update your payment method here: ${portalUrl}`,
   };
@@ -124,7 +124,7 @@ function permitSuspendedEmail({ name, propertyName, unitNumber }) {
   <p style="color:#475569;margin:0 0 24px;">Hi ${name}, your parking permit for <strong>${propertyName}</strong> — Unit <strong>${unitNumber}</strong> has been suspended due to non-payment.</p>
   <p style="color:#475569;margin:0 0 24px;">Please contact your property manager to reinstate your permit.</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
-  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc.</p>
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ</p>
 </body></html>`,
     text: `Hi ${name},\n\nYour parking permit for ${propertyName} Unit ${unitNumber} has been suspended. Contact your property manager to reinstate it.`,
   };
@@ -141,7 +141,7 @@ function renewalReminderEmail({ name, propertyName, renewalDate, portalUrl }) {
   <a href="${portalUrl}" style="display:block;background:#2859a8;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:700;font-size:15px;margin-bottom:24px;font-family:Arial,sans-serif;">Manage Billing →</a>
   <p style="color:#94a3b8;font-size:12px;">No action needed if your payment info is up to date.</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
-  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc.</p>
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ</p>
 </body></html>`,
     text: `Hi ${name},\n\nYour parking permit for ${propertyName} renews on ${renewalDate}. Manage billing: ${portalUrl}`,
   };
@@ -163,7 +163,7 @@ function inviteFlyerEmail({ email, propertyName, unitNumber, inviteCode, inviteL
   <a href="${inviteLink}" style="display:block;background:#2859a8;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:700;font-size:15px;margin-bottom:24px;font-family:Arial,sans-serif;">Set Up My Parking →</a>
   <p style="color:#94a3b8;font-size:12px;">Or copy this link: ${inviteLink}</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
-  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc. · Provo, UT</p>
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ · Provo, UT</p>
 </body></html>`,
     text: `You've been invited to set up parking at ${propertyName} Unit ${unitNumber}.\n\nInvite Code: ${inviteCode}\n\nSign up here: ${inviteLink}`,
   };
@@ -187,7 +187,7 @@ function passwordResetEmail({ name, password, propertyName, unitNumber, property
   <a href="${loginUrl}" style="display:block;background:#2859a8;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:700;font-size:15px;margin-bottom:24px;font-family:Arial,sans-serif;">Log In to Your Portal →</a>
   <p style="color:#94a3b8;font-size:12px;">Once logged in, go to Account to set a permanent password. If you didn't request this reset, contact your property manager.</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
-  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc. · Provo, UT</p>
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ · Provo, UT</p>
 </body></html>`,
     text: `Password Reset\n\nHi ${name},\n\nYour new temporary password for ${propertyName} Unit ${unitNumber}:\n\nPassword: ${password}\n\nLog in at: ${loginUrl}\n\nSet a permanent password in Account Settings once logged in.`,
   };
@@ -219,7 +219,7 @@ function managerAlertEmail({ managerEmail, eventType, tenantName, tenantEmail, p
   </div>
   <a href="${SITE}/manager.html" style="display:block;background:#2859a8;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:700;font-size:15px;font-family:Arial,sans-serif;">Open Manager Dashboard →</a>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
-  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} My Spot Parking Inc.</p>
+  <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ</p>
 </body></html>`,
     text: `${title}\n\nProperty: ${propertyName}\nUnit: ${unitNumber}\nTenant: ${tenantName} (${tenantEmail})\n\nLog in: ${SITE}/manager.html`,
   };
