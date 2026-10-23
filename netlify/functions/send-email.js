@@ -40,7 +40,7 @@ function logoHeader(accentColor = '#2859a8') {
           </tr>
           <tr>
             <td align="center">
-              <span style="color:#ffffff;font-size:22px;font-weight:800;font-family:Arial,sans-serif;letter-spacing:-0.5px;">Lot<b style="color:#2859a8;font-weight:inherit;">HQ</b></span>
+              <span style="color:#ffffff;font-size:22px;font-weight:800;font-family:Arial,sans-serif;letter-spacing:-0.5px;">Lot<span style="color:#a9c8ff;">HQ</span></span>
               <span style="color:rgba(255,255,255,0.75);font-size:13px;font-weight:600;font-family:Arial,sans-serif;letter-spacing:2px;text-transform:uppercase;display:block;margin-top:2px;">— PARKING —</span>
             </td>
           </tr>
