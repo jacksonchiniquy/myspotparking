@@ -117,7 +117,7 @@ exports.handler = async (event) => {
     summary: `Pricing inquiry from ${lead.company} (${lead.units} units, ${lead.email})`, details: { email: lead.email, units: lead.units, state: lead.state },
   });
   if (saved.status === 'rejected' && emailed.status === 'rejected') {
-    return reply(500, { error: 'We could not send your request. Please email support@myspotparking.com.' });
+    return reply(500, { error: 'We could not send your request. Please email support@lothq.com.' });
   }
   return reply(200, { ok: true });
 };

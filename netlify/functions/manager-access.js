@@ -94,7 +94,7 @@ function approvedEmail(u) {
   <h2 style="margin:0 0 8px;">You're approved, ${esc(first)}!</h2>
   <p style="color:#475569;margin:0 0 24px;">Your manager account is active. Sign in with the email and password you chose when you requested access.</p>
   <a href="${SITE}/manager.html" style="display:block;background:#059669;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:700;font-size:15px;margin-bottom:16px;">Sign In to the Manager Portal →</a>
-  <p style="color:#94a3b8;font-size:12px;">Our team will reach out to help set up your properties. Questions? Email support@myspotparking.com.</p>`),
+  <p style="color:#94a3b8;font-size:12px;">Our team will reach out to help set up your properties. Questions? Email support@lothq.com.</p>`),
     text: `You're approved, ${first}! Sign in at ${SITE}/manager.html with the email and password you chose.`,
   };
 }
@@ -107,8 +107,8 @@ function declinedEmail(u) {
     html: shell('#475569', `
   <h2 style="margin:0 0 8px;">Thanks for your interest, ${esc(first)}</h2>
   <p style="color:#475569;margin:0 0 16px;">We weren't able to activate a manager account from this request. A member of our team will be in touch if we need more information.</p>
-  <p style="color:#475569;margin:0;">Questions? Email <a href="mailto:support@myspotparking.com">support@myspotparking.com</a>.</p>`),
-    text: `Thanks for your interest, ${first}. We weren't able to activate a manager account from this request. Questions? support@myspotparking.com.`,
+  <p style="color:#475569;margin:0;">Questions? Email <a href="mailto:support@lothq.com">support@lothq.com</a>.</p>`),
+    text: `Thanks for your interest, ${first}. We weren't able to activate a manager account from this request. Questions? support@lothq.com.`,
   };
 }
 
