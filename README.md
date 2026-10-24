@@ -1,1 +1,1 @@
-# myspotparking
+# LotHQ (formerly My Spot Parking)

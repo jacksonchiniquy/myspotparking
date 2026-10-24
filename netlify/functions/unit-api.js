@@ -32,7 +32,7 @@ const { logActivity } = require('./lib/activity');
 const { createSpotCheckout, unitCustomer, spotProblem, makePayLink } = require('./lib/spot-checkout');
 const { spotMonthlyCents } = require('./lib/spot-pricing');
 const stripe = () => require('stripe')(process.env.STRIPE_SECRET_KEY);
-const SITE = process.env.SITE_URL || 'https://myspotparking.com';
+const SITE = process.env.SITE_URL || 'https://lothq.com';
 const GP = require('./lib/guest-passes');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;

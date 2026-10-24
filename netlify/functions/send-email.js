@@ -11,8 +11,8 @@ const ses = new SESClient({
   },
 });
 
-const FROM = process.env.AWS_SES_FROM_EMAIL || 'noreply@myspotparking.com';
-const SITE = process.env.SITE_URL || 'https://myspotparking.com';
+const FROM = process.env.AWS_SES_FROM_EMAIL || 'noreply@lothq.com';
+const SITE = process.env.SITE_URL || 'https://lothq.com';
 
 // ── Email-safe logo header ───────────────────────────────────────────────────
 // Uses a table-based layout (email client safe) with an inline SVG logo mark.

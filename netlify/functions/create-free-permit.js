@@ -8,7 +8,7 @@ const { unitSpots, isPaid } = require('./lib/spot-pricing');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const SITE = process.env.SITE_URL || 'https://myspotparking.com';
+const SITE = process.env.SITE_URL || 'https://lothq.com';
 
 function sbHeaders() {
   return {
