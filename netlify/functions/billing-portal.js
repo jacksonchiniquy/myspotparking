@@ -4,7 +4,7 @@
 // open someone else's billing page with a customer number.
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const SITE = process.env.SITE_URL || 'https://myspotparking.com';
+const SITE = process.env.SITE_URL || 'https://lothq.com';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 

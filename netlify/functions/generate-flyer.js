@@ -5,7 +5,7 @@
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 const { send } = require('./send-email');
 
-const SITE = process.env.SITE_URL || 'https://myspotparking.com';
+const SITE = process.env.SITE_URL || 'https://lothq.com';
 
 function hexToRgb(hex) {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
@@ -96,7 +96,7 @@ async function buildFlyer({ propertyName, propertyAddress, unitNumber, inviteCod
 
   // ── Footer ───────────────────────────────────────────────
   page.drawLine({ start: { x: 48, y: 64 }, end: { x: width - 48, y: 64 }, thickness: 1, color: hexToRgb('#e2e8f0') });
-  page.drawText(`© ${new Date().getFullYear()} LotHQ · myspotparking.com`, {
+  page.drawText(`© ${new Date().getFullYear()} LotHQ · lothq.com`, {
     x: 48, y: 44, size: 9, font: regularFont, color: grayText,
   });
   page.drawText('Questions? Contact your property manager.', {
@@ -142,7 +142,7 @@ exports.handler = async (event) => {
         },
       });
       await ses.send(new SendEmailCommand({
-        Source: `LotHQ <${process.env.AWS_SES_FROM_EMAIL || 'noreply@myspotparking.com'}>`,
+        Source: `LotHQ <${process.env.AWS_SES_FROM_EMAIL || 'noreply@lothq.com'}>`,
         Destination: { ToAddresses: [emailTo] },
         Message: {
           Subject: { Data: `Your parking permit invite — ${propertyName} Unit ${unitNumber}` },

@@ -379,7 +379,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
   <div class="modal" style="max-width:480px;">
     <div id="gg-step1">
       <div class="modal-title">Give a guest pass</div>
-      <div class="modal-sub">Your guest gets a code to enter at myspotparking.com/park, or you can enter their plate now.</div>
+      <div class="modal-sub">Your guest gets a code to enter at lothq.com/park, or you can enter their plate now.</div>
       <div class="err-msg" id="gg-err"></div>
       <div class="form-label" style="margin-bottom:8px;">Which pass?</div>
       <div id="gg-types" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
@@ -587,7 +587,7 @@ function ggShowCode(code,link){
   document.getElementById('gg-step1').style.display='none';
   const s2=document.getElementById('gg-step2');s2.style.display='';
   s2.innerHTML=`<div class="modal-title">Send this code to your guest</div>
-    <div class="modal-sub">They enter it at myspotparking.com/park and add their plate.</div>
+    <div class="modal-sub">They enter it at lothq.com/park and add their plate.</div>
     <div class="gp-code">${escapeHtml(code)}</div>
     <div style="font-size:12px;color:var(--text3);text-align:center;margin-bottom:14px;">One vehicle per code. If it isn't used, it expires and the pass comes back to you.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">

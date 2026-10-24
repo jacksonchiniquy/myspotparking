@@ -652,7 +652,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
                   </div>
                   <span id="pay-code-lock" style="font-size:11px;font-weight:600;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:4px 10px;">🔒 Permanent — printed on signs</span>
                 </div>
-                <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;">Put the sticker on a LotHQ Pay to Park sign. Drivers scan it, or enter the code at <strong>myspotparking.com/park</strong>. No app or account needed.</div>
+                <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;">Put the sticker on a LotHQ Pay to Park sign. Drivers scan it, or enter the code at <strong>lothq.com/park</strong>. No app or account needed.</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                   <button class="btn btn-primary btn-sm" onclick="downloadSticker()">Download Sticker</button>
                   <button class="btn btn-ghost btn-sm" onclick="copyPayLink()">Copy Pay Link</button>
@@ -713,7 +713,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div id="pdip-guests" class="inner-panel">
         <div id="gp-off" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center;">
           <div style="font-size:15px;font-weight:700;margin-bottom:6px;">Guest passes aren't turned on for this property</div>
-          <div style="font-size:13px;color:var(--text2);">Residents can give guests parking passes with limits you set. Contact <a href="mailto:support@myspotparking.com">support@myspotparking.com</a> to turn it on.</div>
+          <div style="font-size:13px;color:var(--text2);">Residents can give guests parking passes with limits you set. Contact <a href="mailto:support@lothq.com">support@lothq.com</a> to turn it on.</div>
         </div>
         <div id="gp-on" style="display:none;max-width:980px;">
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:18px;">
@@ -1464,7 +1464,7 @@ async function handleSignUp(){
   const {error:pErr}=await sb.from('users').insert({id:data.user.id,email,full_name:(fname+' '+lname).trim(),phone,company,role:'manager_pending',access_request});
   if(pErr){
     console.error('access request profile error',pErr);
-    err.textContent='We couldn\'t submit your request. If you already have an account, sign in instead, or email support@myspotparking.com.';
+    err.textContent='We couldn\'t submit your request. If you already have an account, sign in instead, or email support@lothq.com.';
     err.classList.add('show');reset();return;
   }
   fetch('/.netlify/functions/manager-access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'requested',userId:data.user.id})}).catch(()=>{});
@@ -1486,7 +1486,7 @@ async function handleSignIn(){
   if(profile?.role==='manager_pending'||profile?.role==='manager_declined'){
     err.textContent=profile.role==='manager_pending'
       ?'Your access request is still being reviewed. We\'ll email you as soon as you\'re approved.'
-      :'Your access request wasn\'t approved. Questions? Email support@myspotparking.com.';
+      :'Your access request wasn\'t approved. Questions? Email support@lothq.com.';
     err.classList.add('show');
     await sb.auth.signOut();btn.disabled=false;btn.textContent='Sign In →';return;
   }
@@ -3067,12 +3067,12 @@ function stickerSpec(stall){
     shapes.push(...qrShapes(getPayLink(),140,40,470));
     T('PROPERTY CODE',375,560,26,'#5D6886');
     T(code,375,645,78,'#1B2340');
-    T('myspotparking.com/park',375,700,24,'#5D6886');
+    T('lothq.com/park',375,700,24,'#5D6886');
   }else{
     shapes.push(...qrShapes(getPayLink(stall),165,34,420));
     T('ZONE',215,505,22,'#5D6886');
     T(code,215,565,52,'#1B2340');
-    T('myspotparking.com/park',215,610,21,'#5D6886');
+    T('lothq.com/park',215,610,21,'#5D6886');
     const bx=420,by=470,bw=270,bh=230,r=22;
     shapes.push({d:`M${bx+r} ${by}H${bx+bw-r}A${r} ${r} 0 0 1 ${bx+bw} ${by+r}V${by+bh-r}A${r} ${r} 0 0 1 ${bx+bw-r} ${by+bh}H${bx+r}A${r} ${r} 0 0 1 ${bx} ${by+bh-r}V${by+r}A${r} ${r} 0 0 1 ${bx+r} ${by}Z`,fill:'#374269'});
     T('STALL',bx+bw/2,by+52,24,'#C9D4F0');
@@ -3110,7 +3110,7 @@ function stickerList(){
   return {list,unique:list};
 }
 function stickerFileName(ext,list){
-  const p=payProp(), base='my-spot-'+(p.park_code||'property').toLowerCase();
+  const p=payProp(), base='lothq-'+(p.park_code||'property').toLowerCase();
   return list&&list[0]?`${base}-stalls-${list[0]}-${list[list.length-1]}.${ext}`:`${base}.${ext}`;
 }
 function saveBlob(blob,name){
