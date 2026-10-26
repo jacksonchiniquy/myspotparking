@@ -5,6 +5,7 @@
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { ratesFor, sb } = require('./lib/parking');
+const connect = require('./lib/connect');
 
 const SITE = process.env.SITE_URL || 'https://myspotparking.com';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -48,8 +49,13 @@ exports.handler = async (event) => {
       return reply(400, { error: 'That parking option is no longer available. Please refresh and try again.' });
     }
 
+    // Where the money goes: the property's payout account (LotHQ keeps its fee), or LotHQ's own
+    const { account } = await connect.routeFor(property);
+    const lothqFee = account ? connect.feeCents(property, amount) : null;
+
     const checkout = await stripe.checkout.sessions.create({
       mode: 'payment',
+      ...connect.paymentFeeParams(property, account, amount),
       payment_method_types: ['card'],
       customer_email: email || undefined,
       line_items: [{
@@ -66,13 +72,14 @@ exports.handler = async (event) => {
       metadata: { kind: 'parking_session', property_id: property.id, plate, stall, duration_minutes: String(minutes), rate_name: String(rate.name || '') },
       success_url: `${SITE}/pay.html?lot=${property.id}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${SITE}/pay.html?lot=${property.id}${stall ? '&s=' + encodeURIComponent(stall) : ''}`,
-    });
+    }, connect.opts(account));
 
     await sb('POST', 'parking_sessions', {
       property_id: property.id, plate, vehicle_desc: vehicleDesc || null, email,
       ...(stall ? { stall } : {}),
       rate_name: rate.name || null, amount_paid: amount /* cents */, duration_minutes: minutes,
       stripe_session_id: checkout.id, status: 'pending',
+      ...(account ? { stripe_account_id: account, lothq_fee_cents: lothqFee } : {}),
       // Placeholder; replaced with the real times when payment is confirmed.
       // (Enforcement only counts sessions marked 'active'.)
       started_at: new Date().toISOString(),
@@ -84,6 +91,7 @@ exports.handler = async (event) => {
 
     return reply(200, { url: checkout.url });
   } catch (err) {
+    if (err instanceof connect.PaymentsPaused) return reply(400, { error: err.message });
     console.error('create-parking-session error:', err && (err.raw?.message || err.message), err);
     return reply(500, { error: 'Something went wrong starting your payment. Please try again.' });
   }

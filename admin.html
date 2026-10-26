@@ -319,7 +319,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
       <div id="panel-properties" class="panel">
         <div class="section-head"><div class="section-title">All Properties</div></div>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th title="Which actions enforcement officers can take at this property">Enforcement</th><th title="Code printed on Pay to Park signs, and whether drivers enter a stall number">Pay to Park</th><th title="Lets residents give guest passes; the manager sets the pass types">Guest Passes</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th title="Which actions enforcement officers can take at this property">Enforcement</th><th title="Code printed on Pay to Park signs, and whether drivers enter a stall number">Pay to Park</th><th title="Lets residents give guest passes; the manager sets the pass types">Guest Passes</th><th title="LotHQ's fee on each parking payment, the LotHQ subscription, and whether the property's payouts are set up">LotHQ Billing</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
       </div>
 
       <!-- PARKING TERMS -->
@@ -501,6 +501,34 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div class="form-group"><label class="form-label">Property rules (optional)</label><textarea class="form-input" id="tp-rules" rows="5" maxlength="4000" style="resize:vertical;font-family:inherit;" placeholder="e.g. Guest stalls are 24 hours max. No parking in fire lanes. Boats and trailers need manager approval."></textarea></div>
     <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:16px;"><input type="checkbox" id="tp-enabled"> Show the Parking Terms checkbox at this property</label>
     <div style="display:flex;gap:8px;"><button class="btn btn-primary" id="tp-save" onclick="savePropTerms()">Save</button><button class="btn btn-ghost" onclick="closeModal('modal-terms-prop')">Cancel</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-billing">
+  <div class="modal" style="width:560px;">
+    <button class="modal-close" onclick="closeModal('modal-billing')">✕</button>
+    <div class="modal-title">💵 LotHQ Billing · <span id="bl-name"></span></div>
+    <div class="modal-sub">How LotHQ earns from this property. Set it to match what you agreed with this client. Only LotHQ admins see this page; prices never show on the public site.</div>
+    <div class="err-msg" id="bl-err"></div>
+    <div id="bl-payout" style="font-size:13px;border-radius:9px;padding:10px 12px;margin-bottom:14px;"></div>
+    <div class="form-group"><label class="form-label">Fee on each parking payment (Pay to Park and paid permits)</label>
+      <div id="bl-mode" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+      <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
+        <label id="bl-pct-wrap" style="display:flex;align-items:center;gap:6px;font-size:13px;"><input class="form-input" id="bl-pct" type="number" min="0" max="50" step="0.1" style="width:90px;"> %</label>
+        <label id="bl-flat-wrap" style="display:flex;align-items:center;gap:6px;font-size:13px;">$ <input class="form-input" id="bl-flat" type="number" min="0" max="100" step="0.01" style="width:100px;"> per payment</label>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-top:8px;" id="bl-example"></div>
+      <div style="font-size:11.5px;color:var(--text3);margin-top:4px;">Only taken once the property's payouts are set up. Before that, payments land in LotHQ's Stripe account.</div>
+    </div>
+    <div class="form-group"><label class="form-label">LotHQ subscription (billed to the client)</label>
+      <div id="bl-plan" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+      <div id="bl-amt-wrap" style="display:flex;align-items:center;gap:6px;font-size:13px;margin-top:10px;">$ <input class="form-input" id="bl-amt" type="number" min="0.5" step="0.01" style="width:120px;"> <span id="bl-per">per month</span></div>
+      <div id="bl-plan-status" style="font-size:12px;margin-top:8px;"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-primary" id="bl-save" onclick="saveBilling()">Save</button>
+      <button class="btn btn-ghost" id="bl-send" onclick="planLink(true)">Email subscription link to manager</button>
+      <button class="btn btn-ghost" id="bl-copy" onclick="planLink(false)">Copy link</button>
+    </div>
   </div>
 </div>
 <div class="modal-overlay" id="modal-add-manager">
@@ -837,7 +865,7 @@ async function loadManagers(){
   renderPlanPanel();
 }
 
-let outsidePaidCounts={};
+let outsidePaidCounts={},payoutAccounts={},payoutsMissing=false;
 async function loadProperties(){
   const {data}=await sb.from('properties').select('*').order('name',{ascending:true});
   allProperties=data||[];
@@ -845,6 +873,11 @@ async function loadProperties(){
   outsidePaidCounts={};
   const {data:manual}=await sb.from('property_units').select('property_id').eq('paid_via','manual').eq('spot_paid',true);
   (manual||[]).forEach(r=>{outsidePaidCounts[r.property_id]=(outsidePaidCounts[r.property_id]||0)+1;});
+  // Payout accounts (Stripe Connect), for the LotHQ Billing column
+  payoutAccounts={};
+  const {data:po,error:poErr}=await sb.from('payout_accounts').select('*');
+  payoutsMissing=!!poErr;
+  (po||[]).forEach(a=>payoutAccounts[a.id]=a);
   document.getElementById('cnt-properties').textContent=allProperties.length;
   document.getElementById('s-properties').textContent=allProperties.length;
   renderProperties(allProperties);
@@ -940,11 +973,12 @@ function renderProperties(data){
       <td style="white-space:nowrap;">${enforceChips(p)}</td>
       <td style="white-space:nowrap;">${parkCell(p)}</td>
       <td style="white-space:nowrap;">${p.guest_passes_enabled===undefined?'<span style="font-size:11px;color:var(--text3)" title="Run supabase-guest-passes-1.sql">Not set up</span>':`<button class="btn btn-sm ${p.guest_passes_enabled?'btn-primary':'btn-ghost'}" onclick="toggleGuestPasses('${p.id}',${!p.guest_passes_enabled})">${p.guest_passes_enabled?'On':'Off'}</button>`}</td>
+      <td style="white-space:nowrap;">${billingCell(p)}</td>
       <td><div class="tbl-actions">
         <button class="btn btn-danger btn-sm" onclick="confirmDelete('property','${p.id}','${(p.name||'').replace(/'/g,'')}')">Delete</button>
       </div></td>
     </tr>`;
-  }).join('')||'<tr><td colspan="11" class="loading">No properties found</td></tr>';
+  }).join('')||'<tr><td colspan="12" class="loading">No properties found</td></tr>';
 }
 
 // ── ACTIVITY LOG ──────────────────────────────────────────────
@@ -1114,6 +1148,91 @@ async function changeParkCode(id){
   if(next===null||next.trim().toUpperCase()===(p.park_code||'')) return;
   if(!confirm(`Change ${p.park_code} to ${next.trim().toUpperCase()}? Any printed stickers with the old code will need to be replaced.`)) return;
   if(await parkSettings(id,{parkCode:next})){toast('Property code changed');loadProperties();}
+}
+
+// ── LOTHQ BILLING (fee per payment + subscription, per property) ──
+const BL_MODES={none:'None',percent:'Percentage',flat:'Flat amount',both:'Percentage + flat'};
+const BL_PLANS={none:'None',month:'Bill monthly',year:'Bill yearly'};
+let _bl={id:null,mode:'none',plan:'none'};
+const blMoney=c=>'$'+(Number(c||0)/100).toFixed(2);
+function payoutStatus(p){
+  const a=p.payout_account_id?payoutAccounts[p.payout_account_id]:null;
+  if(!a) return ['Payouts not set up','#8b949e'];
+  if(a.details_submitted&&a.charges_enabled) return ['Payouts ready · '+(a.label||'account'),'#56d364'];
+  return ['Payouts unfinished · payments paused','#e3b341'];
+}
+function billingCell(p){
+  if(p.fee_mode===undefined) return '<span style="font-size:11px;color:var(--text3)" title="Run supabase-payouts.sql">Not set up</span>';
+  const fee=p.fee_mode==='none'?'No fee':p.fee_mode==='percent'?(+p.fee_percent)+'%':p.fee_mode==='flat'?blMoney(p.fee_flat_cents):(+p.fee_percent)+'% + '+blMoney(p.fee_flat_cents);
+  const plan=p.plan_interval==='none'||!p.plan_interval?'':' · '+blMoney(p.plan_amount_cents)+'/'+(p.plan_interval==='year'?'yr':'mo')+(p.plan_status?' ('+p.plan_status.replace('_',' ')+')':' (not started)');
+  const [ps,pc]=payoutStatus(p);
+  return `<button class="btn btn-ghost btn-sm" onclick="openBilling('${p.id}')">${escA(fee+plan)}</button><div style="font-size:11px;color:${pc};margin-top:4px;">${escA(ps)}</div>`;
+}
+function openBilling(id){
+  const p=allProperties.find(x=>x.id===id);if(!p) return;
+  _bl={id,mode:p.fee_mode||'none',plan:p.plan_interval||'none'};
+  document.getElementById('bl-name').textContent=p.name||'';
+  document.getElementById('bl-err').classList.remove('show');
+  document.getElementById('bl-pct').value=+p.fee_percent||'';
+  document.getElementById('bl-flat').value=p.fee_flat_cents?(p.fee_flat_cents/100).toFixed(2):'';
+  document.getElementById('bl-amt').value=p.plan_amount_cents?(p.plan_amount_cents/100).toFixed(2):'';
+  const [ps,pc]=payoutStatus(p);
+  const po=document.getElementById('bl-payout');
+  po.style.cssText=`font-size:13px;border-radius:9px;padding:10px 12px;margin-bottom:14px;background:${pc}22;color:${pc};border:1px solid ${pc}55;`;
+  po.textContent=ps+(p.payout_account_id?'':' — the manager sets this up in Manager portal → property → Payouts.');
+  const live=p.plan_status==='active'||p.plan_status==='past_due';
+  document.getElementById('bl-plan-status').innerHTML=live
+    ?`<span style="color:${p.plan_status==='active'?'#56d364':'#e3b341'}">Subscription ${p.plan_status==='active'?'active':'payment failed (past due)'}.</span> To change the amount or cancel, do it in Stripe → Customers.`
+    :p.plan_status==='canceled'?'<span style="color:#ff7b72">Subscription was cancelled.</span> Send a new link to start it again.'
+    :'<span style="color:var(--text3)">Not started. Save, then email the link to the manager.</span>';
+  drawBilling();
+  openModal('modal-billing');
+}
+function drawBilling(){
+  const p=allProperties.find(x=>x.id===_bl.id)||{};
+  const live=p.plan_status==='active'||p.plan_status==='past_due';
+  document.getElementById('bl-mode').innerHTML=Object.entries(BL_MODES).map(([k,v])=>`<button class="btn btn-sm ${_bl.mode===k?'btn-primary':'btn-ghost'}" onclick="_bl.mode='${k}';drawBilling()">${v}</button>`).join('');
+  document.getElementById('bl-plan').innerHTML=Object.entries(BL_PLANS).map(([k,v])=>`<button class="btn btn-sm ${_bl.plan===k?'btn-primary':'btn-ghost'}" ${live?'disabled':''} onclick="_bl.plan='${k}';drawBilling()">${v}</button>`).join('');
+  document.getElementById('bl-pct-wrap').style.display=_bl.mode==='percent'||_bl.mode==='both'?'flex':'none';
+  document.getElementById('bl-flat-wrap').style.display=_bl.mode==='flat'||_bl.mode==='both'?'flex':'none';
+  document.getElementById('bl-amt-wrap').style.display=_bl.plan==='none'?'none':'flex';
+  document.getElementById('bl-amt').disabled=live;
+  document.getElementById('bl-per').textContent=_bl.plan==='year'?'per year':'per month';
+  const showLink=_bl.plan!=='none'&&!live;
+  document.getElementById('bl-send').style.display=showLink?'':'none';
+  document.getElementById('bl-copy').style.display=showLink?'':'none';
+  blExample();
+}
+function blExample(){
+  const pct=(_bl.mode==='percent'||_bl.mode==='both')?Number(document.getElementById('bl-pct').value)||0:0;
+  const flat=(_bl.mode==='flat'||_bl.mode==='both')?Math.round((Number(document.getElementById('bl-flat').value)||0)*100):0;
+  const fee=Math.min(500,Math.round(500*pct/100)+flat),card=Math.round(500*0.029)+30;
+  document.getElementById('bl-example').textContent=_bl.mode==='none'?'No LotHQ fee: the property keeps everything after Stripe\'s card fee.'
+    :`Example: on a $5.00 payment, LotHQ gets ${blMoney(fee)} and the property gets about ${blMoney(Math.max(0,500-fee-card))} (after Stripe's ~${blMoney(card)} card fee).`;
+}
+document.addEventListener('input',e=>{if(['bl-pct','bl-flat'].includes(e.target.id)) blExample();});
+async function saveBilling(quiet){
+  const err=document.getElementById('bl-err');err.classList.remove('show');
+  const btn=document.getElementById('bl-save');btn.disabled=true;
+  const r=await adminApi({action:'setPropertyBilling',propertyId:_bl.id,feeMode:_bl.mode,
+    feePercent:Number(document.getElementById('bl-pct').value)||0,
+    feeFlatCents:Math.round((Number(document.getElementById('bl-flat').value)||0)*100),
+    planInterval:_bl.plan,planAmountCents:Math.round((Number(document.getElementById('bl-amt').value)||0)*100)});
+  btn.disabled=false;
+  if(r.failed){err.textContent=r.error;err.classList.add('show');return false;}
+  const {data}=await sb.from('properties').select('*').eq('id',_bl.id).maybeSingle();
+  if(data){const i=allProperties.findIndex(x=>x.id===data.id);if(i>=0) allProperties[i]=data;renderProperties(allProperties);}
+  if(!quiet){toast('✅ Billing saved');closeModal('modal-billing');}
+  return true;
+}
+async function planLink(send){
+  if(send&&!confirm('Email the subscription payment link to this property\'s manager?')) return;
+  if(!(await saveBilling(true))) return;
+  const r=await adminApi({action:'planLink',propertyId:_bl.id,send});
+  if(r.failed){const err=document.getElementById('bl-err');err.textContent=r.error;err.classList.add('show');return;}
+  if(send){toast('✅ Link sent to '+r.sentTo);closeModal('modal-billing');return;}
+  try{await navigator.clipboard.writeText(r.url);toast('📋 Link copied (works for 30 days)');}
+  catch(e){prompt('Copy this link:',r.url);}
 }
 
 async function toggleOutsideBilling(id,on){

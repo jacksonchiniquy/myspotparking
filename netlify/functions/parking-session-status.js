@@ -16,7 +16,10 @@ exports.handler = async (event) => {
   if (!/^cs_[A-Za-z0-9_]{10,200}$/.test(sessionId)) return reply(400, { error: 'Invalid session' });
 
   try {
-    const checkout = await stripe.checkout.sessions.retrieve(sessionId);
+    // Payments for properties with a payout account live in that Stripe account
+    const [saved] = await sb('GET', `parking_sessions?stripe_session_id=eq.${encodeURIComponent(sessionId)}&select=stripe_account_id`).catch(() => []);
+    const account = saved?.stripe_account_id || null;
+    const checkout = await stripe.checkout.sessions.retrieve(sessionId, {}, account ? { stripeAccount: account } : undefined);
     if (checkout.metadata?.kind !== 'parking_session') return reply(404, { error: 'Session not found' });
     if (checkout.payment_status !== 'paid') return reply(200, { status: 'unpaid' });
 

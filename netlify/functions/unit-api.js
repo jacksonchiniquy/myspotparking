@@ -29,7 +29,8 @@ const crypto = require('crypto');
 const { hashPassword, verifyPassword, isHashed, generatePassword } = require('./lib/unit-password');
 const { send, sendRaw, logoHeader } = require('./send-email');
 const { logActivity } = require('./lib/activity');
-const { createSpotCheckout, unitCustomer, spotProblem, makePayLink } = require('./lib/spot-checkout');
+const { createSpotCheckout, unitCustomerInfo, spotProblem, makePayLink } = require('./lib/spot-checkout');
+const connect = require('./lib/connect');
 const { spotMonthlyCents } = require('./lib/spot-pricing');
 const stripe = () => require('stripe')(process.env.STRIPE_SECRET_KEY);
 const SITE = process.env.SITE_URL || 'https://myspotparking.com';
@@ -418,10 +419,9 @@ const actions = {
 
   async billingPortal({ token }, event, ctx = {}) {
     const u = ctx.u = await authUnit(token);
-    const customer = await unitCustomer(u.propertyId, u.unitNumber);
+    const { customer, account } = await unitCustomerInfo(u.propertyId, u.unitNumber);
     if (!customer) throw new UserError('There is no card billing on this unit yet.');
-    const session = await stripe().billingPortal.sessions.create({ customer, return_url: `${SITE}/unit.html` });
-    return { url: session.url };
+    return { url: await connect.portalUrl(stripe(), customer, account, `${SITE}/unit.html`) };
   },
 
   async managerSendSpotLink({ slotId, email }, event, ctx = {}) {
@@ -519,8 +519,9 @@ const actions = {
     const cancelFailed = [];
     for (const subId of sum._subscriptions) {
       try {
-        await st.subscriptions.update(subId, { metadata: { moved_out: '1' } });
-        await st.subscriptions.cancel(subId);
+        const so = connect.opts(await connect.accountForSubscription(subId));
+        await st.subscriptions.update(subId, { metadata: { moved_out: '1' } }, so);
+        await st.subscriptions.cancel(subId, {}, so);
       } catch (e) {
         if (!/No such subscription|canceled/i.test(e.message || '')) { cancelFailed.push(subId); console.error('Move-out cancel failed', subId, e.message); }
       }
@@ -560,8 +561,9 @@ const actions = {
     if (plan.subscription) {
       try {
         const st = stripe();
-        await st.subscriptions.update(plan.subscription, { metadata: { manager_cancelled: '1' } });
-        await st.subscriptions.cancel(plan.subscription);
+        const so = connect.opts(await connect.accountForSubscription(plan.subscription));
+        await st.subscriptions.update(plan.subscription, { metadata: { manager_cancelled: '1' } }, so);
+        await st.subscriptions.cancel(plan.subscription, {}, so);
       } catch (e) {
         if (!/No such subscription|canceled/i.test(e.message || '')) {
           console.error('Cancel spot failed', plan.subscription, e.message);

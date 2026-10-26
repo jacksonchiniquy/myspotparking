@@ -9,6 +9,9 @@
 //   getTerms / saveTerms { title, body, placements } / previewTerms { propertyId, title, body }
 //   setPropertyTerms { propertyId, owner, manager, rules, enabled } / termsAcceptances { propertyId?, plate? }
 //                                          Parking Terms wording, per-property names, and who agreed
+//   setPropertyBilling { propertyId, feeMode, feePercent, feeFlatCents, planInterval, planAmountCents }
+//                                          LotHQ's fee on each parking payment + LotHQ subscription
+//   planLink { propertyId, send }          payment link for that subscription (send=true emails the manager)
 //   setParkSettings { propertyId, stallMode?, parkCode? }
 //                                          Pay to Park stall numbers / property code
 
@@ -105,6 +108,70 @@ exports.handler = async (event) => {
       if (plate) path += `&plate=eq.${plate}`;
       try { return reply(200, { rows: await sb('GET', path) }); }
       catch (e) { return reply(200, { rows: [], missing: true }); }
+    }
+
+    // ── LotHQ billing for a property ──
+    if (body.action === 'setPropertyBilling') {
+      if (!UUID_RE.test(String(body.propertyId || ''))) return reply(400, { error: 'Property not found.' });
+      const feeMode = ['none', 'percent', 'flat', 'both'].includes(body.feeMode) ? body.feeMode : 'none';
+      const feePercent = Math.round(Number(body.feePercent || 0) * 100) / 100;
+      const feeFlatCents = Math.round(Number(body.feeFlatCents || 0));
+      if (!(feePercent >= 0 && feePercent <= 50)) return reply(400, { error: 'The percentage must be between 0 and 50.' });
+      if (!(feeFlatCents >= 0 && feeFlatCents <= 10000)) return reply(400, { error: 'The flat fee must be between $0 and $100.' });
+      if ((feeMode === 'percent' || feeMode === 'both') && !(feePercent > 0)) return reply(400, { error: 'Enter the percentage.' });
+      if ((feeMode === 'flat' || feeMode === 'both') && !(feeFlatCents > 0)) return reply(400, { error: 'Enter the flat amount.' });
+      const planInterval = ['none', 'month', 'year'].includes(body.planInterval) ? body.planInterval : 'none';
+      const planAmountCents = planInterval === 'none' ? null : Math.round(Number(body.planAmountCents || 0));
+      if (planInterval !== 'none' && !(planAmountCents >= 50 && planAmountCents <= 10000000)) return reply(400, { error: 'Enter the subscription amount.' });
+      const [before] = await sb('GET', `properties?id=eq.${body.propertyId}&select=name,plan_status,plan_interval,plan_amount_cents`);
+      if (!before) return reply(404, { error: 'Property not found.' });
+      const live = before.plan_status === 'active' || before.plan_status === 'past_due';
+      if (live && (planInterval !== before.plan_interval || planAmountCents !== before.plan_amount_cents)) {
+        return reply(400, { error: 'This property\'s LotHQ subscription is already running. Change or cancel it in Stripe (Customers), then update it here.' });
+      }
+      await sb('PATCH', `properties?id=eq.${body.propertyId}`, {
+        fee_mode: feeMode, fee_percent: feeMode === 'percent' || feeMode === 'both' ? feePercent : 0,
+        fee_flat_cents: feeMode === 'flat' || feeMode === 'both' ? feeFlatCents : 0,
+        plan_interval: planInterval, plan_amount_cents: planAmountCents,
+      });
+      const fee = feeMode === 'none' ? 'no fee per payment' : [feeMode !== 'flat' ? `${feePercent}%` : '', feeMode !== 'percent' ? `$${(feeFlatCents / 100).toFixed(2)}` : ''].filter(Boolean).join(' + ') + ' per payment';
+      const plan = planInterval === 'none' ? 'no subscription' : `$${(planAmountCents / 100).toFixed(2)} per ${planInterval}`;
+      const { logActivity, userActor } = require('./lib/activity');
+      await logActivity({ ...(await userActor(admin.id)), actorRole: 'admin', portal: 'admin', action: 'billing.lothq_pricing',
+        propertyId: body.propertyId, target: before.name || null, summary: `LotHQ billing set: ${fee}; ${plan}` });
+      return reply(200, { ok: true });
+    }
+    if (body.action === 'planLink') {
+      if (!UUID_RE.test(String(body.propertyId || ''))) return reply(400, { error: 'Property not found.' });
+      const [p] = await sb('GET', `properties?id=eq.${body.propertyId}&select=*`);
+      if (!p) return reply(404, { error: 'Property not found.' });
+      if (!(p.plan_interval === 'month' || p.plan_interval === 'year') || !(p.plan_amount_cents >= 50)) {
+        return reply(400, { error: 'Save a subscription amount first.' });
+      }
+      const url = require('./plan-pay').makePlanLink(p.id);
+      if (!body.send) return reply(200, { url });
+      const [m] = p.manager_id ? await sb('GET', `users?id=eq.${p.manager_id}&select=email,full_name,name`) : [];
+      if (!m?.email) return reply(400, { error: 'This property has no manager email on file. Copy the link instead.' });
+      const { sendRaw, logoHeader } = require('./send-email');
+      const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const price = `$${(p.plan_amount_cents / 100).toFixed(2)} per ${p.plan_interval}`;
+      await sendRaw({
+        to: m.email,
+        subject: `Start your LotHQ subscription — ${p.name}`,
+        html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
+  ${logoHeader('#2859a8')}
+  <h2 style="margin:0 0 8px;">Your LotHQ subscription</h2>
+  <p style="color:#475569;line-height:1.55;margin:0 0 18px;">Hi ${esc(m.full_name || m.name || 'there')}, here is the secure link to start the LotHQ subscription for <strong>${esc(p.name)}</strong> (${esc(price)}). Payment is by card through Stripe.</p>
+  <p style="text-align:center;margin:0 0 20px;"><a href="${url}" style="display:inline-block;background:#2859a8;color:#ffffff;text-decoration:none;padding:13px 28px;border-radius:9px;font-weight:700;">Start Subscription →</a></p>
+  <p style="color:#94a3b8;font-size:12px;text-align:center;">This link works for 30 days. Questions? Contact your LotHQ representative.</p>
+  <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;"><p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ</p>
+</body></html>`,
+        text: `Start the LotHQ subscription for ${p.name} (${price}): ${url}\nThis link works for 30 days.`,
+      });
+      const { logActivity, userActor } = require('./lib/activity');
+      await logActivity({ ...(await userActor(admin.id)), actorRole: 'admin', portal: 'admin', action: 'billing.plan_link_sent',
+        propertyId: p.id, target: p.name, summary: `Sent the LotHQ subscription link (${price}) to ${m.email}` });
+      return reply(200, { url, sentTo: m.email });
     }
 
     if (body.action === 'setOutsideBilling') {

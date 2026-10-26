@@ -10,6 +10,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const connect = require('./lib/connect');
 const { CYCLES, cycleCents, spotMonthlyCents, unitSpots, chosenPaidSpots } = require('./lib/spot-pricing');
 
 const STRIPE_INTERVALS = {
@@ -64,8 +65,13 @@ exports.handler = async (event) => {
     if (!(amount >= 50)) return reply(400, { error: 'Pricing is not set up for this property. Contact your property manager.' });
     const spotNames = chosen.map(s => s.slot_label || 'Spot').join(', ');
 
+    // Where the money goes: the property's payout account (LotHQ keeps its fee), or LotHQ's own
+    const { account } = await connect.routeFor(property);
+    const subFee = connect.subscriptionFeeParams(property, account, amount);
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
+      ...(Object.keys(subFee).length ? { subscription_data: subFee } : {}),
       payment_method_types: ['card'],
       customer_email: tenantEmail,
       line_items: [{
@@ -91,12 +97,13 @@ exports.handler = async (event) => {
       },
       success_url: `${SITE}/signup.html?signup=success`,
       cancel_url: `${SITE}/signup.html?invite=${encodeURIComponent(inviteCode)}&cancelled=true`,
-    });
+    }, connect.opts(account));
 
     await terms.recordAcceptance({ propertyId: unit.property_id, placement: 'signup', version: body.termsVersion,
       acceptedBy: `${tenantEmail} · Unit ${unit.unit_number}`, event });
     return reply(200, { url: session.url });
   } catch (err) {
+    if (err instanceof connect.PaymentsPaused) return reply(400, { error: err.message });
     console.error('create-permit-checkout error:', err);
     return reply(500, { error: 'Could not start checkout. Please try again.' });
   }

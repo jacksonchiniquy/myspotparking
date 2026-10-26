@@ -138,6 +138,26 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 #toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 18px;font-size:13px;z-index:9999;transform:translateY(12px);opacity:0;transition:all .3s;max-width:320px;box-shadow:0 8px 32px rgba(15,23,42,0.1);}
 #toast.show{opacity:1;transform:translateY(0);}
 @media(max-width:900px){.tn-tabs{display:none;}.page-head{padding:20px 16px 0;}.content{padding:0 16px 60px;}.stat-grid{grid-template-columns:1fr 1fr;}.chart-grid{grid-template-columns:1fr;}.form-row{grid-template-columns:1fr;}}
+/* Payouts tab */
+.po-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;align-items:start;}
+@media(max-width:900px){.po-grid{grid-template-columns:1fr;}}
+.po-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;box-shadow:var(--shadow);}
+.po-card h3{margin:0 0 4px;font-size:17px;letter-spacing:-.02em;}
+.po-sub{color:var(--text2);font-size:13px;margin-bottom:14px;line-height:1.5;}
+.po-label{display:block;font-size:11px;font-weight:700;color:var(--text2);margin:16px 0 7px;letter-spacing:.06em;text-transform:uppercase;}
+.po-opts{display:flex;gap:8px;flex-wrap:wrap;}
+.po-opt{border:1.5px solid var(--border);background:var(--surface);border-radius:9px;padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--text2);cursor:pointer;font-family:inherit;}
+.po-opt:hover{border-color:var(--blue2);}
+.po-opt.on{border-color:var(--blue);background:var(--bluelight);color:#1a4fb8;}
+.po-note{background:var(--surface2);border:1px dashed rgba(15,23,42,.18);border-radius:9px;padding:11px 13px;font-size:12.5px;color:var(--text2);margin-top:14px;line-height:1.5;}
+.po-status{display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13.5px;margin-bottom:8px;}
+.po-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+.po-pill{margin-left:auto;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:20px;white-space:nowrap;}
+.po-banner{border-radius:10px;padding:13px 15px;font-size:13.5px;line-height:1.5;margin-bottom:6px;}
+.po-tbl{width:100%;border-collapse:collapse;font-size:14px;}
+.po-tbl td{padding:9px 2px;border-bottom:1px solid var(--border2);}
+.po-tbl td:last-child{text-align:right;font-weight:600;}
+.po-tbl tr.tot td{border-top:2px solid var(--text);border-bottom:none;font-weight:800;}
 </style>
 </head>
 <body>
@@ -464,6 +484,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         <div class="inner-tab" id="pdit-expired" onclick="setPDTab('expired')">Expired / Revoked</div>
         <div class="inner-tab" id="pdit-map" onclick="setPDTab('map')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg> Lot Map</div>
         <div class="inner-tab" id="pdit-pay" onclick="setPDTab('pay')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Pay to Park</div>
+        <div class="inner-tab" id="pdit-payouts" onclick="setPDTab('payouts')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Payouts</div>
         <div class="inner-tab" id="pdit-guests" onclick="setPDTab('guests')" style="order:98;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2M13 17v2M13 11v2"/></svg> Guest Passes</div>
         <div class="inner-tab" id="pdit-history" onclick="setPDTab('history');loadTenancies(currentPropertyId).then(renderTenantHistory)" style="order:99;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg> Tenant History</div>
         <div class="inner-tab" id="pdit-units" onclick="setPDTab('units')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> <span id="pdit-units-label">Units</span></div>
@@ -758,6 +779,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       </div>
 
       <!-- UNITS PANEL -->
+      <div id="pdip-payouts" class="inner-panel"><div id="po-body"><div class="loading">Loading…</div></div></div>
       <div id="pdip-history" class="inner-panel">
         <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
           <input class="form-input" id="th-search" type="search" placeholder="Search by name, email, unit or plate" oninput="renderTenantHistory()" style="flex:1;min-width:200px;">
@@ -1553,7 +1575,155 @@ async function loadAllData(){
   restoreFromHash();
 }
 
+// ── PAYOUTS (who gets this property's parking money, through Stripe) ──
+const PO_TYPES={hoa:'HOA',management:'Management company',owner:'Property owner'};
+const PO_STATUS={
+  none:['#94a3b8','Not set up','background:#f1f5f9;color:#475569'],
+  started:['#f59e0b','Setup not finished','background:#fef3c7;color:#92400e'],
+  needs_info:['#f59e0b','Stripe needs info','background:#fef3c7;color:#92400e'],
+  ready_needs_info:['#16a34a','Ready · Stripe needs info soon','background:#dcfce7;color:#166534'],
+  ready:['#16a34a','Ready · payouts on','background:#dcfce7;color:#166534'],
+};
+let _po=null,_poType=null,_poChoice=null,_poEditing=false,_poBusy=false;
+const poMoney=c=>'$'+(Number(c||0)/100).toFixed(2);
+async function payoutsApi(payload){
+  const {data:{session}}=await sb.auth.getSession();
+  try{
+    const res=await fetch('/.netlify/functions/payouts',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body:JSON.stringify(Object.assign({propertyId:currentPropertyId},payload))});
+    const body=await res.json().catch(()=>({}));
+    return res.ok?body:{error:body.error||'Something went wrong. Please try again.'};
+  }catch(e){return {error:'Could not reach the server. Check your connection.'};}
+}
+function poStatusOf(a){
+  if(!a) return 'none';
+  if(a.details_submitted&&a.charges_enabled) return a.needs_info?'ready_needs_info':'ready';
+  return a.details_submitted?'needs_info':'started';
+}
+async function loadPayouts(){
+  const el=document.getElementById('po-body');
+  el.innerHTML='<div class="loading">Loading payouts…</div>';
+  const propId=currentPropertyId;
+  const r=await payoutsApi({action:'status'});
+  if(propId!==currentPropertyId) return;
+  if(r.error){el.innerHTML=`<div class="po-card"><h3>Payouts</h3><div class="po-sub" style="margin:0;">${escHtml(r.error)}</div></div>`;return;}
+  _po=r;_poType=r.payeeType;_poEditing=!r.account;
+  _poChoice=r.mine.length?r.mine[0].id:'new';
+  // Back from Stripe's sign-up page
+  const qs=new URLSearchParams(location.search),back=qs.get('payouts');
+  if(back){
+    history.replaceState(null,'',location.pathname+location.hash);
+    if(back==='refresh'&&r.account&&!/^ready/.test(r.account.status)){continuePayouts();return;}
+    if(back==='done') toast(r.account&&/^ready/.test(r.account.status)?'✅ Payouts are ready':'Saved. Stripe may take a few minutes, or need a bit more info.');
+  }
+  renderPayouts();
+}
+function renderPayouts(){
+  const r=_po,p=allProperties.find(x=>x.id===currentPropertyId)||{};
+  const a=r.account;
+  let banner='';
+  if(!a) banner=`<div class="po-banner" style="background:var(--surface2);color:var(--text2);">Not set up yet. Until it is, Pay to Park and paid permit payments for this property go to LotHQ.</div>`;
+  else if(/^ready/.test(a.status)) banner=`<div class="po-banner" style="background:#dcfce7;color:#166534;"><strong>Ready · payouts on.</strong> Payments go to ${escHtml(a.label)} (Stripe ••${escHtml(a.last4)})${a.payeeType?' · '+PO_TYPES[a.payeeType]:''}.${a.status==='ready_needs_info'?' Stripe has asked for a little more info. Open the Stripe Dashboard to finish it.':''}</div>`;
+  else banner=`<div class="po-banner" style="background:#fef3c7;color:#92400e;"><strong>${a.status==='started'?'Setup not finished.':'Stripe needs more info.'}</strong> Payments for this property are paused until ${escHtml(a.label)} finishes Stripe's setup.<div style="margin-top:10px;"><button class="btn btn-primary btn-sm" onclick="continuePayouts()">Continue setup with Stripe →</button></div></div>`;
+
+  let form='';
+  if(_poEditing){
+    const chosen=r.mine.find(m=>m.id===_poChoice);
+    const opts=r.mine.map(m=>`<button class="po-opt ${_poChoice===m.id?'on':''}" onclick="_poChoice='${m.id}';renderPayouts()">Yes: ${escHtml(m.label)} (••${escHtml(m.last4)})${/^ready/.test(m.status)?'':' · not finished'}</button>`).join('');
+    form=`
+      <label class="po-label">Who receives payments for this property?</label>
+      <div class="po-opts">${Object.entries(PO_TYPES).map(([k,v])=>`<button class="po-opt ${_poType===k?'on':''}" onclick="_poType='${k}';renderPayouts()">${v}</button>`).join('')}</div>
+      ${r.mine.length?`<label class="po-label">Use an account you already set up?</label>
+      <div class="po-opts">${opts}<button class="po-opt ${_poChoice==='new'?'on':''}" onclick="_poChoice='new';renderPayouts()">No, set up a new one</button></div>`:''}
+      ${_poChoice==='new'?`<label class="po-label">Name of the ${_poType?escHtml(PO_TYPES[_poType]).toLowerCase():'HOA, company or owner'} that gets paid</label>
+      <input class="form-input" id="po-label" maxlength="120" placeholder="e.g. Maple Grove HOA" style="max-width:420px;">`:''}
+      <div class="po-note">Managing several properties for one company? Connect once and pick the same account for each property. Properties with a different owner or HOA get their own.<br>Stripe asks for the bank account, tax ID and a contact person. LotHQ never sees bank details.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
+        <button class="btn btn-primary" id="po-go" onclick="submitPayouts()">${chosen&&/^ready/.test(chosen.status)?'Use this account':'Set up payouts with Stripe →'}</button>
+        ${a?'<button class="btn btn-ghost" onclick="_poEditing=false;renderPayouts()">Cancel</button>':''}
+      </div>
+      <div class="err-msg" id="po-err" style="margin-top:10px;"></div>`;
+  }else{
+    form=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+      <a class="btn btn-ghost btn-sm" href="https://dashboard.stripe.com" target="_blank" rel="noopener">Open Stripe Dashboard ↗</a>
+      <button class="btn btn-ghost btn-sm" onclick="_poEditing=true;renderPayouts()">Change who gets paid</button></div>`;
+  }
+
+  const ex=r.example,f=r.fee;
+  const feeLabel=f.mode==='percent'?f.percent+'%':f.mode==='flat'?poMoney(f.flatCents):f.percent+'% + '+poMoney(f.flatCents);
+  const payee=a?escHtml(a.label):'the account you choose';
+  document.getElementById('po-body').innerHTML=`<div class="po-grid">
+    <div class="po-card">
+      <h3>Payouts for ${escHtml(p.name||'this property')}</h3>
+      <div class="po-sub">Tell us who gets paid for parking at this property. Payments go straight to their bank through Stripe.</div>
+      ${banner}${form}
+    </div>
+    <div>
+      <div class="po-card" style="margin-bottom:18px;">
+        <h3>Example: one ${poMoney(ex.amount)} payment</h3>
+        <div class="po-sub">How a Pay to Park or permit payment is split</div>
+        <table class="po-tbl">
+          <tr><td>Driver or resident paid</td><td>${poMoney(ex.amount)}</td></tr>
+          <tr><td>Stripe card fee (approx.)</td><td>− ${poMoney(ex.card)}</td></tr>
+          ${ex.fee>0?`<tr><td>LotHQ service fee (${escHtml(feeLabel)})</td><td>− ${poMoney(ex.fee)}</td></tr>`:''}
+          <tr class="tot"><td>Deposited to ${payee}</td><td>${poMoney(ex.net)}</td></tr>
+        </table>
+        <div class="po-note">Deposits arrive on Stripe's normal schedule (usually 2 business days). Stripe sends the year-end tax forms. Card fees vary a little by card.</div>
+      </div>
+      <div class="po-card"><h3>All your properties</h3><div class="po-sub">Payout status for each property</div><div id="po-list"><div class="loading">Loading…</div></div>
+        <div class="po-note">Pay to Park and paid permits pause while a property's payout setup is unfinished, so no money lands in the wrong place.</div></div>
+    </div>
+  </div>`;
+  renderPayoutList();
+}
+async function renderPayoutList(){
+  const el=document.getElementById('po-list');if(!el) return;
+  const {data,error}=await sb.from('payout_accounts').select('*');
+  if(error){el.innerHTML='<div style="font-size:12px;color:var(--text3);">Not available yet.</div>';return;}
+  const byId={};(data||[]).forEach(a=>byId[a.id]=a);
+  el.innerHTML=allProperties.map(p=>{
+    const st=PO_STATUS[poStatusOf(p.payout_account_id?byId[p.payout_account_id]:null)];
+    return `<div class="po-status" style="cursor:pointer;" onclick="openPropertyDetail('${p.id}');setTimeout(()=>setPDTab('payouts'),50)"><span class="po-dot" style="background:${st[0]}"></span>${escHtml(p.name||'Property')}<span class="po-pill" style="${st[2]}">${st[1]}</span></div>`;
+  }).join('')||'<div style="font-size:12px;color:var(--text3);">No properties yet.</div>';
+}
+async function submitPayouts(){
+  if(_poBusy) return;
+  const err=document.getElementById('po-err');err.classList.remove('show');
+  const btn=document.getElementById('po-go'),label0=btn.textContent;
+  const fail=m=>{_poBusy=false;btn.disabled=false;btn.textContent=label0;err.textContent=m;err.classList.add('show');};
+  if(!_poType) return fail('Choose who receives payments for this property.');
+  const chosen=_po.mine.find(m=>m.id===_poChoice);
+  const label=document.getElementById('po-label')?.value.trim()||'';
+  if(!chosen&&label.length<2) return fail('Enter the name of the HOA, company or owner who gets paid.');
+  _poBusy=true;btn.disabled=true;btn.textContent='One moment…';
+  if(chosen&&/^ready/.test(chosen.status)){
+    const r=await payoutsApi({action:'link',payeeType:_poType,accountId:chosen.id});
+    if(r.error) return fail(r.error);
+    _poBusy=false;_po=r;_poType=r.payeeType;_poEditing=false;
+    await refreshPropertyRow();renderPayouts();toast('✅ Payouts are ready');return;
+  }
+  const r=await payoutsApi({action:'setup',payeeType:_poType,label,accountId:chosen?chosen.id:undefined});
+  if(r.error) return fail(r.error);
+  location.href=r.url; // Stripe's secure sign-up page
+}
+async function continuePayouts(){
+  const a=_po&&_po.account;if(!a) return;
+  toast('Opening Stripe…');
+  const r=await payoutsApi({action:'setup',payeeType:_po.payeeType||a.payeeType||'management',accountId:a.id});
+  if(r.error){toast('❌ '+r.error);renderPayouts();return;}
+  location.href=r.url;
+}
+async function refreshPropertyRow(){
+  const {data}=await sb.from('properties').select('*').eq('id',currentPropertyId).maybeSingle();
+  if(data){const i=allProperties.findIndex(x=>x.id===data.id);if(i>=0) allProperties[i]=data;}
+}
+
 function restoreFromHash(){
+  if(new URLSearchParams(location.search).get('plan')==='started'){
+    history.replaceState(null,'',location.pathname+location.hash);
+    setTimeout(()=>toast('✅ Thanks! Your LotHQ subscription is set up.'),300);
+  }
   const hash=window.location.hash.replace('#','');
   if(!hash||hash==='dashboard') return;
 
@@ -2830,7 +3000,7 @@ function renderPropertyDetail(propId){
 }
 
 function setPDTab(name){
-  ['all','active','expired','map','pay','units','guests','history'].forEach(n=>{
+  ['all','active','expired','map','pay','payouts','units','guests','history'].forEach(n=>{
     document.getElementById('pdit-'+n)?.classList.remove('active');
     document.getElementById('pdip-'+n)?.classList.remove('active');
   });
@@ -2849,6 +3019,10 @@ function setPDTab(name){
   if(panel){panel.style.display='none';panel.style.visibility='visible';}
   if(name==='pay'){
     initPayPanel();
+    return;
+  }
+  if(name==='payouts'){
+    loadPayouts();
     return;
   }
   if(name==='units'){

@@ -5,12 +5,18 @@
 //   invoice.paid                  → keep permit active, send receipt
 //   invoice.payment_failed        → warn tenant + manager
 //   customer.subscription.deleted → suspend permit, notify manager
+//   account.updated               → a property's payout account changed status
+//
+// Events come from LotHQ's own Stripe account, and (through a second
+// "connected accounts" webhook) from each property's payout account. Both use
+// this same address; each has its own signing secret.
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { hashPassword } = require('./lib/unit-password');
 const { send, sendRaw, logoHeader } = require('./send-email');
 const { activateSession } = require('./lib/parking');
 const { logActivity, money } = require('./lib/activity');
+const connect = require('./lib/connect');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY; // service role key for server-side writes
@@ -62,13 +68,9 @@ function generatePassword(length = 10) {
 }
 
 // ── Stripe Customer Portal URL ───────────────────────────────
-async function getBillingPortalUrl(customerId) {
+async function getBillingPortalUrl(customerId, account) {
   try {
-    const session = await stripe.billingPortal.sessions.create({
-      customer: customerId,
-      return_url: `${SITE}/holder.html`,
-    });
-    return session.url;
+    return await connect.portalUrl(stripe, customerId, account || null, `${SITE}/holder.html`);
   } catch {
     return `${SITE}/holder.html`;
   }
@@ -76,8 +78,24 @@ async function getBillingPortalUrl(customerId) {
 
 // ── Event handlers ───────────────────────────────────────────
 
-async function handleCheckoutCompleted(session) {
+async function handleCheckoutCompleted(session, account) {
   const meta = session.metadata || {};
+  // Which Stripe account this payment lives in (only saved for payout accounts)
+  const acctCol = account ? { stripe_account_id: account } : {};
+
+  // A property's LotHQ subscription (billed to LotHQ's own account)
+  if (meta.kind === 'lothq_plan') {
+    if (account || !/^[0-9a-f-]{36}$/i.test(String(meta.property_id || ''))) return;
+    await sbUpdate('properties', {
+      plan_status: 'active', plan_subscription_id: session.subscription || null, plan_customer_id: session.customer || null,
+    }, `id=eq.${meta.property_id}`);
+    await logActivity({
+      actorName: session.customer_details?.email || 'Client', actorRole: 'manager', portal: 'system', action: 'billing.plan_started',
+      propertyId: meta.property_id, summary: `LotHQ subscription started: ${money(session.amount_total)} per ${meta.interval || 'month'}`,
+      details: { subscription: session.subscription || null },
+    });
+    return;
+  }
 
   // Pay to Park: payment confirmed → session becomes active and visible to enforcement
   if (meta.kind === 'parking_session') {
@@ -96,7 +114,7 @@ async function handleCheckoutCompleted(session) {
   if (meta.kind === 'spot_addon') {
     if (!/^[0-9a-f-]{36}$/i.test(String(meta.slot_id || ''))) return;
     await sbUpdate('property_units',
-      { spot_paid: true, paid_via: 'card', spot_subscription_id: session.subscription || null, stripe_customer_id: session.customer || null },
+      { spot_paid: true, paid_via: 'card', spot_subscription_id: session.subscription || null, stripe_customer_id: session.customer || null, ...acctCol },
       `id=eq.${meta.slot_id}&property_id=eq.${meta.property_id}&billing_type=eq.monthly`);
     console.log(`Spot ${meta.slot_id} paid for Unit ${meta.unit_number}`);
     {
@@ -135,7 +153,7 @@ async function handleCheckoutCompleted(session) {
     const unitFilter = `property_id=eq.${property_id}&unit_number=eq.${encodeURIComponent(unit_number)}&billing_type=eq.monthly`;
     const ids = String(meta.spot_ids || '').split(',').filter(id => /^[0-9a-f-]{36}$/i.test(id));
     await sbUpdate('property_units',
-      { spot_paid: true, paid_via: 'card', spot_subscription_id: session.subscription || null, stripe_customer_id: session.customer || null },
+      { spot_paid: true, paid_via: 'card', spot_subscription_id: session.subscription || null, stripe_customer_id: session.customer || null, ...acctCol },
       ids.length ? `${unitFilter}&id=in.(${ids.join(',')})` : `${unitFilter}&invite_code=eq.${encodeURIComponent(invite_code)}`);
   } catch (e) { console.error('Marking paid spots failed (non-fatal):', e.message); }
 
@@ -192,6 +210,7 @@ async function handleCheckoutCompleted(session) {
     billing_interval: billing_interval || 'monthly',
     stripe_customer_id: session.customer,
     stripe_subscription_id: session.subscription || null,
+    ...acctCol,
     end_date: expiresAt,
     source: 'unit-self',
     plan: 'monthly',
@@ -332,12 +351,25 @@ async function spotAddedEmails(meta, session) {
   } else console.log('Spot added: no manager email for property');
 }
 
-async function handleInvoicePaid(invoice) {
-  const customerId = invoice.customer;
-  const subscriptionId = invoice.subscription;
-  if (!subscriptionId) return;
+// A property's LotHQ subscription, if this is one (only in LotHQ's own account)
+async function planProperty(subscriptionId, account) {
+  if (account || !subscriptionId) return null;
+  const rows = await sbSelect('properties', `plan_subscription_id=eq.${encodeURIComponent(subscriptionId)}&select=id,name`);
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+async function setPlanStatus(prop, status, summary, invoice) {
+  await sbUpdate('properties', { plan_status: status }, `id=eq.${prop.id}`);
+  await logActivity({ actorName: 'Stripe', actorRole: 'system', portal: 'system', action: `billing.plan_${status}`,
+    propertyId: prop.id, summary, details: invoice ? { invoice: invoice.id } : {} });
+}
 
-  const sub = await stripe.subscriptions.retrieve(subscriptionId);
+async function handleInvoicePaid(invoice, account) {
+  const subscriptionId = connect.invoiceSubscription(invoice);
+  if (!subscriptionId) return;
+  const plan = await planProperty(subscriptionId, account);
+  if (plan) return setPlanStatus(plan, 'active', `LotHQ subscription paid: ${money(invoice.amount_paid)}`, invoice);
+
+  const sub = await stripe.subscriptions.retrieve(subscriptionId, {}, connect.opts(account));
   await sbUpdate(
     'permits',
     {
@@ -370,10 +402,12 @@ async function subscriptionContext(subscriptionId) {
   return {};
 }
 
-async function handlePaymentFailed(invoice) {
-  const subscriptionId = invoice.subscription;
+async function handlePaymentFailed(invoice, account) {
+  const subscriptionId = connect.invoiceSubscription(invoice);
   const customerId = invoice.customer;
   if (!subscriptionId) return;
+  const plan = await planProperty(subscriptionId, account);
+  if (plan) return setPlanStatus(plan, 'past_due', `LotHQ subscription payment failed: ${money(invoice.amount_due)}`, invoice);
 
   await sbUpdate('permits', { billing_status: 'past_due' }, `stripe_subscription_id=eq.${subscriptionId}`);
   {
@@ -392,7 +426,7 @@ async function handlePaymentFailed(invoice) {
 
   const property = await propertyContact(permit.property_id);
   const propertyName = property?.name || 'your property';
-  const portalUrl = await getBillingPortalUrl(customerId);
+  const portalUrl = await getBillingPortalUrl(customerId, account);
 
   if (permit.holder_email) {
     try {
@@ -430,8 +464,10 @@ async function handlePaymentFailed(invoice) {
   }
 }
 
-async function handleSubscriptionDeleted(subscription) {
+async function handleSubscriptionDeleted(subscription, account) {
   const subscriptionId = subscription.id;
+  const plan = await planProperty(subscriptionId, account);
+  if (plan) return setPlanStatus(plan, 'canceled', 'LotHQ subscription ended');
 
   // Cancelled by a manager's "Move Out Tenant": everything was already cleaned up
   if (subscription.metadata?.moved_out === '1' || subscription.metadata?.manager_cancelled === '1') {
@@ -512,30 +548,39 @@ exports.handler = async (event) => {
   }
 
   const sig = event.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  // LotHQ's own webhook, then the connected-accounts webhook
+  const secrets = [process.env.STRIPE_WEBHOOK_SECRET, process.env.STRIPE_CONNECT_WEBHOOK_SECRET].filter(Boolean);
 
-  let stripeEvent;
-  try {
-    stripeEvent = stripe.webhooks.constructEvent(event.body, sig, webhookSecret);
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
-    return { statusCode: 400, body: `Webhook Error: ${err.message}` };
+  let stripeEvent, lastErr;
+  for (const secret of secrets) {
+    try { stripeEvent = stripe.webhooks.constructEvent(event.body, sig, secret); break; }
+    catch (err) { lastErr = err; }
   }
+  if (!stripeEvent) {
+    console.error('Webhook signature verification failed:', lastErr && lastErr.message);
+    return { statusCode: 400, body: `Webhook Error: ${lastErr ? lastErr.message : 'no signing secret set'}` };
+  }
+  const account = stripeEvent.account || null; // set when the event came from a payout account
 
   try {
     switch (stripeEvent.type) {
       case 'checkout.session.completed':
-        await handleCheckoutCompleted(stripeEvent.data.object);
+        await handleCheckoutCompleted(stripeEvent.data.object, account);
         break;
       case 'invoice.paid':
-        await handleInvoicePaid(stripeEvent.data.object);
+        await handleInvoicePaid(stripeEvent.data.object, account);
         break;
       case 'invoice.payment_failed':
-        await handlePaymentFailed(stripeEvent.data.object);
+        await handlePaymentFailed(stripeEvent.data.object, account);
         break;
       case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(stripeEvent.data.object);
+        await handleSubscriptionDeleted(stripeEvent.data.object, account);
         break;
+      case 'account.updated': {
+        const row = await connect.syncAccount(stripeEvent.data.object);
+        console.log('Payout account', stripeEvent.data.object.id, row ? 'updated' : 'not one of ours');
+        break;
+      }
       default:
         console.log(`Unhandled event type: ${stripeEvent.type}`);
     }
