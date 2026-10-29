@@ -17,6 +17,12 @@ from = "/login"
 to = "/login.html"
 status = 200
 
+# Help Center (lothq.com/help)
+[[redirects]]
+from = "/help"
+to = "/help.html"
+status = 200
+
 # Guest pass "ends soon" emails
 [functions."guest-reminders"]
 schedule = "*/15 * * * *"
