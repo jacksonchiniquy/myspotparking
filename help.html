@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Help Center — LotHQ</title>
+<meta name="description" content="Answers for residents, unit tenants, Pay to Park visitors, property managers and enforcement officers using LotHQ.">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0B1220;
+  --ink2: #1E2A3B;
+  --slate: #4A5568;
+  --slate2: #718096;
+  --blue: #1B6FFF;
+  --blue-dark: #0D5AE5;
+  --blue-light: rgba(27,111,255,0.08);
+  --green: #00C87A;
+  --amber: #F59E0B;
+  --white: #FFFFFF;
+  --bg: #F5F6F8;
+  --bg2: #EBEDF0;
+  --border: rgba(11,18,32,0.10);
+  --border2: rgba(11,18,32,0.06);
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { background: var(--white); color: var(--ink); font-family: 'Inter', sans-serif; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
+/* ── TYPOGRAPHY ── */
+.display { font-family: 'Sora', sans-serif; }
+h1, h2, h3 { font-family: 'Sora', sans-serif; }
+
+/* ── NAV ── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 60px; height: 64px;
+  background: rgba(255,255,255,0.95); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+.nav-mark {
+  width: 36px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-mark svg { width: 36px; height: 38px; }
+.nav-name { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+.nav-name span { color: #374269; font-weight: 800; }
+.nav-name em { font-style: normal; color: #2859a8; font-weight: 600; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; display: block; line-height: 1.1; margin-top: 1px; }
+.nav-links { display: flex; align-items: center; gap: 2px; }
+.nav-link { padding: 7px 14px; font-size: 14px; font-weight: 500; color: var(--slate); text-decoration: none; border-radius: 7px; transition: all .18s; }
+.nav-link:hover { color: var(--blue); background: var(--blue-light); }
+.nav-right { display: flex; align-items: center; gap: 10px; }
+.nav-signin { padding: 7px 16px; font-size: 14px; font-weight: 500; color: var(--slate); background: none; border: 1px solid var(--border); border-radius: 7px; cursor: pointer; text-decoration: none; font-family: 'Inter', sans-serif; transition: all .18s; display: inline-flex; align-items: center; }
+.nav-signin:hover { border-color: var(--blue); color: var(--blue); }
+.nav-cta { padding: 8px 20px; font-size: 14px; font-weight: 600; color: white; background: var(--blue); border: none; border-radius: 7px; cursor: pointer; text-decoration: none; font-family: 'Inter', sans-serif; transition: all .18s; display: inline-flex; align-items: center; letter-spacing: -0.01em; }
+.nav-cta:hover { background: var(--blue-dark); }
+footer { background: #080E19; padding: 48px 60px 36px; }
+.footer-inner { max-width: 1100px; margin: 0 auto; }
+.footer-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; padding-bottom: 32px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 24px; }
+.footer-brand-name { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; color: white; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.footer-brand-desc { font-size: 13px; color: rgba(255,255,255,0.35); line-height: 1.6; max-width: 220px; }
+.footer-cols { display: flex; gap: 48px; }
+.footer-col-title { font-size: 11px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(255,255,255,0.25); margin-bottom: 14px; }
+.footer-links { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+.footer-links a { font-size: 13px; color: rgba(255,255,255,0.45); text-decoration: none; transition: color .18s; }
+.footer-links a:hover { color: white; }
+.footer-bottom { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: rgba(255,255,255,0.25); }
+
+.h-hero{padding:120px 24px 40px;background:linear-gradient(180deg,#EEF3FF 0%,#fff 100%);text-align:center;}
+.h-hero h1{font-family:'Sora',sans-serif;font-size:40px;font-weight:700;letter-spacing:-.03em;color:var(--ink);}
+.h-hero p{color:var(--slate);font-size:16px;margin-top:10px;}
+.h-search{margin:26px auto 0;max-width:560px;position:relative;}
+.h-search input{width:100%;padding:15px 18px 15px 46px;font-size:16px;border:1px solid var(--border);border-radius:12px;font-family:inherit;outline:none;background:#fff;box-shadow:0 4px 18px rgba(11,18,32,.06);}
+.h-search input:focus{border-color:var(--blue);}
+.h-search svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);}
+.h-tabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:22px auto 0;max-width:820px;}
+.h-tab{padding:9px 16px;border-radius:999px;border:1px solid var(--border);background:#fff;font-size:14px;font-weight:600;color:var(--slate);cursor:pointer;font-family:inherit;}
+.h-tab:hover{border-color:var(--blue);color:var(--blue);}
+.h-tab.on{background:var(--blue);border-color:var(--blue);color:#fff;}
+.h-main{max-width:820px;margin:0 auto;padding:10px 24px 70px;}
+.h-aud{padding-top:34px;scroll-margin-top:72px;}
+.h-aud h2{font-family:'Sora',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.02em;}
+.h-intro{color:var(--slate);font-size:15px;margin-top:6px;line-height:1.6;}
+.h-sec h3{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#2859a8;margin:26px 0 4px;}
+.h-main details{border-bottom:1px solid var(--border);padding:15px 0;}
+.h-main summary{cursor:pointer;font-family:'Sora',sans-serif;font-weight:600;font-size:16px;letter-spacing:-.01em;list-style:none;display:flex;justify-content:space-between;gap:16px;}
+.h-main summary::-webkit-details-marker{display:none;}
+.h-main summary::after{content:'+';color:var(--blue);font-size:20px;line-height:1;}
+.h-main details[open] summary::after{content:'–';}
+.h-main summary:focus-visible{outline:2px solid var(--blue);outline-offset:4px;border-radius:4px;}
+.h-main details p{font-size:15px;color:var(--slate);line-height:1.7;margin-top:10px;}
+.h-empty{display:none;text-align:center;color:var(--slate);padding:40px 0;}
+.h-contact{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:48px;}
+.h-card{border:1px solid var(--border);border-radius:14px;padding:22px;background:#F8FAFF;}
+.h-card h4{font-family:'Sora',sans-serif;font-size:16px;margin-bottom:6px;}
+.h-card p{font-size:14px;color:var(--slate);line-height:1.6;}
+.h-card a{color:var(--blue);font-weight:600;text-decoration:none;}
+mark{background:#FFF1B8;color:inherit;border-radius:3px;}
+@media(max-width:960px){.nav{padding:0 20px;}.nav-links{display:none;}.footer-row{flex-direction:column;}.footer-cols{flex-wrap:wrap;gap:28px;}.footer-bottom{flex-direction:column;gap:10px;text-align:center;}}
+@media(max-width:620px){.nav-signin,.nav-cta{padding:7px 11px;font-size:13px;white-space:nowrap;}.nav-name em{display:none;}.h-hero h1{font-size:30px;}.h-contact{grid-template-columns:1fr;}.nav-right .nav-cta:last-child{display:none;}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="index.html">
+    <div class="nav-mark">
+      <svg width="36" height="38" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="#374269" opacity="0.2"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg>
+    </div>
+    <span class="nav-name"><span>Lot<b style="color:#2859a8;font-weight:inherit;">HQ</b></span><em>Parking</em></span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="index.html#for-who">Solutions</a>
+    <a class="nav-link" href="index.html#modes">Parking Types</a>
+    <a class="nav-link" href="index.html#features">Features</a>
+    <a class="nav-link" href="index.html#how">How It Works</a>
+    <a class="nav-link" href="index.html#faq">FAQ</a>
+    <a class="nav-link" href="help.html" style="color:var(--blue);">Help</a>
+    <a class="nav-link" href="get-started.html">Contact</a>
+  </div>
+  <div class="nav-right">
+    <a class="nav-signin" href="portals.html" title="Property managers and enforcement">Business Login</a>
+    <a class="nav-cta" href="login.html" style="margin-right:4px;">LotHQ Login</a>
+    <a class="nav-cta" href="get-started.html">Talk to Our Team</a>
+  </div>
+</nav>
+
+<header class="h-hero">
+  <h1>How can we help?</h1>
+  <p>Answers for residents, visitors, property managers and enforcement.</p>
+  <div class="h-search">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#718096" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="h-q" type="search" placeholder="Search, e.g. new car, guest pass, refund" aria-label="Search help">
+  </div>
+  <div class="h-tabs"><button class="h-tab" data-aud="residents" onclick="pick('residents')">Residents</button><button class="h-tab" data-aud="units" onclick="pick('units')">Unit tenants</button><button class="h-tab" data-aud="pay" onclick="pick('pay')">Pay to Park</button><button class="h-tab" data-aud="managers" onclick="pick('managers')">Managers</button><button class="h-tab" data-aud="enforcement" onclick="pick('enforcement')">Enforcement</button></div>
+</header>
+
+<main class="h-main">
+<section class="h-aud" id="residents" data-aud="residents"><h2>Residents</h2><p class="h-intro">For residents with their own LotHQ login (email and password). If your parking is set up by unit with a unit password, see Unit tenants.</p><div class="h-sec"><h3>Getting started</h3><details><summary><span>Do I need to download an app?</span></summary><p>No. LotHQ works in your phone’s web browser. Sign in at lothq.com/login with your email and password.</p></details><details><summary><span>I didn’t get my welcome email.</span></summary><p>Check your spam or junk folder for an email from LotHQ. Still nothing? Ask your property manager to confirm the email address they have for you.</p></details><details><summary><span>I forgot my password.</span></summary><p>Use “Forgot password” on the sign-in page. A reset link is emailed to you.</p></details></div><div class="h-sec"><h3>Vehicles and permits</h3><details><summary><span>Do I need a sticker or hang tag?</span></summary><p>No. Your permit is tied to your license plate. The enforcement company checks the plate itself.</p></details><details><summary><span>How do I add or change a vehicle?</span></summary><p>Sign in, open My Vehicles, tap + Add Vehicle and add the plate, make, model and color. Double-check the plate; it’s what enforcement looks up.</p></details><details><summary><span>I got a new car. What do I do?</span></summary><p>Add the new car and remove the old one before you park. The change is live for enforcement right away.</p></details><details><summary><span>Why do I have to check a box agreeing to Parking Terms?</span></summary><p>Your property’s parking rules apply to every car you add. The checkbox records that you saw them.</p></details></div><div class="h-sec"><h3>Billing</h3><details><summary><span>How do I pay for a paid spot?</span></summary><p>Paid spots are billed by card through Stripe, monthly, quarterly or yearly, as your property sets it up. Free spots need no payment.</p></details><details><summary><span>How do I update my card or see receipts?</span></summary><p>Open Subscription, then Manage Billing. Stripe’s secure billing page opens, where you can change your card and see past payments.</p></details><details><summary><span>My payment failed. Will I lose my spot?</span></summary><p>You’ll get an email to update your card. If billing stays unpaid, the permit can be suspended. Update your card in Manage Billing as soon as you can.</p></details><details><summary><span>How do I cancel a paid spot?</span></summary><p>Contact your property manager. Cancelling a paid spot means that car is no longer covered.</p></details></div><div class="h-sec"><h3>Guests and towing</h3><details><summary><span>How do my guests park?</span></summary><p>If your property offers guest passes, they’re sent from your unit’s portal (see Unit tenants). Your property sets how long a pass lasts and how many you get. Not sure? Ask your property manager.</p></details><details><summary><span>My car was towed or ticketed. Who do I contact?</span></summary><p>Contact your property manager first. LotHQ keeps a record of plate checks and actions, so they can see what happened.</p></details><details><summary><span>Who can see my information?</span></summary><p>Your property’s managers and, for plate checks only, the enforcement company assigned to your property. Card details stay with Stripe; LotHQ never stores them.</p></details></div></section><section class="h-aud" id="units" data-aud="units"><h2>Unit tenants</h2><p class="h-intro">For tenants whose parking is set up by unit. One login per unit, shared by everyone in it.</p><div class="h-sec"><h3>Signing up and signing in</h3><details><summary><span>How do I sign up?</span></summary><p>Your property manager emails an invite for your unit. Open it, follow the sign-up link, choose any paid spots you want and finish. A welcome email follows with your unit password.</p></details><details><summary><span>My invite expired or I can’t find it.</span></summary><p>Ask your property manager to send it again. They can resend it anytime before you sign up.</p></details><details><summary><span>How do I sign in?</span></summary><p>Go to lothq.com/login, find your property, then enter your unit number and the unit password.</p></details><details><summary><span>I forgot the unit password.</span></summary><p>Use “Forgot password” on the unit sign-in screen. A reset is sent to the email on file for your unit.</p></details></div><div class="h-sec"><h3>Spots and vehicles</h3><details><summary><span>How do I put a car in a spot?</span></summary><p>Open your unit, choose the spot and add the car’s plate, make, model and color. You’ll check a box agreeing to the Parking Terms.</p></details><details><summary><span>I got a new car or a roommate’s car changed.</span></summary><p>Swap the car on that spot. The old plate stops being valid and the new one starts right away.</p></details><details><summary><span>I can’t change a spot.</span></summary><p>Your manager may have locked it. Ask them to make the change.</p></details><details><summary><span>How do I add an extra paid spot?</span></summary><p>Use the add-a-spot option in your unit portal, or the payment link your manager emails you. It’s billed monthly by card.</p></details><details><summary><span>How do I update my card or cancel a paid spot?</span></summary><p>Open Account, then Manage Billing, to update your card. To cancel a paid spot, contact your property manager.</p></details></div><div class="h-sec"><h3>Guest passes</h3><details><summary><span>How do I give a guest a pass?</span></summary><p>If your property offers guest passes, open Guest Passes in your unit portal, choose the pass type and send it. Your guest gets a code to activate with their plate.</p></details><details><summary><span>How long does a pass last, and how many do I get?</span></summary><p>Your property sets both. Your portal shows how many you have left.</p></details><details><summary><span>Does a pass end on its own?</span></summary><p>Yes. It ends at the time shown. Guests who get their pass by email are reminded about an hour before it ends.</p></details></div><div class="h-sec"><h3>Moving out</h3><details><summary><span>What happens when we move out?</span></summary><p>Your manager closes out the unit. Card billing for the unit stops, your cars are removed from the permit list and the next tenant gets a new invite.</p></details></div></section><section class="h-aud" id="pay" data-aud="pay"><h2>Pay to Park</h2><p class="h-intro">For visitors paying to park at a LotHQ sign. No account or app needed.</p><div class="h-sec"><h3>Paying</h3><details><summary><span>How do I pay?</span></summary><p>Scan the QR code on the sign, or go to lothq.com/park and type the lot code from the sign. Choose how long you’re staying, enter your plate and pay by card.</p></details><details><summary><span>Do I need to download an app or make an account?</span></summary><p>No. It all works in your phone’s web browser.</p></details><details><summary><span>What’s the stall number for?</span></summary><p>Some lots ask for the stall number printed on the sign. If the QR code is on your stall’s sticker, it’s filled in for you.</p></details><details><summary><span>Why do I check a box before paying?</span></summary><p>It confirms you agree to the property’s Parking Terms, the rules for parking there.</p></details></div><div class="h-sec"><h3>After you pay</h3><details><summary><span>Do I get a receipt?</span></summary><p>Yes. Enter your email when you pay and a receipt is sent. The confirmation screen also shows your plate and when your time ends.</p></details><details><summary><span>When does my time start?</span></summary><p>When your payment goes through, not when you open the page.</p></details><details><summary><span>Do I need to put anything on my dashboard?</span></summary><p>No. Your parking is tied to your plate, and enforcement checks the plate.</p></details><details><summary><span>Can I add more time?</span></summary><p>Start a new payment for the extra time before your current time ends.</p></details></div><div class="h-sec"><h3>Problems</h3><details><summary><span>I typed my plate wrong.</span></summary><p>Contact the property manager right away with the correct plate and your receipt. If a plate is close to a paid one, the officer sees a possible match before taking action.</p></details><details><summary><span>My payment went through twice, or I want a refund.</span></summary><p>Contact the property manager with your emailed receipt. They handle refunds for their lot.</p></details><details><summary><span>The page says payments are paused.</span></summary><p>The property is finishing its payment setup. Park somewhere else or contact the property manager.</p></details><details><summary><span>My car was towed or ticketed.</span></summary><p>Contact the property manager or the towing company named on the sign, and have your receipt ready.</p></details></div></section><section class="h-aud" id="managers" data-aud="managers"><h2>Managers</h2><p class="h-intro">For property managers and their staff.</p><div class="h-sec"><h3>Getting set up</h3><details><summary><span>How do I get a manager account?</span></summary><p>Request access at lothq.com. LotHQ approves it and emails you. Setup is free for standard properties.</p></details><details><summary><span>What do I need to send LotHQ?</span></summary><p>A unit list in our spreadsheet template, usually from a rent roll export in Yardi, Entrata or similar. We need unit numbers, spot counts and tenant names and emails, never financial data.</p></details><details><summary><span>Does LotHQ connect to Yardi or Entrata?</span></summary><p>Not yet. Connections are on our roadmap; tell us which software you use.</p></details><details><summary><span>Can I manage several properties?</span></summary><p>Yes. All your properties are in one login, each with its own settings.</p></details></div><div class="h-sec"><h3>Units and tenants</h3><details><summary><span>How do tenants get access?</span></summary><p>You send an invite from the Units tab. Each unit gets one invite; you can resend it anytime before they sign up.</p></details><details><summary><span>Can I stop tenants from changing a car?</span></summary><p>Yes. Lock the spot so only you can change it.</p></details><details><summary><span>What happens when a tenant moves out?</span></summary><p>Use Move Out on the unit. Card billing stops, their cars come off the permit list, their history is saved and a fresh invite is ready for the next tenant.</p></details><details><summary><span>Some spots are included in rent. Can I mark them paid?</span></summary><p>Yes, if LotHQ has turned on “paid outside the app” for your property. Ask us.</p></details></div><div class="h-sec"><h3>Payments and payouts</h3><details><summary><span>Where does parking money go?</span></summary><p>To whoever you choose for each property: the HOA, the management company or the owner. Set it up in the property’s Payouts tab through Stripe’s secure page. LotHQ never sees bank details.</p></details><details><summary><span>When do deposits arrive?</span></summary><p>On Stripe’s normal schedule, usually 2 business days after a payment.</p></details><details><summary><span>Why are payments paused at a property?</span></summary><p>Payout setup was started but isn’t finished. Open Payouts and click Continue setup with Stripe.</p></details><details><summary><span>How does LotHQ charge us?</span></summary><p>As written in your agreement: a subscription, a fee per payment, or both. Plans are month-to-month; cancel with 30 days’ notice.</p></details><details><summary><span>Who handles refunds?</span></summary><p>You do, from your Stripe Dashboard. Payments are made in your payout account.</p></details></div><div class="h-sec"><h3>Rules and enforcement</h3><details><summary><span>Can we keep our towing company?</span></summary><p>Yes. LotHQ sets them up and assigns them to your properties. They only see the properties you assign.</p></details><details><summary><span>What if a plate is typed wrong?</span></summary><p>The officer sees a possible match and decides. You’re asked to fix the plate.</p></details><details><summary><span>Where are the parking rules?</span></summary><p>In the Parking Terms everyone agrees to when they add a plate. LotHQ fills in your owner, management company and property rules.</p></details><details><summary><span>Can I see who changed what?</span></summary><p>Yes. Every change is logged with who made it and when.</p></details></div></section><section class="h-aud" id="enforcement" data-aud="enforcement"><h2>Enforcement</h2><p class="h-intro">For towing and enforcement officers.</p><div class="h-sec"><h3>Getting in</h3><details><summary><span>How do I get an account?</span></summary><p>Your company is set up by LotHQ and assigned to the properties you patrol. You’ll get a sign-in email.</p></details><details><summary><span>Which properties can I check?</span></summary><p>Only the ones assigned to your company. Ask the property manager or LotHQ if one is missing.</p></details><details><summary><span>Do I need an app?</span></summary><p>No. Sign in at lothq.com on your phone’s web browser: Business Login, then Enforcement.</p></details></div><div class="h-sec"><h3>Checking plates</h3><details><summary><span>How do I check a car?</span></summary><p>Pick the property, type the plate and check. LotHQ looks at resident permits, unit spots, guest passes and Pay to Park at once.</p></details><details><summary><span>What do the results mean?</span></summary><p>Green (valid permit, guest pass or paid session): the car is allowed. Amber (possible match): a plate is close to a valid one, likely a typo; compare the car before acting. Red (no valid permit): nothing covers this plate; act per the property’s rules.</p></details><details><summary><span>Does the car need a sticker or hang tag?</span></summary><p>No. Permits are tied to the plate.</p></details></div><div class="h-sec"><h3>Taking action</h3><details><summary><span>How do I log a tow, boot or ticket?</span></summary><p>After a no-permit result, choose the action, add a note and a photo if you can, and save. Only the actions the property allows show up.</p></details><details><summary><span>Who sees what I log?</span></summary><p>The property’s managers see every action, with time, plate and your name.</p></details><details><summary><span>A resident says they paid or just changed cars.</span></summary><p>Check the plate again; changes are live right away. If it’s still not covered, follow the property’s rules and note what they told you.</p></details></div></section>
+<p class="h-empty" id="h-empty">No answers match that. Try fewer words, or contact us below.</p>
+<div class="h-contact">
+  <div class="h-card"><h4>Residents and visitors</h4><p>Questions about your spot, a permit, a tow or a refund? Contact your property manager. They can see your account and fix it fastest.</p></div>
+  <div class="h-card"><h4>Managers and enforcement</h4><p>Email <a href="mailto:support@lothq.com">support@lothq.com</a>. We answer on business days.</p></div>
+</div>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-row">
+      <div>
+        <div class="footer-brand-name">
+          <div class="nav-mark" style="width:28px;height:30px;">
+            <svg width="28" height="30" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="#374269" opacity="0.2"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg>
+          </div>
+          LotHQ
+        </div>
+        <p class="footer-brand-desc">Digital parking permit management for property managers, residents, and enforcement teams.</p>
+      </div>
+      <div class="footer-cols">
+        <div>
+          <div class="footer-col-title">Portals</div>
+          <ul class="footer-links">
+            <li><a href="manager.html">Property Manager</a></li>
+            <li><a href="login.html">LotHQ Login</a></li>
+            <li><a href="enforcer.html">Enforcement</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Company</div>
+          <ul class="footer-links">
+            <li><a href="get-started.html">Get Started</a></li>
+            <li><a href="get-started.html">Contact Sales</a></li>
+            <li><a href="help.html">Help Center</a></li>
+            <li><a href="mailto:support@lothq.com">Support</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Legal</div>
+          <ul class="footer-links">
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Use</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 LotHQ. All rights reserved.</span>
+      <span>Payments secured by Stripe · Built in Utah</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+const auds=[...document.querySelectorAll('.h-aud')];
+const tabs=[...document.querySelectorAll('.h-tab')];
+const qs=[...document.querySelectorAll('.h-main details')];
+qs.forEach(d=>{d.dataset.q=d.querySelector('summary span').textContent;d.dataset.a=d.querySelector('p').textContent;});
+let current='';
+function pick(k){
+  current=(current===k)?'':k;
+  tabs.forEach(t=>t.classList.toggle('on',t.dataset.aud===current));
+  if(current) history.replaceState(null,'','#'+current); else history.replaceState(null,'',location.pathname);
+  filter();
+  if(current) document.getElementById(current).scrollIntoView({behavior:'smooth',block:'start'});
+}
+const escR=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const escH=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function hl(text,term){if(!term) return escH(text);const re=new RegExp('('+escR(term)+')','ig');return escH(text).replace(re,'<mark>$1</mark>');}
+function filter(){
+  const term=document.getElementById('h-q').value.trim();
+  const t=term.toLowerCase();let shown=0;
+  auds.forEach(a=>{
+    const audOk=!current||a.dataset.aud===current;let any=false;
+    a.querySelectorAll('.h-sec').forEach(sec=>{
+      let secAny=false;
+      sec.querySelectorAll('details').forEach(d=>{
+        const ok=audOk&&(!t||(d.dataset.q+' '+d.dataset.a).toLowerCase().includes(t));
+        d.style.display=ok?'':'none';
+        d.querySelector('summary span').innerHTML=hl(d.dataset.q,term);
+        d.querySelector('p').innerHTML=hl(d.dataset.a,term);
+        if(ok&&t) d.open=true; if(!t&&ok&&!d.dataset.user) d.open=false;
+        if(ok){secAny=true;shown++;}
+      });
+      sec.style.display=secAny?'':'none';any=any||secAny;
+    });
+    a.style.display=any?'':'none';
+  });
+  document.getElementById('h-empty').style.display=shown?'none':'block';
+}
+qs.forEach(d=>d.addEventListener('toggle',()=>{if(!document.getElementById('h-q').value) d.dataset.user=d.open?'1':'';}));
+document.getElementById('h-q').addEventListener('input',filter);
+const start=location.hash.replace('#','');
+if(auds.some(a=>a.id===start)){current=start;tabs.forEach(t=>t.classList.toggle('on',t.dataset.aud===current));filter();}
+</script>
+
+</body>
+</html>
