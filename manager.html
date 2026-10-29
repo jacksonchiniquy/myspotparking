@@ -171,6 +171,22 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
 </style>
 </head>
 <body>
+<div id="pw-gate" style="display:none;position:fixed;inset:0;z-index:5000;background:#f4f7fc;overflow:auto;">
+  <div style="max-width:420px;margin:70px auto;padding:0 16px;">
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:28px 24px;box-shadow:0 4px 24px rgba(11,18,32,.07);">
+      <div style="font-size:22px;font-weight:800;letter-spacing:-.03em;margin-bottom:6px;">Choose your password</div>
+      <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:18px;" id="pw-sub">Before you get started, pick a password only you know.</div>
+      <label class="form-label">New password</label>
+      <input class="form-input" id="pw-new" type="password" autocomplete="new-password" placeholder="At least 8 characters" style="margin-bottom:12px;">
+      <label class="form-label">Type it again</label>
+      <input class="form-input" id="pw-new2" type="password" autocomplete="new-password" onkeydown="if(event.key==='Enter')savePwGate()">
+      <div class="err-msg" id="pw-err" style="margin-top:12px;"></div>
+      <button class="btn btn-primary" id="pw-btn" style="width:100%;justify-content:center;margin-top:16px;" onclick="savePwGate()">Save and continue →</button>
+      <div style="text-align:center;margin-top:12px;"><a href="#" onclick="document.getElementById('pw-gate').style.display='none';signOut();return false;" style="font-size:12.5px;color:var(--text3);">Sign out</a></div>
+    </div>
+  </div>
+</div>
+
 
 <div id="gate">
   <div style="max-width:440px;width:90%;padding:20px;">
@@ -276,6 +292,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
           <div class="tn-dd-item" onclick="showPage('permits',document.getElementById('tab-pmt'));setIT('violations');closeAllDD()"><div class="tn-dd-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="tn-dd-label">Violations</div><div class="tn-dd-sub">Enforcement reports</div></div></div>
         </div>
       </button>
+      <button class="tn-tab" id="tab-team" style="display:none;" onclick="showPage('team',this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg> Team</button>
     </div>
     <div class="tn-right">
       <span class="tn-badge">Manager</span>
@@ -336,6 +353,12 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
   <div id="page-properties" class="page">
     <div class="page-head"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;"><div><div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:3px;">Properties</div><div style="font-size:13px;color:var(--text2);">Manage all parking locations</div></div><button class="btn btn-primary" onclick="openModal('modal-add-property')">+ Add Property</button></div></div>
     <div class="content"><div class="prop-grid" id="prop-grid"><div class="loading">Loading properties...</div></div></div>
+  </div>
+
+  <!-- TEAM (owners: everyone on their properties, by person) -->
+  <div id="page-team" class="page">
+    <div class="page-head"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:24px;"><div><div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:3px;">Your team</div><div style="font-size:13px;color:var(--text2);">Everyone who can work on your properties. Click a person to change their properties or role.</div></div><button class="btn btn-primary" onclick="openTeamInvite()">+ Add person</button></div></div>
+    <div class="content"><div id="tp-body"><div class="loading">Loading…</div></div></div>
   </div>
 
   <!-- RESIDENTS -->
@@ -1451,10 +1474,12 @@ const SUPABASE_URL='https://ajadbfojccztiauxyxos.supabase.co';
 const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYWRiZm9qY2N6dGlhdXh5eG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTU1NDcsImV4cCI6MjA5MjM3MTU0N30.dHMc-kGb0YFHnTfxnwGYfikmKZBLPzS5lfe6SyRsguU';
 // Each portal keeps its own sign-in, so being signed in to one portal never
 // carries over to another tab (e.g. admin and manager open side by side).
+let pwRecovery=/type=recovery/.test(location.hash); // arrived from a "set / reset your password" email
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON,{
   auth:{storageKey:'msp-auth-manager'},
   global:{headers:{'x-msp-portal':'manager'}},
 });
+sb.auth.onAuthStateChange(ev=>{if(ev==='PASSWORD_RECOVERY'){pwRecovery=true;if(currentUser) showPwGate();}});
 
 let currentUser=null;
 let allPermits=[];
@@ -1560,8 +1585,33 @@ async function checkExistingSession(){
   }
 }
 
+function showPwGate(){
+  const g=document.getElementById('pw-gate');
+  document.getElementById('pw-sub').textContent=pwRecovery&&!currentUser?.must_change_password?'Choose a new password for your LotHQ login.':'Before you get started, pick a password only you know.';
+  g.style.display='block';setTimeout(()=>document.getElementById('pw-new').focus(),50);
+}
+async function savePwGate(){
+  const a=document.getElementById('pw-new').value,b=document.getElementById('pw-new2').value;
+  const err=document.getElementById('pw-err'),btn=document.getElementById('pw-btn');
+  const show=m=>{err.textContent=m;err.classList.add('show');};
+  err.classList.remove('show');
+  if(a.length<8) return show('Use at least 8 characters.');
+  if(a!==b) return show('The two passwords don\'t match.');
+  btn.disabled=true;btn.textContent='Saving…';
+  const r=await teamApi({action:'changePassword',password:a});
+  btn.disabled=false;btn.textContent='Save and continue →';
+  if(r.error) return show(r.error);
+  // Changing the password can end the old session; sign back in with the new one
+  if(currentUser?.email) await sb.auth.signInWithPassword({email:currentUser.email,password:a}).catch(()=>{});
+  pwRecovery=false;if(currentUser) currentUser.must_change_password=false;
+  if(/type=recovery/.test(location.hash)) history.replaceState(null,'',location.pathname);
+  document.getElementById('pw-gate').style.display='none';
+  toast('✅ Password saved');
+}
+
 function enterApp(profile){
   currentUser=profile;
+  if(profile.must_change_password||pwRecovery) showPwGate();
   document.getElementById('gate').style.display='none';
   document.getElementById('app').style.display='block';
   const initials=(profile.full_name||'?').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
@@ -1618,6 +1668,110 @@ function poStatusOf(a){
   if(a.details_submitted&&a.charges_enabled) return a.needs_info?'ready_needs_info':'ready';
   return a.details_submitted?'needs_info':'started';
 }
+// ── Team page (top bar; Owners) ──
+const ownsAny=()=>Object.values(myRoles).includes('owner');
+let _tp=null,_tpPerson=null;
+async function loadTeamPage(){
+  const el=document.getElementById('tp-body');
+  if(!_tp) el.innerHTML='<div class="loading">Loading team…</div>';
+  const r=await teamApi({action:'myTeam'});
+  if(r.error){el.innerHTML=`<div class="po-card"><div class="po-sub" style="margin:0;">${escHtml(r.error)}</div></div>`;return;}
+  _tp=r;renderTeamPage();
+  if(_tpPerson){const p=r.people.find(x=>x.key===_tpPerson);if(p) renderTeamPerson(p);else{closeModal('modal-team-person');_tpPerson=null;}}
+}
+function tpRoleSummary(p){
+  return [...new Set(p.properties.map(x=>x.main?'Owner / Admin (main)':ROLE_NAMES[x.role]))].join(', ');
+}
+function renderTeamPage(){
+  const r=_tp,el=document.getElementById('tp-body');
+  if(!r.people.length){el.innerHTML=`<div class="po-card"><h3>No one else yet</h3><div class="po-sub" style="margin:0;">Click <b>+ Add person</b> to invite office staff, a leasing agent or a board member to one or more of your ${r.properties.length} propert${r.properties.length===1?'y':'ies'}.</div></div>`;return;}
+  el.innerHTML=`<div class="po-card" style="padding:6px 22px;">${r.people.map(p=>{
+    const n=p.properties.length,inv=p.status!=='active';
+    return `<div class="tm-row" style="cursor:pointer;" onclick="openTeamPerson('${escHtml(p.key)}')">
+      <div class="tm-who"><span class="tm-av" style="${inv?'background:#94a3b8;':''}">${escHtml(tmInitials(p.name,p.email))}</span><div>${escHtml(p.name||p.email)}<small>${p.name?escHtml(p.email)+' · ':''}${escHtml(tpRoleSummary(p))}</small></div></div>
+      <div style="font-size:13px;color:var(--text2);min-width:110px;">${n} propert${n===1?'y':'ies'}</div>
+      ${inv?`<span class="tm-status" style="background:#fef3c7;color:#92400e;">Invited</span>`:`<span class="tm-status" style="background:#dcfce7;color:#166534;">Active</span>`}
+      <span style="color:var(--text3);font-size:18px;">›</span></div>`;}).join('')}</div>`;
+}
+function openTeamPerson(key){
+  const p=_tp.people.find(x=>x.key===key);if(!p) return;
+  _tpPerson=key;renderTeamPerson(p);openModal('modal-team-person');
+}
+function renderTeamPerson(p){
+  const roleOpts=sel=>Object.entries(ROLE_NAMES).map(([k,v])=>`<option value="${k}" ${k===sel?'selected':''}>${v}</option>`).join('');
+  const onIds=p.properties.map(x=>x.propertyId);
+  const free=_tp.properties.filter(x=>!onIds.includes(x.id));
+  const active=p.status==='active'&&p.userId;
+  document.getElementById('tpm-title').textContent=p.name||p.email;
+  document.getElementById('tpm-sub').textContent=p.name?p.email:'';
+  document.getElementById('tpm-body').innerHTML=`
+    <div class="form-label" style="margin-top:4px;">Properties</div>
+    ${p.properties.map(x=>x.main
+      ?`<div class="tm-row"><div class="tm-who" style="min-width:160px;">${escHtml(x.name)}</div><div style="font-size:13px;font-weight:600;">Owner / Admin <span style="color:var(--text2);font-weight:500;">· main</span></div><div style="width:34px;"></div></div>`
+      :`<div class="tm-row"><div class="tm-who" style="min-width:160px;">${escHtml(x.name)}${x.status==='invited'?` <span class="tm-status" style="margin-left:8px;background:#fef3c7;color:#92400e;">${x.expired?'Invite expired':'Invited'}</span>`:''}</div>
+        <select class="form-input" style="padding:7px 10px;font-size:13px;width:auto;" onchange="tpDo({action:'setRole',propertyId:'${x.propertyId}',memberId:'${x.memberId}',role:this.value},'✅ Role updated')">${roleOpts(x.role)}</select>
+        <button class="btn btn-ghost btn-sm" title="Remove from this property" onclick="tpRemoveOne('${x.propertyId}','${x.memberId}')">✕</button></div>`).join('')}
+    ${free.length?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px;">
+      <select class="form-input" id="tpm-prop" style="flex:1;min-width:180px;"><option value="">Add a property…</option>${free.map(x=>`<option value="${x.id}">${escHtml(x.name)}</option>`).join('')}</select>
+      <select class="form-input" id="tpm-role" style="width:auto;">${roleOpts('manager')}</select>
+      <button class="btn btn-primary btn-sm" onclick="tpAddOne()">+ Add</button></div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px;">${active?'They get access right away and an email letting them know.':'They\'ll get an email to accept, like their first invite.'}</div>`:''}
+    ${p.properties.some(x=>!x.main)?`<div style="margin-top:20px;"><button class="btn btn-ghost btn-sm" style="color:#b91c1c;" onclick="tpRemoveAll()">Remove from all my properties</button></div>`:''}`;
+}
+async function tpDo(payload,msg){
+  const r=await teamApi(payload);
+  if(r.error) toast(r.error);else if(msg) toast(msg);
+  await loadTeamPage();
+  return r;
+}
+async function tpAddOne(){
+  const p=_tp.people.find(x=>x.key===_tpPerson);
+  const pid=document.getElementById('tpm-prop').value,role=document.getElementById('tpm-role').value;
+  if(!pid){toast('Pick a property');return;}
+  const direct=p.status==='active'&&p.userId;
+  const r=direct
+    ?await tpDo({action:'addDirect',userId:p.userId,propertyId:pid,role})
+    :await tpDo({action:'inviteMany',email:p.email,role,propertyIds:[pid]});
+  if(!r.error) toast(direct||r.direct?'✅ Added':'✅ Invite sent');
+}
+async function tpRemoveOne(pid,memberId){
+  const p=_tp.people.find(x=>x.key===_tpPerson);
+  const name=(p.properties.find(x=>x.memberId===memberId)||{}).name||'this property';
+  if(!confirm(`Remove ${p.name||p.email} from ${name}? They lose access to it right away.`)) return;
+  tpDo({action:'remove',propertyId:pid,memberId},'Removed');
+}
+async function tpRemoveAll(){
+  const p=_tp.people.find(x=>x.key===_tpPerson);
+  if(!confirm(`Remove ${p.name||p.email} from all of your properties? They lose access right away.`)) return;
+  const r=await teamApi({action:'removeEverywhere',email:p.email});
+  if(r.error){toast(r.error);return;}
+  closeModal('modal-team-person');_tpPerson=null;toast('Removed');loadTeamPage();
+}
+function openTeamInvite(){
+  const props=(_tp&&_tp.properties)||allProperties.filter(p=>myRoles[p.id]==='owner').map(p=>({id:p.id,name:p.name}));
+  document.getElementById('ti-email').value='';
+  document.getElementById('ti-err').classList.remove('show');
+  document.getElementById('ti-props').innerHTML=props.map(p=>`<label style="display:flex;gap:8px;align-items:center;font-size:13.5px;padding:5px 0;"><input type="checkbox" value="${p.id}" ${props.length===1?'checked':''}> ${escHtml(p.name)}</label>`).join('');
+  openModal('modal-team-invite');
+}
+function tiAll(on){document.querySelectorAll('#ti-props input').forEach(c=>c.checked=on);}
+async function sendTeamInvite(){
+  const email=document.getElementById('ti-email').value.trim(),role=document.getElementById('ti-role').value;
+  const ids=[...document.querySelectorAll('#ti-props input:checked')].map(c=>c.value);
+  const err=document.getElementById('ti-err'),btn=document.getElementById('ti-btn');
+  const show=m=>{err.textContent=m;err.classList.add('show');};
+  err.classList.remove('show');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return show('Enter a valid email address.');
+  if(!ids.length) return show('Pick at least one property.');
+  btn.disabled=true;btn.textContent='Sending…';
+  const r=await teamApi({action:'inviteMany',email,role,propertyIds:ids});
+  btn.disabled=false;btn.textContent='Send invite';
+  if(r.error) return show(r.error);
+  closeModal('modal-team-invite');
+  toast(r.direct?`✅ Added to ${r.count} propert${r.count===1?'y':'ies'}`:'✅ Invite sent to '+email);
+  loadTeamPage();
+}
+
 // ── Team access ──
 const TM_DOES={owner:'Everything, including payouts and the team',manager:'Everything except payouts and the team',leasing:'Units, tenant invites, vehicles and guest passes',viewer:'Sees everything, changes nothing'};
 function applyRoleUI(){
@@ -1844,6 +1998,7 @@ function restoreFromHash(){
   if(!hash||hash==='dashboard') return;
 
   if(hash==='properties'){showPage('properties',document.getElementById('tab-prop'));return;}
+  if(hash==='team'&&ownsAny()){showPage('team',document.getElementById('tab-team'));return;}
   if(hash==='permits'){showPage('permits',document.getElementById('tab-perm'));return;}
   if(hash==='violations'){showPage('violations',document.getElementById('tab-viol'));return;}
 
@@ -1880,6 +2035,7 @@ async function loadProperties(){
     if(ids.length){const {data}=await sb.from('properties').select('*').in('id',ids);shared=data||[];}
   }
   allProperties=[...(own||[]),...shared].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
+  const tt=document.getElementById('tab-team');if(tt) tt.style.display=ownsAny()?'':'none';
   populateSelects();
   renderPropGrid();
   document.getElementById('s-props').textContent=allProperties.length;
@@ -3456,7 +3612,7 @@ async function printStickers(){
     .page img{width:3in;height:3in;display:block;box-sizing:border-box;border:1px dashed #b8c0cf}
     @media print{.tip{display:none}.page{padding-top:0}}
   </style></head><body><div class="tip"><strong>${list.length} sticker${list.length===1?'':'s'} · ${pages.length} page${pages.length===1?'':'s'}</strong> for ${escHtml(p.name||'')}.<br>In the print window set <strong>Scale: 100%</strong> (not "fit to page"). Dashed lines are cut lines.</div>${pages.join('')}
-  <script>window.onload=()=>setTimeout(()=>window.print(),400);<\/script></body></html>`);
+  <script>window.onload=()=>setTimeout(()=>window.print(),400);<\/script></bo${''}dy></html>`);
   w.document.close();
   logAct('property.stickers_printed','Printed '+list.length+' Pay to Park sticker'+(list.length===1?'':'s')+(list[0]?' (stalls '+list[0]+'–'+list[list.length-1]+')':''),{property_id:currentPropertyId,target:p.name||null});
 }
@@ -5080,7 +5236,7 @@ function exportPropertyViolations(){
   a.download=name+'-violations.csv';a.click();
   toast('📁 Violations exported');
 }
-const PAGES=['dashboard','properties','residents','permits','property-detail'];
+const PAGES=['dashboard','properties','residents','permits','property-detail','team'];
 function showPage(name,tabEl){
   PAGES.forEach(p=>{const el=document.getElementById('page-'+p);if(el)el.classList.remove('active');});
   document.getElementById('page-'+name)?.classList.add('active');
@@ -5095,6 +5251,7 @@ function showPage(name,tabEl){
   else if(name==='residents') history.replaceState(null,'','#residents');
   else if(name==='permits') history.replaceState(null,'','#permits');
   else if(name==='violations') history.replaceState(null,'','#violations');
+  else if(name==='team'){history.replaceState(null,'','#team');loadTeamPage();}
 }
 function toggleDD(ddId,btnId){
   const dd=document.getElementById(ddId),btn=document.getElementById(btnId);
@@ -6011,5 +6168,28 @@ checkExistingSession();
 </script>
 <script src="vehicle-picker.js"></script>
 <script>VehiclePicker.attach({year:'ip-year',make:'ip-make',model:'ip-model'});</script>
+<div class="modal-overlay" id="modal-team-person">
+  <div class="modal" style="width:620px;max-width:calc(100vw - 32px);">
+    <button class="modal-close" onclick="closeModal('modal-team-person');_tpPerson=null;">✕</button>
+    <div class="modal-title" id="tpm-title">Person</div>
+    <div class="modal-sub" id="tpm-sub"></div>
+    <div id="tpm-body"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-team-invite">
+  <div class="modal" style="width:540px;max-width:calc(100vw - 32px);">
+    <button class="modal-close" onclick="closeModal('modal-team-invite')">✕</button>
+    <div class="modal-title">Add a person</div>
+    <div class="modal-sub">They'll get one email to accept. Someone already on your team is added right away.</div>
+    <label class="form-label">Email</label>
+    <input class="form-input" id="ti-email" type="email" placeholder="name@company.com" style="margin-bottom:12px;">
+    <label class="form-label">Role</label>
+    <select class="form-input" id="ti-role" style="margin-bottom:12px;"><option value="owner">Owner / Admin: everything, incl. payouts and team</option><option value="manager" selected>Manager: everything except payouts and team</option><option value="leasing">Leasing agent: units, tenant invites, vehicles, guest passes</option><option value="viewer">View only: sees everything, changes nothing</option></select>
+    <div style="display:flex;justify-content:space-between;align-items:center;"><label class="form-label" style="margin:0;">Properties</label><span style="font-size:12px;"><a href="#" onclick="tiAll(true);return false;">Select all</a> · <a href="#" onclick="tiAll(false);return false;">None</a></span></div>
+    <div id="ti-props" style="max-height:240px;overflow:auto;border:1px solid var(--border2,#e2e8f0);border-radius:10px;padding:6px 12px;margin:6px 0 4px;"></div>
+    <div class="err-msg" id="ti-err" style="margin-top:10px;"></div>
+    <button class="btn btn-primary" id="ti-btn" style="margin-top:14px;" onclick="sendTeamInvite()">Send invite</button>
+  </div>
+</div>
 </body>
 </html>

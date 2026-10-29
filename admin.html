@@ -310,7 +310,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
             <option value="">All portals</option><option value="admin">Admin</option><option value="manager">Managers</option><option value="enforcer">Enforcement</option><option value="holder">Residents</option><option value="unit">Unit portal</option><option value="system">System &amp; payments</option></select>
           <select class="select-input" id="act-prop" onchange="loadActivity()" style="width:auto;font-size:12px;padding:6px 10px;max-width:200px;"><option value="">All properties</option></select>
           <select class="select-input" id="act-type" onchange="loadActivity()" style="width:auto;font-size:12px;padding:6px 10px;">
-            <option value="">All actions</option><option value="noplate">All except plate checks</option><option value="changes">Data changes</option><option value="auth.">Sign-ins</option><option value="enforcement.">Plate checks &amp; enforcement</option><option value="billing">Payments &amp; billing</option><option value="unit.">Units &amp; tenants</option><option value="access.">Access requests</option><option value="team.">Team access</option><option value="lead.">Website leads</option></select>
+            <option value="">All actions</option><option value="noplate">All except plate checks</option><option value="changes">Data changes</option><option value="auth.">Sign-ins</option><option value="enforcement.">Plate checks &amp; enforcement</option><option value="billing">Payments &amp; billing</option><option value="unit.">Units &amp; tenants</option><option value="access.">Access requests</option><option value="team.">Team access &amp; logins</option><option value="lead.">Website leads</option></select>
           <button class="btn btn-ghost btn-sm" onclick="exportActivity()">Export CSV</button>
         </div>
         <div id="act-list"><div class="loading">Loading…</div></div>
@@ -503,6 +503,29 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div style="display:flex;gap:8px;"><button class="btn btn-primary" id="tp-save" onclick="savePropTerms()">Save</button><button class="btn btn-ghost" onclick="closeModal('modal-terms-prop')">Cancel</button></div>
   </div>
 </div>
+<div class="modal-overlay" id="modal-person">
+  <div class="modal" style="width:660px;">
+    <button class="modal-close" onclick="closeModal('modal-person')">✕</button>
+    <div class="modal-title">🏢 <span id="pr-name"></span></div>
+    <div class="modal-sub" id="pr-sub"></div>
+    <div class="err-msg" id="pr-err"></div>
+    <div class="form-label">Properties</div>
+    <div id="pr-list"><div class="loading">Loading…</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;">
+      <select class="form-input" id="pr-prop" style="flex:1;min-width:200px;"></select>
+      <select class="form-input" id="pr-role" style="width:auto;"><option value="owner">Owner / Admin</option><option value="manager" selected>Manager</option><option value="leasing">Leasing agent</option><option value="viewer">View only</option></select>
+      <button class="btn btn-primary" onclick="personAdd()">+ Add</button>
+    </div>
+    <div style="font-size:11.5px;color:var(--text3);margin-top:6px;">Adds them right away (no invite to accept) and emails them that they were added.</div>
+    <div class="form-label" style="margin-top:20px;">Login</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <input class="form-input" id="pr-pass" type="text" placeholder="New temporary password" style="flex:1;min-width:180px;">
+      <button class="btn btn-ghost" onclick="personPassword()">Set temporary password</button>
+      <button class="btn btn-ghost" onclick="personNotify()">✉ Notify</button>
+    </div>
+    <div style="font-size:11.5px;color:var(--text3);margin-top:6px;" id="pr-login-note">A temporary password makes them choose their own at the next sign-in. Notify emails them a link to choose their password.</div>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-access">
   <div class="modal" style="width:620px;">
     <button class="modal-close" onclick="closeModal('modal-access')">✕</button>
@@ -560,7 +583,9 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div class="form-group"><label class="form-label">Company / Property Name</label><input class="form-input" id="am-company" type="text" placeholder="Maple Gardens LLC"></div>
     <div class="form-group"><label class="form-label">Email *</label><input class="form-input" id="am-email" type="email" placeholder="manager@company.com"></div>
     <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="am-phone" type="tel" placeholder="+1 (555) 000-0000"></div>
-    <div class="form-group"><label class="form-label">Temporary Password *</label><input class="form-input" id="am-pass" type="text" value="WelcomeMSP2026!" placeholder="Temporary password"></div>
+    <div class="form-group"><label class="form-label">Temporary Password *</label><input class="form-input" id="am-pass" type="text" value="WelcomeLotHQ2026!" placeholder="Temporary password"></div>
+    <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:-4px 0 8px;"><input type="checkbox" id="am-notify" checked> Email them their login (Notify): a link to choose their password</label>
+    <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:0 0 16px;"><input type="checkbox" id="am-must" checked> Make them choose a new password at first sign-in</label>
     <div class="form-group">
       <label class="form-label">Plan Tier</label>
       <select class="select-input" id="am-plan">
@@ -881,7 +906,7 @@ async function loadManagers(){
   renderPlanPanel();
 }
 
-let outsidePaidCounts={},payoutAccounts={},payoutsMissing=false,teamCounts={},teamMissing=false;
+let outsidePaidCounts={},payoutAccounts={},payoutsMissing=false,teamCounts={},teamMissing=false,teamByUser={};
 async function loadProperties(){
   const {data}=await sb.from('properties').select('*').order('name',{ascending:true});
   allProperties=data||[];
@@ -896,8 +921,9 @@ async function loadProperties(){
   (po||[]).forEach(a=>payoutAccounts[a.id]=a);
   // Team members per property, for the Access column
   teamCounts={};
-  const {data:tm,error:tmErr}=await sb.from('property_team').select('property_id,status');
-  teamMissing=!!tmErr;
+  const {data:tm,error:tmErr}=await sb.from('property_team').select('property_id,status,user_id');
+  teamMissing=!!tmErr;teamByUser={};
+  (tm||[]).forEach(r=>{if(r.user_id&&r.status==='active') teamByUser[r.user_id]=(teamByUser[r.user_id]||0)+1;});
   (tm||[]).forEach(r=>{const c=teamCounts[r.property_id]||(teamCounts[r.property_id]={active:0,invited:0});c[r.status==='active'?'active':'invited']++;});
   document.getElementById('cnt-properties').textContent=allProperties.length;
   document.getElementById('s-properties').textContent=allProperties.length;
@@ -955,12 +981,12 @@ function renderDashboard(){
 
 function renderManagers(data){
   document.getElementById('tbl-managers').innerHTML=data.map(m=>{
-    const props=allProperties.filter(p=>p.manager_id===m.id).length;
+    const props=allProperties.filter(p=>p.manager_id===m.id).length+(teamByUser[m.id]||0);
     const permits=allPermits.filter(p=>allProperties.filter(x=>x.manager_id===m.id).map(x=>x.id).includes(p.property_id)&&p.status==='active').length;
     const plan=(allFeatureFlags[m.id]?.plan)||'starter';
     const planLabel={starter:'Starter',pro:'Pro',enterprise:'Enterprise'}[plan]||plan;
     return `<tr>
-      <td><div style="font-weight:600">${m.full_name||'—'}</div></td>
+      <td><a href="#" onclick="openPerson('${m.id}');return false;" style="font-weight:600;color:inherit;text-decoration:none;border-bottom:1px dashed var(--text3);">${m.full_name||'—'}</a></td>
       <td style="font-size:12px;color:var(--text2)">${m.email||'—'}</td>
       <td style="font-size:12px">${m.company||'—'}</td>
       <td><span class="pill pill-${plan}">${planLabel}</span></td>
@@ -968,6 +994,7 @@ function renderManagers(data){
       <td style="font-size:12px;text-align:center">${permits}</td>
       <td style="font-size:12px;color:var(--text3)">${m.created_at?new Date(m.created_at).toLocaleDateString():'—'}</td>
       <td><div class="tbl-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openPerson('${m.id}')">🏢 Properties</button>
         <button class="btn btn-ghost btn-sm" onclick="openFeatureModal('${m.id}')">💎 Plan</button>
         <button class="btn btn-ghost btn-sm" onclick="impersonate('${m.id}','manager')">View</button>
         <button class="btn btn-danger btn-sm" onclick="confirmDelete('user','${m.id}','${(m.full_name||m.email||'').replace(/'/g,'')}')">Delete</button>
@@ -1371,6 +1398,11 @@ async function addManager(){
     const flags={};
     FEATURES.forEach(f=>{flags[f.key]=f.alwaysOn||TIER_DEFAULTS[plan].includes(f.key);});
     await sb.from('manager_features').upsert({manager_id:data.user.id,plan,flags,updated_at:new Date().toISOString()},{onConflict:'manager_id'});
+    const notify=document.getElementById('am-notify').checked,mustChange=document.getElementById('am-must').checked;
+    if(notify||mustChange){
+      const r=await teamCall({action:'loginSettings',userId:data.user.id,notify,mustChange});
+      if(r.error) toast('Account created, but: '+r.error);
+    }
   }
   btn.disabled=false;btn.textContent='Create Manager Account →';
   closeModal('modal-add-manager');
@@ -1733,6 +1765,79 @@ async function adminApi(payload){
   }catch(e){res={ok:false};body={error:'Could not reach the server.'};}
   if(!res.ok) return Object.assign({error:body.error||'Something went wrong.'},body,{failed:true});
   return body;
+}
+
+
+// ── A manager's card: their properties and login (admin only) ──
+let _prId=null,_pr=null,_prBusy=false;
+async function openPerson(id){
+  _prId=id;_pr=null;
+  const m=allManagers.find(x=>x.id===id)||{};
+  document.getElementById('pr-name').textContent=m.full_name||m.email||'Manager';
+  document.getElementById('pr-sub').textContent=[m.email,m.company].filter(Boolean).join(' · ');
+  document.getElementById('pr-err').style.display='none';
+  document.getElementById('pr-pass').value='';
+  document.getElementById('pr-list').innerHTML='<div class="loading">Loading…</div>';
+  document.getElementById('pr-prop').innerHTML='';
+  openModal('modal-person');
+  const r=await teamCall({action:'person',userId:id});
+  if(id!==_prId) return;
+  if(r.error){personErr(r.error);document.getElementById('pr-list').innerHTML='';return;}
+  _pr=r;renderPerson();
+}
+function personErr(m){const e=document.getElementById('pr-err');e.textContent=m;e.style.display='block';}
+function renderPerson(){
+  const r=_pr,ago=d=>{if(!d)return 'never signed in';const s=(Date.now()-new Date(d))/1000;return 'last sign-in '+(s<3600?Math.max(1,Math.round(s/60))+' min':s<86400?Math.round(s/3600)+' hours':Math.round(s/86400)+' days')+' ago';};
+  document.getElementById('pr-name').textContent=r.name||r.email;
+  document.getElementById('pr-sub').textContent=[r.email,r.company,ago(r.lastSignIn),r.mustChange?'must choose a new password':''].filter(Boolean).join(' · ');
+  const opts=sel=>Object.entries(AC_ROLES).map(([k,v])=>`<option value="${k}" ${k===sel?'selected':''}>${v}</option>`).join('');
+  const row=(a,b,c)=>`<div style="display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);"><div style="flex:1;min-width:0;font-size:13px;">${a}</div><div style="width:150px;flex-shrink:0;">${b}</div><div style="display:flex;gap:6px;flex-shrink:0;justify-content:flex-end;width:170px;">${c}</div></div>`;
+  document.getElementById('pr-list').innerHTML=r.properties.length?r.properties.map(x=>x.main
+    ?row(`<b>${escA(x.name)}</b>`,'<span style="font-size:12.5px;">Owner / Admin <span style="color:var(--text3);">· main</span></span>','<span style="font-size:11px;color:var(--text3);">Main manager</span>')
+    :row(`<b>${escA(x.name)}</b>${x.status==='invited'?` <span class="pill" style="background:rgba(227,179,65,.15);color:#e3b341;">${x.expired?'Expired':'Invited'}</span>`:''}`,
+      `<select class="form-input" style="padding:6px 8px;font-size:12px;" onchange="personDo({action:'setRole',propertyId:'${x.propertyId}',memberId:'${x.memberId}',role:this.value},'✅ Role updated')">${opts(x.role)}</select>`,
+      (x.status==='active'?`<button class="btn btn-ghost btn-sm" title="Make them this property's main manager" onclick="personMakeMain('${x.propertyId}')">Make main</button>`:'')+`<button class="btn btn-danger btn-sm" onclick="personRemove('${x.propertyId}','${x.memberId}')">✕</button>`)
+  ).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0;">Not on any property yet.</div>';
+  const on=r.properties.map(x=>x.propertyId);
+  document.getElementById('pr-prop').innerHTML='<option value="">Pick a property…</option>'+r.all.filter(p=>!on.includes(p.id)).map(p=>`<option value="${p.id}">${escA(p.name)}</option>`).join('');
+}
+async function personDo(payload,msg){
+  if(_prBusy) return null;_prBusy=true;
+  const r=await teamCall(payload);
+  _prBusy=false;
+  if(r.error){personErr(r.error);}else{document.getElementById('pr-err').style.display='none';if(msg)toast(msg);}
+  const fresh=await teamCall({action:'person',userId:_prId});
+  if(!fresh.error){_pr=fresh;renderPerson();}
+  return r;
+}
+async function personAdd(){
+  const pid=document.getElementById('pr-prop').value,role=document.getElementById('pr-role').value;
+  if(!pid) return personErr('Pick a property.');
+  const r=await personDo({action:'addDirect',userId:_prId,propertyId:pid,role},'✅ Added');
+  if(r&&!r.error) loadProperties();
+}
+async function personRemove(pid,memberId){
+  const x=_pr.properties.find(p=>p.memberId===memberId);
+  if(!confirm(`Remove ${_pr.name||_pr.email} from ${x?.name||'this property'}? They lose access right away.`)) return;
+  const r=await personDo({action:'remove',propertyId:pid,memberId},'Removed');
+  if(r&&!r.error) loadProperties();
+}
+async function personMakeMain(pid){
+  const x=_pr.properties.find(p=>p.propertyId===pid);
+  const cur=mgrName((allProperties.find(p=>p.id===pid)||{}).manager_id);
+  if(!confirm(`Make ${_pr.name||_pr.email} the main manager of ${x?.name||'this property'}?\n\n${cur&&cur!=='—'?cur+' stays on the property as Manager.':''}`)) return;
+  const r=await personDo({action:'makeMain',propertyId:pid,userId:_prId},'✅ Main manager changed');
+  if(r&&!r.error){await loadProperties();renderManagers(allManagers);}
+}
+async function personPassword(){
+  const pw=document.getElementById('pr-pass').value.trim();
+  if(pw.length<8) return personErr('Use at least 8 characters.');
+  const r=await personDo({action:'setTempPassword',userId:_prId,password:pw},'✅ Temporary password set');
+  if(r&&!r.error) document.getElementById('pr-pass').value='';
+}
+async function personNotify(){
+  if(!confirm(`Email ${_pr?.email||'them'} a link to choose their password?`)) return;
+  await personDo({action:'notify',userId:_prId},'✅ Login email sent');
 }
 
 // ── ACCESS (team per property) ──
