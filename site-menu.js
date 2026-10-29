@@ -26,7 +26,7 @@
     c.textContent = a.textContent.trim();
     panel.appendChild(c);
   });
-  var cta = nav.querySelector('.nav-right a[href="get-started.html"]');
+  var cta = nav.querySelector('.nav-right .nav-talk');
   if (cta) {
     var c = document.createElement('a');
     c.href = cta.getAttribute('href');
