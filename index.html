@@ -426,6 +426,15 @@ footer { background: #080E19; padding: 48px 60px 36px; }
 @media(max-width:560px){
   .x-modes,.x-who,.x-checks{grid-template-columns:1fr;}
 }
+/* Phone menu: keep the two sign-in buttons on one line; "Talk to Our Team" is in the hero below */
+@media(max-width:620px){
+  .nav{padding:0 14px;}
+  .nav-name em{display:none;}
+  .nav-right{gap:6px;}
+  .nav-signin,.nav-cta{padding:7px 11px;font-size:13px;white-space:nowrap;}
+  .nav-right .nav-cta[href="get-started.html"]{display:none;}
+}
+@media(max-width:420px){.nav-logo .nav-mark{display:none;}}
 </style>
 </head>
 <body>
@@ -453,6 +462,7 @@ footer { background: #080E19; padding: 48px 60px 36px; }
     <a class="nav-cta" href="get-started.html">Talk to Our Team</a>
   </div>
 </nav>
+<script src="site-menu.js" defer></script>
 
 <!-- HERO -->
 <div style="max-width:1280px;margin:0 auto;">
