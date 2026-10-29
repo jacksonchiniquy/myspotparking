@@ -97,7 +97,8 @@ h1, h2, h3 { font-family: 'Sora', sans-serif; }
   transition: all .2s;
 }
 .btn-ghost:hover { color: var(--blue); border-color: var(--blue); }
-.hero-social { margin-top: 40px; display: flex; align-items: center; gap: 12px; }
+.hero-social { margin-top: 40px; display: flex; align-items: flex-start; gap: 12px; max-width: 520px; }
+.hero-social .hero-dot { margin-top: 5px; flex-shrink: 0; }
 .hero-social-label { font-size: 13px; color: var(--slate2); }
 .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
 
@@ -483,7 +484,7 @@ footer { background: #080E19; padding: 48px 60px 36px; }
     </div>
     <div class="hero-social">
       <span class="hero-dot"></span>
-      <span class="hero-social-label">Property managers across Utah and beyond</span>
+      <span class="hero-social-label">Built for HOAs, property managers and owners, from one building to a whole portfolio. Free setup, no long-term contract.</span>
     </div>
   </div>
 
