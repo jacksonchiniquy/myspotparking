@@ -85,11 +85,11 @@ async function memberOf(property, memberId) {
 }
 
 async function teamList(property) {
-  const [main] = property.manager_id ? await sb('GET', `users?id=eq.${property.manager_id}&select=id,email,full_name,name`) : [];
+  const [main] = property.manager_id ? await sb('GET', `users?id=eq.${property.manager_id}&select=*`) : [];
   const rows = await sb('GET', `property_team?property_id=eq.${property.id}&select=*&order=invited_at`);
   const ids = rows.filter(r => r.user_id).map(r => r.user_id);
   let people = [];
-  if (ids.length) people = await sb('GET', `users?id=in.(${ids.join(',')})&select=id,email,full_name,name`);
+  if (ids.length) people = await sb('GET', `users?id=in.(${ids.join(',')})&select=*`);
   const byId = Object.fromEntries(people.map(p => [p.id, p]));
   const list = rows.map(r => ({
     id: r.id, email: r.email, role: r.role, status: r.status,

@@ -150,7 +150,7 @@ exports.handler = async (event) => {
       }
       const url = require('./plan-pay').makePlanLink(p.id);
       if (!body.send) return reply(200, { url });
-      const [m] = p.manager_id ? await sb('GET', `users?id=eq.${p.manager_id}&select=email,full_name,name`) : [];
+      const [m] = p.manager_id ? await sb('GET', `users?id=eq.${p.manager_id}&select=*`) : [];
       if (!m?.email) return reply(400, { error: 'This property has no manager email on file. Copy the link instead.' });
       const { sendRaw, logoHeader } = require('./send-email');
       const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
