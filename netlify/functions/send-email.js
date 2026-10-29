@@ -267,7 +267,8 @@ exports.handler = async (event) => {
     if (!UUID_RE.test(String(propertyId || '')) || !unitNumber) return reply(400, { error: 'Missing unit.' });
     const [prop] = await sbGet(`properties?id=eq.${propertyId}&select=name,manager_id`);
     if (!prop) return reply(404, { error: 'Property not found.' });
-    const allowed = me?.role === 'admin' || (me?.role === 'manager' && prop.manager_id === userId);
+    const team = require('./lib/team');
+    const allowed = team.atLeast(await team.roleOn({ id: propertyId, manager_id: prop.manager_id }, me), 'leasing');
     if (!allowed) return reply(403, { error: 'Not allowed' });
     const slots = await sbGet(`property_units?property_id=eq.${propertyId}&unit_number=eq.${encodeURIComponent(unitNumber)}&select=invite_code`);
     const inviteCode = slots.find(s => s.invite_code)?.invite_code;

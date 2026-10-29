@@ -310,7 +310,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
             <option value="">All portals</option><option value="admin">Admin</option><option value="manager">Managers</option><option value="enforcer">Enforcement</option><option value="holder">Residents</option><option value="unit">Unit portal</option><option value="system">System &amp; payments</option></select>
           <select class="select-input" id="act-prop" onchange="loadActivity()" style="width:auto;font-size:12px;padding:6px 10px;max-width:200px;"><option value="">All properties</option></select>
           <select class="select-input" id="act-type" onchange="loadActivity()" style="width:auto;font-size:12px;padding:6px 10px;">
-            <option value="">All actions</option><option value="noplate">All except plate checks</option><option value="changes">Data changes</option><option value="auth.">Sign-ins</option><option value="enforcement.">Plate checks &amp; enforcement</option><option value="billing">Payments &amp; billing</option><option value="unit.">Units &amp; tenants</option><option value="access.">Access requests</option><option value="lead.">Website leads</option></select>
+            <option value="">All actions</option><option value="noplate">All except plate checks</option><option value="changes">Data changes</option><option value="auth.">Sign-ins</option><option value="enforcement.">Plate checks &amp; enforcement</option><option value="billing">Payments &amp; billing</option><option value="unit.">Units &amp; tenants</option><option value="access.">Access requests</option><option value="team.">Team access</option><option value="lead.">Website leads</option></select>
           <button class="btn btn-ghost btn-sm" onclick="exportActivity()">Export CSV</button>
         </div>
         <div id="act-list"><div class="loading">Loading…</div></div>
@@ -319,7 +319,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
       <div id="panel-properties" class="panel">
         <div class="section-head"><div class="section-title">All Properties</div></div>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th title="Which actions enforcement officers can take at this property">Enforcement</th><th title="Code printed on Pay to Park signs, and whether drivers enter a stall number">Pay to Park</th><th title="Lets residents give guest passes; the manager sets the pass types">Guest Passes</th><th title="LotHQ's fee on each parking payment, the LotHQ subscription, and whether the property's payouts are set up">LotHQ Billing</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th title="Which actions enforcement officers can take at this property">Enforcement</th><th title="Code printed on Pay to Park signs, and whether drivers enter a stall number">Pay to Park</th><th title="Lets residents give guest passes; the manager sets the pass types">Guest Passes</th><th title="LotHQ's fee on each parking payment, the LotHQ subscription, and whether the property's payouts are set up">LotHQ Billing</th><th title="Who can sign in and work on this property">Access</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
       </div>
 
       <!-- PARKING TERMS -->
@@ -501,6 +501,22 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div class="form-group"><label class="form-label">Property rules (optional)</label><textarea class="form-input" id="tp-rules" rows="5" maxlength="4000" style="resize:vertical;font-family:inherit;" placeholder="e.g. Guest stalls are 24 hours max. No parking in fire lanes. Boats and trailers need manager approval."></textarea></div>
     <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:16px;"><input type="checkbox" id="tp-enabled"> Show the Parking Terms checkbox at this property</label>
     <div style="display:flex;gap:8px;"><button class="btn btn-primary" id="tp-save" onclick="savePropTerms()">Save</button><button class="btn btn-ghost" onclick="closeModal('modal-terms-prop')">Cancel</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-access">
+  <div class="modal" style="width:620px;">
+    <button class="modal-close" onclick="closeModal('modal-access')">✕</button>
+    <div class="modal-title">👥 Access · <span id="ac-name"></span></div>
+    <div class="modal-sub">Everyone who can sign in to this property in the manager portal. Owners can also invite people themselves; you get an email when they do.</div>
+    <div class="err-msg" id="ac-err"></div>
+    <div id="ac-list"><div class="loading">Loading…</div></div>
+    <div class="form-label" style="margin-top:16px;">Add someone</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <input class="form-input" id="ac-email" type="email" placeholder="name@company.com" style="flex:1;min-width:200px;">
+      <select class="form-input" id="ac-role" style="width:auto;"><option value="owner">Owner / Admin</option><option value="manager" selected>Manager</option><option value="leasing">Leasing agent</option><option value="viewer">View only</option></select>
+      <button class="btn btn-primary" id="ac-send" onclick="accessInvite()">Send invite</button>
+    </div>
+    <div style="font-size:11.5px;color:var(--text3);margin-top:8px;">Owner / Admin: everything incl. payouts and team · Manager: everything except payouts and team · Leasing agent: units, tenant invites, vehicles, guest passes · View only: sees everything, changes nothing</div>
   </div>
 </div>
 <div class="modal-overlay" id="modal-billing">
@@ -865,7 +881,7 @@ async function loadManagers(){
   renderPlanPanel();
 }
 
-let outsidePaidCounts={},payoutAccounts={},payoutsMissing=false;
+let outsidePaidCounts={},payoutAccounts={},payoutsMissing=false,teamCounts={},teamMissing=false;
 async function loadProperties(){
   const {data}=await sb.from('properties').select('*').order('name',{ascending:true});
   allProperties=data||[];
@@ -878,6 +894,11 @@ async function loadProperties(){
   const {data:po,error:poErr}=await sb.from('payout_accounts').select('*');
   payoutsMissing=!!poErr;
   (po||[]).forEach(a=>payoutAccounts[a.id]=a);
+  // Team members per property, for the Access column
+  teamCounts={};
+  const {data:tm,error:tmErr}=await sb.from('property_team').select('property_id,status');
+  teamMissing=!!tmErr;
+  (tm||[]).forEach(r=>{const c=teamCounts[r.property_id]||(teamCounts[r.property_id]={active:0,invited:0});c[r.status==='active'?'active':'invited']++;});
   document.getElementById('cnt-properties').textContent=allProperties.length;
   document.getElementById('s-properties').textContent=allProperties.length;
   renderProperties(allProperties);
@@ -974,16 +995,17 @@ function renderProperties(data){
       <td style="white-space:nowrap;">${parkCell(p)}</td>
       <td style="white-space:nowrap;">${p.guest_passes_enabled===undefined?'<span style="font-size:11px;color:var(--text3)" title="Run supabase-guest-passes-1.sql">Not set up</span>':`<button class="btn btn-sm ${p.guest_passes_enabled?'btn-primary':'btn-ghost'}" onclick="toggleGuestPasses('${p.id}',${!p.guest_passes_enabled})">${p.guest_passes_enabled?'On':'Off'}</button>`}</td>
       <td style="white-space:nowrap;">${billingCell(p)}</td>
+      <td style="white-space:nowrap;">${accessCell(p)}</td>
       <td><div class="tbl-actions">
         <button class="btn btn-danger btn-sm" onclick="confirmDelete('property','${p.id}','${(p.name||'').replace(/'/g,'')}')">Delete</button>
       </div></td>
     </tr>`;
-  }).join('')||'<tr><td colspan="12" class="loading">No properties found</td></tr>';
+  }).join('')||'<tr><td colspan="13" class="loading">No properties found</td></tr>';
 }
 
 // ── ACTIVITY LOG ──────────────────────────────────────────────
 let actRows=[],actPage=0;const ACT_PAGE=200;
-const ACT_THINGS={permits:'permit',property_units:'spot',properties:'property',violations:'violation',users:'user account',vehicles:'vehicle',unit_vehicles:'unit vehicle',unit_permits:'spot assignment',guest_passes:'guest pass',enforcement_assignments:'enforcement assignment',parking_sessions:'parking session',manager_features:'plan & features',guest_pass_types:'guest pass type'};
+const ACT_THINGS={permits:'permit',property_units:'spot',properties:'property',property_team:'team member',violations:'violation',users:'user account',vehicles:'vehicle',unit_vehicles:'unit vehicle',unit_permits:'spot assignment',guest_passes:'guest pass',enforcement_assignments:'enforcement assignment',parking_sessions:'parking session',manager_features:'plan & features',guest_pass_types:'guest pass type'};
 const ACT_ROLES={admin:['ADMIN','#a371f7'],manager:['MANAGER','#79c0ff'],enforcer:['ENFORCEMENT','#e3b341'],holder:['RESIDENT','#56d364'],unit:['UNIT PORTAL','#56d364'],driver:['PAY TO PARK','#56d364'],system:['SYSTEM','#8b949e'],database:['DATABASE','#8b949e'],visitor:['WEBSITE','#8b949e'],manager_pending:['APPLICANT','#79c0ff'],anonymous:['NOT SIGNED IN','#ff7b72']};
 const ACT_PORTALS={admin:'Admin portal',manager:'Manager portal',enforcement:'Enforcement portal',resident:'Resident portal',unit:'Unit portal',signup:'Sign-up page',pay:'Pay to Park page',website:'Website'};
 const actEsc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1712,6 +1734,84 @@ async function adminApi(payload){
   if(!res.ok) return Object.assign({error:body.error||'Something went wrong.'},body,{failed:true});
   return body;
 }
+
+// ── ACCESS (team per property) ──
+const AC_ROLES={owner:'Owner / Admin',manager:'Manager',leasing:'Leasing agent',viewer:'View only'};
+function accessCell(p){
+  if(teamMissing) return '<span style="font-size:11px;color:var(--text3)" title="Run supabase-team.sql">Not set up</span>';
+  const c=teamCounts[p.id]||{active:0,invited:0};
+  const n=(p.manager_id?1:0)+c.active;
+  return `<button class="btn btn-ghost btn-sm" onclick="openAccess('${p.id}')">${n} ${n===1?'person':'people'}</button>${c.invited?`<div style="font-size:11px;color:var(--amber,#b45309);margin-top:4px;">${c.invited} invited</div>`:''}`;
+}
+let _acId=null,_ac=null,_acBusy=false;
+async function teamCall(payload){
+  const {data:{session}}=await sb.auth.getSession();
+  try{
+    const res=await fetch('/.netlify/functions/team',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body:JSON.stringify(Object.assign({propertyId:_acId},payload))});
+    const body=await res.json().catch(()=>({}));
+    return res.ok?body:{error:body.error||'Something went wrong.'};
+  }catch(e){return {error:'Could not reach the server.'};}
+}
+async function openAccess(id){
+  _acId=id;_ac=null;
+  const p=allProperties.find(x=>x.id===id)||{};
+  document.getElementById('ac-name').textContent=p.name||'';
+  document.getElementById('ac-err').style.display='none';
+  document.getElementById('ac-email').value='';
+  document.getElementById('ac-list').innerHTML='<div class="loading">Loading…</div>';
+  openModal('modal-access');
+  const r=await teamCall({action:'list'});
+  if(id!==_acId) return;
+  if(r.error){accessErr(r.error);document.getElementById('ac-list').innerHTML='';return;}
+  _ac=r;renderAccess();
+}
+function accessErr(m){const e=document.getElementById('ac-err');e.textContent=m;e.style.display='block';}
+function renderAccess(){
+  const r=_ac,d=v=>v?new Date(v).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+  const opts=sel=>Object.entries(AC_ROLES).map(([k,v])=>`<option value="${k}" ${k===sel?'selected':''}>${v}</option>`).join('');
+  const row=(who,role,status,acts)=>`<div style="display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);"><div style="flex:1;min-width:0;font-size:13px;overflow-wrap:anywhere;">${who}</div><div style="width:130px;flex-shrink:0;">${role}</div><div style="width:70px;flex-shrink:0;">${status}</div><div style="display:flex;gap:6px;flex-shrink:0;">${acts}</div></div>`;
+  const pill=(t,c)=>`<span class="pill" style="${c}">${t}</span>`;
+  let html='';
+  if(r.primary) html+=row(`<b>${escA(r.primary.name||r.primary.email)}</b><div style="color:var(--text3);font-size:11.5px;">${escA(r.primary.email||'')} · main manager</div>`,'<span style="font-size:13px;">Owner / Admin</span>',pill('Active','background:rgba(46,160,67,.15);color:#56d364;'),'<span style="font-size:11px;color:var(--text3);">Change in Managers</span>');
+  r.members.forEach(m=>{
+    const st=m.status==='active'?pill('Active','background:rgba(46,160,67,.15);color:#56d364;'):m.expired?pill('Expired','background:rgba(248,81,73,.15);color:#ff7b72;'):pill('Invited','background:rgba(227,179,65,.15);color:#e3b341;');
+    const sub=m.status==='active'?`Added ${d(m.acceptedAt)}`:`Invited ${d(m.invitedAt)}${m.invitedBy?' by '+escA(m.invitedBy):''}`;
+    const acts=(m.status==='active'?'':`<button class="btn btn-ghost btn-sm" onclick="accessDo('resend','${m.id}')">Resend</button>`)+`<button class="btn btn-danger btn-sm" onclick="accessRemove('${m.id}')">${m.status==='active'?'Remove':'Cancel'}</button>`;
+    html+=row(`<b>${escA(m.name||m.email)}</b><div style="color:var(--text3);font-size:11.5px;">${m.name?escA(m.email)+' · ':''}${sub}</div>`,`<select class="form-input" style="padding:6px 8px;font-size:12px;" onchange="accessDo('setRole','${m.id}',this.value)">${opts(m.role)}</select>`,st,acts);
+  });
+  if(!r.members.length) html+='<div style="font-size:12px;color:var(--text3);padding:10px 0;">No team members yet.</div>';
+  document.getElementById('ac-list').innerHTML=html;
+}
+async function accessInvite(){
+  if(_acBusy) return;
+  const email=document.getElementById('ac-email').value.trim(),role=document.getElementById('ac-role').value;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return accessErr('Enter a valid email address.');
+  _acBusy=true;const b=document.getElementById('ac-send');b.disabled=true;b.textContent='Sending…';
+  const r=await teamCall({action:'invite',email,role});
+  _acBusy=false;b.disabled=false;b.textContent='Send invite';
+  if(r.error) return accessErr(r.error);
+  document.getElementById('ac-err').style.display='none';document.getElementById('ac-email').value='';
+  _ac=r;renderAccess();toast('✅ Invite sent to '+email);loadProperties();
+}
+async function accessDo(action,memberId,role){
+  if(_acBusy) return;_acBusy=true;
+  const r=await teamCall({action,memberId,role});
+  _acBusy=false;
+  if(r.error){accessErr(r.error);renderAccess();return;}
+  _ac=r;renderAccess();toast(action==='resend'?'✅ Invite sent again':'✅ Role updated');
+}
+async function accessRemove(memberId){
+  const m=_ac.members.find(x=>x.id===memberId);if(!m) return;
+  if(!confirm(m.status==='active'?`Remove ${m.name||m.email} from this property? They lose access right away.`:`Cancel the invite for ${m.email}?`)) return;
+  if(_acBusy) return;_acBusy=true;
+  const r=await teamCall({action:'remove',memberId});
+  _acBusy=false;
+  if(r.error) return accessErr(r.error);
+  _ac=r;renderAccess();toast(m.status==='active'?'Removed':'Invite cancelled');loadProperties();
+}
+
 function escA(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function termsPropOptions(sel,withAll){
   const el=document.getElementById(sel);if(!el) return;

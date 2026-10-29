@@ -202,8 +202,10 @@ async function authManagerForSlot(event, slotId) {
   const [me] = await sb('GET', `users?id=eq.${userId}&select=*`);
   const [slot] = await sb('GET', `property_units?id=eq.${slotId}&select=property_id,unit_number`);
   if (!slot) throw new UserError('Slot not found.', 404);
-  const [prop] = await sb('GET', `properties?id=eq.${slot.property_id}&select=manager_id`);
-  if (me?.role !== 'admin' && !(me?.role === 'manager' && prop?.manager_id === userId)) throw new UserError('Not allowed.', 403);
+  const [prop] = await sb('GET', `properties?id=eq.${slot.property_id}&select=id,manager_id`);
+  // Main manager, admin, or a team member who can work on units (not view-only)
+  const team = require('./lib/team');
+  if (!team.atLeast(await team.roleOn(prop, me), 'leasing')) throw new UserError('Not allowed.', 403);
   const slots = await getSlots(slot.property_id, slot.unit_number);
   return { propertyId: slot.property_id, unitNumber: slot.unit_number, slots, slot: slots.find(x => x.id === slotId), userId, me };
 }

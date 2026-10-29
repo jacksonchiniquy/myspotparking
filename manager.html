@@ -138,6 +138,16 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 #toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 18px;font-size:13px;z-index:9999;transform:translateY(12px);opacity:0;transition:all .3s;max-width:320px;box-shadow:0 8px 32px rgba(15,23,42,0.1);}
 #toast.show{opacity:1;transform:translateY(0);}
 @media(max-width:900px){.tn-tabs{display:none;}.page-head{padding:20px 16px 0;}.content{padding:0 16px 60px;}.stat-grid{grid-template-columns:1fr 1fr;}.chart-grid{grid-template-columns:1fr;}.form-row{grid-template-columns:1fr;}}
+/* Team roles: what each role can't do (the database enforces it too) */
+body.ro-leasing #lot-save-btn,body.ro-leasing #save-rates-btn,body.ro-leasing #gp-save,body.ro-leasing .pd-edit-btn{display:none!important;}
+body.ro-viewer #page-property-detail .btn:not(.ro-keep){display:none!important;}
+body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail select,body.ro-viewer #page-property-detail textarea{pointer-events:none;opacity:.75;}
+.role-pill{display:inline-block;margin-left:10px;vertical-align:middle;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#ede9fe;color:#5b21b6;letter-spacing:.02em;}
+.tm-av{display:inline-flex;width:30px;height:30px;border-radius:50%;background:var(--blue);color:#fff;font-weight:700;font-size:12px;align-items:center;justify-content:center;margin-right:10px;vertical-align:middle;flex-shrink:0;}
+.tm-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border2);flex-wrap:wrap;}
+.tm-who{flex:1;min-width:220px;display:flex;align-items:center;font-size:14px;}
+.tm-who small{display:block;color:var(--text2);font-size:12.5px;}
+.tm-status{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;}
 /* Payouts tab */
 .po-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;align-items:start;}
 @media(max-width:900px){.po-grid{grid-template-columns:1fr;}}
@@ -453,7 +463,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
           <div style="font-size:13px;color:var(--text2);" id="pd-address">—</div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="btn btn-ghost btn-sm" onclick="openEditProperty()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit Property</button>
+          <button class="btn btn-ghost btn-sm pd-edit-btn" onclick="openEditProperty()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit Property</button>
           <button class="btn btn-primary" onclick="openIssueForProperty()">+ Issue Permit</button>
         </div>
       </div>
@@ -473,7 +483,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div class="sec-head" style="margin-bottom:14px;">
         <div><div class="sec-title">Permits</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">All permits issued for this property</div></div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm" onclick="exportPropertyPermits()">Export CSV</button>
+          <button class="btn btn-ghost btn-sm ro-keep" onclick="exportPropertyPermits()">Export CSV</button>
           <button class="btn btn-primary btn-sm" onclick="openIssueForProperty()">+ Issue Permit</button>
         </div>
       </div>
@@ -485,6 +495,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
         <div class="inner-tab" id="pdit-map" onclick="setPDTab('map')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg> Lot Map</div>
         <div class="inner-tab" id="pdit-pay" onclick="setPDTab('pay')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Pay to Park</div>
         <div class="inner-tab" id="pdit-payouts" onclick="setPDTab('payouts')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Payouts</div>
+        <div class="inner-tab" id="pdit-team" onclick="setPDTab('team')" style="order:97;display:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg> Team</div>
         <div class="inner-tab" id="pdit-guests" onclick="setPDTab('guests')" style="order:98;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2M13 17v2M13 11v2"/></svg> Guest Passes</div>
         <div class="inner-tab" id="pdit-history" onclick="setPDTab('history');loadTenancies(currentPropertyId).then(renderTenantHistory)" style="order:99;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg> Tenant History</div>
         <div class="inner-tab" id="pdit-units" onclick="setPDTab('units')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> <span id="pdit-units-label">Units</span></div>
@@ -558,7 +569,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
             <button class="btn btn-ghost btn-sm" onclick="clearLot()">Clear</button>
             <button class="btn btn-ghost btn-sm" onclick="openModal('modal-lot-bg')" title="Set a satellite photo as the map background">Set Background</button>
             <button class="btn btn-ghost btn-sm" onclick="openModal('modal-lot-import')" title="Upload a photo of your lot and let AI generate the layout">Import from Image</button>
-            <button class="btn btn-ghost btn-sm" onclick="syncAllResidentsToMap()" title="Sync all residents' stall numbers to this map">Sync Residents</button>
+            <button class="btn btn-ghost btn-sm pd-edit-btn" onclick="syncAllResidentsToMap()" title="Sync all residents' stall numbers to this map">Sync Residents</button>
             <button class="btn btn-primary btn-sm" id="lot-save-btn" onclick="saveLotLayout()">Save Layout</button>
           </div>
           <!-- Row 2: element palette -->
@@ -779,6 +790,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       </div>
 
       <!-- UNITS PANEL -->
+      <div id="pdip-team" class="inner-panel"><div id="tm-body"><div class="loading">Loading…</div></div></div>
       <div id="pdip-payouts" class="inner-panel"><div id="po-body"><div class="loading">Loading…</div></div></div>
       <div id="pdip-history" class="inner-panel">
         <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
@@ -1447,6 +1459,11 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON,{
 let currentUser=null;
 let allPermits=[];
 let allProperties=[];
+let myRoles={}; // property id → owner | manager | leasing | viewer
+const ROLE_RANK={viewer:1,leasing:2,manager:3,owner:4};
+const ROLE_NAMES={owner:'Owner / Admin',manager:'Manager',leasing:'Leasing agent',viewer:'View only'};
+const myRole=(pid)=>myRoles[pid||currentPropertyId]||'owner';
+const canRole=(min,pid)=>ROLE_RANK[myRole(pid)]>=ROLE_RANK[min];
 let allResidents=[];
 let allViolations=[];
 
@@ -1601,6 +1618,105 @@ function poStatusOf(a){
   if(a.details_submitted&&a.charges_enabled) return a.needs_info?'ready_needs_info':'ready';
   return a.details_submitted?'needs_info':'started';
 }
+// ── Team access ──
+const TM_DOES={owner:'Everything, including payouts and the team',manager:'Everything except payouts and the team',leasing:'Units, tenant invites, vehicles and guest passes',viewer:'Sees everything, changes nothing'};
+function applyRoleUI(){
+  const r=myRole();
+  document.body.classList.toggle('ro-leasing',r==='leasing');
+  document.body.classList.toggle('ro-viewer',r==='viewer');
+  const owner=r==='owner';
+  ['pdit-payouts','pdit-team'].forEach(id=>{const el=document.getElementById(id);if(el) el.style.display=owner?'':'none';});
+  const nm=document.getElementById('pd-name');
+  const old=document.getElementById('pd-role-pill');if(old) old.remove();
+  if(nm&&r!=='owner'){const pill=document.createElement('span');pill.id='pd-role-pill';pill.className='role-pill';pill.textContent=ROLE_NAMES[r];nm.appendChild(pill);}
+}
+async function teamApi(payload){
+  const {data:{session}}=await sb.auth.getSession();
+  try{
+    const res=await fetch('/.netlify/functions/team',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body:JSON.stringify(Object.assign({propertyId:currentPropertyId},payload))});
+    const body=await res.json().catch(()=>({}));
+    return res.ok?body:{error:body.error||'Something went wrong. Please try again.'};
+  }catch(e){return {error:'Could not reach the server. Check your connection.'};}
+}
+let _tm=null,_tmBusy=false;
+async function loadTeam(){
+  const el=document.getElementById('tm-body');
+  el.innerHTML='<div class="loading">Loading team…</div>';
+  const propId=currentPropertyId;
+  const r=await teamApi({action:'list'});
+  if(propId!==currentPropertyId) return;
+  if(r.error){el.innerHTML=`<div class="po-card"><h3>Team</h3><div class="po-sub" style="margin:0;">${escHtml(r.error)}</div></div>`;return;}
+  _tm=r;renderTeam();
+}
+const tmInitials=(n,e)=>String(n||e||'?').split(/[\s@.]+/).filter(Boolean).slice(0,2).map(x=>x[0].toUpperCase()).join('');
+const tmDate=d=>d?new Date(d).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}):'';
+function renderTeam(){
+  const r=_tm,el=document.getElementById('tm-body');
+  const roleOpts=sel=>Object.entries(ROLE_NAMES).map(([k,v])=>`<option value="${k}" ${k===sel?'selected':''}>${v}</option>`).join('');
+  const rows=[];
+  if(r.primary) rows.push(`<div class="tm-row"><div class="tm-who"><span class="tm-av">${escHtml(tmInitials(r.primary.name,r.primary.email))}</span><div>${escHtml(r.primary.name||r.primary.email)}${r.primary.id===currentUser.id?' <span style="color:var(--text2);font-size:12px;">(you)</span>':''}<small>${escHtml(r.primary.email||'')}</small></div></div>
+    <div style="font-size:13px;font-weight:600;min-width:150px;">Owner / Admin <span style="color:var(--text2);font-weight:500;">· main</span></div>
+    <span class="tm-status" style="background:#dcfce7;color:#166534;">Active</span><div style="min-width:150px;font-size:12px;color:var(--text2);">Can't be removed here</div></div>`);
+  r.members.forEach(m=>{
+    const me=m.email&&currentUser.email&&m.email.toLowerCase()===String(currentUser.email).toLowerCase();
+    const status=m.status==='active'?`<span class="tm-status" style="background:#dcfce7;color:#166534;">Active</span>`:m.expired?`<span class="tm-status" style="background:#fee2e2;color:#991b1b;">Invite expired</span>`:`<span class="tm-status" style="background:#fef3c7;color:#92400e;">Invited</span>`;
+    const when=m.status==='active'?`Added ${tmDate(m.acceptedAt)}`:`Invited ${tmDate(m.invitedAt)}${m.invitedBy?' by '+escHtml(m.invitedBy):''}`;
+    const acts=m.status==='active'
+      ?(me?'':`<button class="btn btn-ghost btn-sm" onclick="teamRemove('${m.id}')">Remove</button>`)
+      :`<button class="btn btn-ghost btn-sm" onclick="teamDo('resend','${m.id}')">Resend</button><button class="btn btn-ghost btn-sm" onclick="teamRemove('${m.id}',true)">Cancel</button>`;
+    rows.push(`<div class="tm-row"><div class="tm-who"><span class="tm-av" style="${m.status==='active'?'':'background:#94a3b8;'}">${escHtml(tmInitials(m.name,m.email))}</span><div>${escHtml(m.name||m.email)}${me?' <span style="color:var(--text2);font-size:12px;">(you)</span>':''}<small>${m.name?escHtml(m.email)+' · ':''}${when}</small></div></div>
+      <div style="min-width:150px;"><select class="form-input" style="padding:7px 10px;font-size:13px;" ${me?'disabled':''} onchange="teamDo('setRole','${m.id}',this.value)">${roleOpts(m.role)}</select></div>
+      ${status}<div style="min-width:150px;display:flex;gap:6px;">${acts}</div></div>`);
+  });
+  el.innerHTML=`<div class="po-card">
+    <h3>Who can work on ${escHtml(r.property.name)}</h3>
+    <div class="po-sub">Add your office staff, a leasing agent or a board member. Each person signs in with their own email and password, so you always know who did what.</div>
+    ${rows.join('')}
+    ${r.members.length?'':`<div style="font-size:13px;color:var(--text2);padding:14px 0 4px;">No one else yet. Invite someone below.</div>`}
+  </div>
+  <div class="po-card">
+    <h3>Invite someone</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <input class="form-input" id="tm-email" type="email" placeholder="name@company.com" style="flex:1;min-width:220px;max-width:340px;">
+      <select class="form-input" id="tm-role" style="width:auto;min-width:170px;">${roleOpts('manager')}</select>
+      <button class="btn btn-primary btn-sm" id="tm-send" onclick="teamInvite()">Send invite</button>
+    </div>
+    <div class="po-note">They'll get an email with a link to accept (it works for 14 days). LotHQ is notified of every invite.</div>
+    <div style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;">
+      ${Object.entries(ROLE_NAMES).map(([k,v])=>`<div style="background:var(--surface2);border-radius:10px;padding:10px 12px;font-size:12.5px;"><b>${v}</b><div style="color:var(--text2);margin-top:2px;">${TM_DOES[k]}</div></div>`).join('')}
+    </div>
+  </div>`;
+}
+async function teamInvite(){
+  if(_tmBusy) return;
+  const email=document.getElementById('tm-email').value.trim(),role=document.getElementById('tm-role').value;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast('Enter a valid email address');return;}
+  _tmBusy=true;const b=document.getElementById('tm-send');b.disabled=true;b.textContent='Sending…';
+  const r=await teamApi({action:'invite',email,role});
+  _tmBusy=false;
+  if(r.error){b.disabled=false;b.textContent='Send invite';toast(r.error);return;}
+  _tm=r;renderTeam();toast('✅ Invite sent to '+email);
+}
+async function teamDo(action,memberId,role){
+  if(_tmBusy) return;_tmBusy=true;
+  const r=await teamApi({action,memberId,role});
+  _tmBusy=false;
+  if(r.error){toast(r.error);renderTeam();return;}
+  _tm=r;renderTeam();toast(action==='resend'?'✅ Invite sent again':'✅ Role updated');
+}
+async function teamRemove(memberId,invite){
+  const m=(_tm.members||[]).find(x=>x.id===memberId);
+  if(!m) return;
+  if(!confirm(invite?`Cancel the invite for ${m.email}?`:`Remove ${m.name||m.email} from this property? They'll lose access right away.`)) return;
+  if(_tmBusy) return;_tmBusy=true;
+  const r=await teamApi({action:'remove',memberId});
+  _tmBusy=false;
+  if(r.error){toast(r.error);return;}
+  _tm=r;renderTeam();toast(invite?'Invite cancelled':'Removed');
+}
+
 async function loadPayouts(){
   const el=document.getElementById('po-body');
   el.innerHTML='<div class="loading">Loading payouts…</div>';
@@ -1753,8 +1869,17 @@ function restoreFromHash(){
 }
 
 async function loadProperties(){
-  const {data}=await sb.from('properties').select('*').eq('manager_id',currentUser.id).order('name',{ascending:true});
-  allProperties=data||[];
+  // Properties I manage, plus any I've been added to as a team member
+  const {data:own}=await sb.from('properties').select('*').eq('manager_id',currentUser.id).order('name',{ascending:true});
+  myRoles={};(own||[]).forEach(p=>{myRoles[p.id]='owner';});
+  let shared=[];
+  const {data:tm,error:tmErr}=await sb.from('property_team').select('property_id,role').eq('user_id',currentUser.id).eq('status','active');
+  if(!tmErr&&tm&&tm.length){
+    const ids=tm.map(t=>t.property_id).filter(id=>!myRoles[id]);
+    tm.forEach(t=>{if(!myRoles[t.property_id]) myRoles[t.property_id]=t.role;});
+    if(ids.length){const {data}=await sb.from('properties').select('*').in('id',ids);shared=data||[];}
+  }
+  allProperties=[...(own||[]),...shared].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
   populateSelects();
   renderPropGrid();
   document.getElementById('s-props').textContent=allProperties.length;
@@ -2074,7 +2199,7 @@ async function syncResidentStallToMap(residentId, residentName, stallInput, prop
     return;
   }
 
-  const {error}=await sb.from('properties').update({lot_layout:layout}).eq('id',propertyId).eq('manager_id',currentUser.id);
+  const {error}=await sb.from('properties').update({lot_layout:layout}).eq('id',propertyId);
   if(error){
     toast('❌ Map sync failed: '+error.message);
     return;
@@ -2914,6 +3039,7 @@ function openPropertyDetail(propId){
     <span style="${pillStyle}">${pillSvg('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>')} Default: $${p.monthly_rate||0}/mo</span>
     ${buildRatePills(p.parking_rates)}`;
   renderPropertyDetail(propId);
+  applyRoleUI();
   applyPropertyWord(allProperties.find(x=>x.id===propId));
   initPayPanel(); // link, QR code and rates always match the property being shown
   showPage('property-detail', null);
@@ -3000,7 +3126,8 @@ function renderPropertyDetail(propId){
 }
 
 function setPDTab(name){
-  ['all','active','expired','map','pay','payouts','units','guests','history'].forEach(n=>{
+  if((name==='payouts'||name==='team')&&!canRole('owner')) name='all';
+  ['all','active','expired','map','pay','payouts','team','units','guests','history'].forEach(n=>{
     document.getElementById('pdit-'+n)?.classList.remove('active');
     document.getElementById('pdip-'+n)?.classList.remove('active');
   });
@@ -3023,6 +3150,10 @@ function setPDTab(name){
   }
   if(name==='payouts'){
     loadPayouts();
+    return;
+  }
+  if(name==='team'){
+    loadTeam();
     return;
   }
   if(name==='units'){
@@ -3443,8 +3574,7 @@ async function saveRates(){
   btn.disabled=true;btn.textContent='Saving...';
   const {error}=await sb.from('properties')
     .update({transient_rates:transientRates})
-    .eq('id',currentPropertyId)
-    .eq('manager_id',currentUser.id);
+    .eq('id',currentPropertyId);
   btn.disabled=false;btn.textContent='Save Rates';
   if(error){toast('❌ '+error.message);return;}
   // Update local cache
@@ -3534,8 +3664,7 @@ async function syncAllResidentsToMap(){
 
   const {error}=await sb.from('properties')
     .update({lot_layout:layout})
-    .eq('id',currentPropertyId)
-    .eq('manager_id',currentUser.id);
+    .eq('id',currentPropertyId);
 
   if(error){toast('❌ Sync failed: '+error.message);return;}
 
@@ -4321,7 +4450,6 @@ async function saveLotLayout(){
   const {data,error}=await sb.from('properties')
     .update({lot_layout:saveData})
     .eq('id',currentPropertyId)
-    .eq('manager_id',currentUser.id)
     .select();
   btn.disabled=false;btn.textContent='Save Layout';
   if(error){console.error('Save error:',error);toast('❌ Save failed: '+error.message);return;}

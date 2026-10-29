@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Accept invite — LotHQ</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#2859a8;--ink:#1b2340;--slate:#55607d;--off:#f5f7fb;--border:#e1e6f0;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;}
+a{color:var(--blue);font-weight:600;text-decoration:none;}
+.wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 60px;}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:28px;font-family:'Sora',sans-serif;font-size:19px;font-weight:800;color:#374269;}
+.brand b{color:#2859a8;font-weight:inherit;}
+.card{background:#fff;border:1px solid var(--border);border-radius:20px;width:100%;max-width:440px;padding:28px 24px;box-shadow:0 4px 24px rgba(11,18,32,0.07);}
+h1{font-family:'Sora',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.03em;margin-bottom:8px;}
+.sub{font-size:14px;color:var(--slate);line-height:1.6;margin-bottom:20px;}
+.pill{display:inline-block;background:#eef4ff;color:#1a4fb8;font-weight:700;font-size:12px;padding:4px 10px;border-radius:20px;margin-bottom:14px;}
+.label{display:block;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate);margin:14px 0 7px;}
+.input{width:100%;background:#f8faff;border:1.5px solid #d3d9e6;color:var(--ink);padding:14px;border-radius:12px;font-family:'Inter',sans-serif;font-size:16px;outline:none;}
+.input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(40,89,168,0.1);background:#fff;}
+.input[readonly]{background:#eef1f6;color:var(--slate);}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;margin-top:20px;font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:#fff;background:var(--blue);border:none;border-radius:12px;cursor:pointer;text-decoration:none;}
+.btn:disabled{opacity:.6;cursor:default;}
+.err{display:none;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:10px;padding:11px 13px;font-size:14px;margin-top:14px;line-height:1.5;}
+.err.show{display:block;}
+.note{font-size:12px;color:var(--slate);margin-top:14px;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">Lot<b>HQ</b></div>
+  <div class="card" id="card"><p class="sub">Loading your invite…</p></div>
+</div>
+<script>
+const card=document.getElementById('card');
+const token=new URLSearchParams(location.search).get('t')||'';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(payload){
+  try{
+    const res=await fetch('/.netlify/functions/team',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const body=await res.json().catch(()=>({}));
+    return res.ok?body:{error:body.error||'Something went wrong. Please try again.'};
+  }catch(e){return {error:'Could not reach LotHQ. Check your connection and try again.'};}
+}
+function fail(msg){card.innerHTML=`<h1>Invite problem</h1><p class="sub">${esc(msg)}</p><a class="btn" href="/">Go to lothq.com</a>`;}
+function done(r){
+  card.innerHTML=`<h1>You're in</h1><p class="sub">You now have access to <b>${esc(r.propertyName)}</b>. Sign in to the manager portal with <b>${esc(r.email)}</b> and it will be in your dashboard.</p><a class="btn" href="/manager.html">Sign in to the manager portal →</a>`;
+}
+async function start(){
+  if(!token) return fail('This invite link is missing its code. Open the link from your invite email again.');
+  const r=await api({action:'lookup',token});
+  if(r.error) return fail(r.error);
+  card.innerHTML=`<span class="pill">${esc(r.roleName)}</span>
+    <h1>Join ${esc(r.propertyName)}</h1>
+    <p class="sub">${esc(r.invitedBy)} invited you to work on <b>${esc(r.propertyName)}</b> in LotHQ. As a ${esc(r.roleName)}, you'll be able to ${esc(r.does)}.</p>
+    <label class="label">Email</label><input class="input" value="${esc(r.email)}" readonly>
+    ${r.hasAccount?`<p class="note">You already have a LotHQ login with this email. Accept, then sign in with your usual password.</p>`:`
+    <label class="label" for="nm">Your name</label><input class="input" id="nm" autocomplete="name" maxlength="120">
+    <label class="label" for="pw">Choose a password</label><input class="input" id="pw" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+    <label class="label" for="pw2">Type it again</label><input class="input" id="pw2" type="password" autocomplete="new-password">`}
+    <div class="err" id="err"></div>
+    <button class="btn" id="go">Accept invite</button>`;
+  document.getElementById('go').onclick=async()=>{
+    const err=document.getElementById('err'),btn=document.getElementById('go');
+    const show=m=>{err.textContent=m;err.classList.add('show');};
+    err.classList.remove('show');
+    const payload={action:'accept',token};
+    if(!r.hasAccount){
+      payload.name=document.getElementById('nm').value.trim();
+      payload.password=document.getElementById('pw').value;
+      if(payload.name.length<2) return show('Enter your name.');
+      if(payload.password.length<8) return show('Choose a password with at least 8 characters.');
+      if(payload.password!==document.getElementById('pw2').value) return show('The two passwords don\'t match.');
+    }
+    btn.disabled=true;btn.textContent='One moment…';
+    const a=await api(payload);
+    if(a.error){btn.disabled=false;btn.textContent='Accept invite';return show(a.error);}
+    done(a);
+  };
+}
+start();
+</script>
+</body>
+</html>

@@ -52,7 +52,9 @@ async function authForProperty(event, propertyId) {
   const [property] = await sb('GET', `properties?id=eq.${propertyId}&select=*`);
   if (!property) throw new UserError('Property not found.', 404);
   const admin = me?.role === 'admin';
-  if (!admin && !(me?.role === 'manager' && property.manager_id === user.id)) throw new UserError('Not allowed.', 403);
+  // Payouts: main manager, admins, or an Owner on the property's team
+  const team = require('./lib/team');
+  if (!team.atLeast(await team.roleOn(property, me), 'owner')) throw new UserError('Only the property\'s owner can manage payouts.', 403);
   return { userId: user.id, email: user.email, admin, property };
 }
 
