@@ -1668,6 +1668,21 @@ function poStatusOf(a){
   if(a.details_submitted&&a.charges_enabled) return a.needs_info?'ready_needs_info':'ready';
   return a.details_submitted?'needs_info':'started';
 }
+
+// Copy text, with a fallback for browsers that block the clipboard
+async function copyText(t){
+  try{await navigator.clipboard.writeText(t);return true;}catch(e){}
+  try{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();if(ok)return true;}catch(e){}
+  window.prompt('Copy this invite link:',t);return false;
+}
+
+async function teamCopyLink(propertyId,memberId,btn){
+  if(btn) btn.disabled=true;
+  const r=await teamApi({action:'inviteLink',propertyId,memberId});
+  if(btn) btn.disabled=false;
+  if(r.error){toast(r.error);return;}
+  if(await copyText(r.url)) toast('🔗 Invite link copied. Paste it in a text or email to '+r.email);
+}
 // ── Team page (top bar; Owners) ──
 const ownsAny=()=>Object.values(myRoles).includes('owner');
 let _tp=null,_tpPerson=null;
@@ -1710,6 +1725,7 @@ function renderTeamPerson(p){
       ?`<div class="tm-row"><div class="tm-who" style="min-width:160px;">${escHtml(x.name)}</div><div style="font-size:13px;font-weight:600;">Owner / Admin <span style="color:var(--text2);font-weight:500;">· main</span></div><div style="width:34px;"></div></div>`
       :`<div class="tm-row"><div class="tm-who" style="min-width:160px;">${escHtml(x.name)}${x.status==='invited'?` <span class="tm-status" style="margin-left:8px;background:#fef3c7;color:#92400e;">${x.expired?'Invite expired':'Invited'}</span>`:''}</div>
         <select class="form-input" style="padding:7px 10px;font-size:13px;width:auto;" onchange="tpDo({action:'setRole',propertyId:'${x.propertyId}',memberId:'${x.memberId}',role:this.value},'✅ Role updated')">${roleOpts(x.role)}</select>
+        ${x.status==='invited'?`<button class="btn btn-ghost btn-sm" title="Copy a new invite link to text or email yourself" onclick="teamCopyLink('${x.propertyId}','${x.memberId}',this)">🔗 Copy link</button>`:''}
         <button class="btn btn-ghost btn-sm" title="Remove from this property" onclick="tpRemoveOne('${x.propertyId}','${x.memberId}')">✕</button></div>`).join('')}
     ${free.length?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px;">
       <select class="form-input" id="tpm-prop" style="flex:1;min-width:180px;"><option value="">Add a property…</option>${free.map(x=>`<option value="${x.id}">${escHtml(x.name)}</option>`).join('')}</select>
@@ -1819,7 +1835,7 @@ function renderTeam(){
     const when=m.status==='active'?`Added ${tmDate(m.acceptedAt)}`:`Invited ${tmDate(m.invitedAt)}${m.invitedBy?' by '+escHtml(m.invitedBy):''}`;
     const acts=m.status==='active'
       ?(me?'':`<button class="btn btn-ghost btn-sm" onclick="teamRemove('${m.id}')">Remove</button>`)
-      :`<button class="btn btn-ghost btn-sm" onclick="teamDo('resend','${m.id}')">Resend</button><button class="btn btn-ghost btn-sm" onclick="teamRemove('${m.id}',true)">Cancel</button>`;
+      :`<button class="btn btn-ghost btn-sm" title="Copy a new invite link to text or email yourself" onclick="teamCopyLink('${currentPropertyId}','${m.id}',this)">🔗 Copy link</button><button class="btn btn-ghost btn-sm" onclick="teamDo('resend','${m.id}')">Resend</button><button class="btn btn-ghost btn-sm" onclick="teamRemove('${m.id}',true)">Cancel</button>`;
     rows.push(`<div class="tm-row"><div class="tm-who"><span class="tm-av" style="${m.status==='active'?'':'background:#94a3b8;'}">${escHtml(tmInitials(m.name,m.email))}</span><div>${escHtml(m.name||m.email)}${me?' <span style="color:var(--text2);font-size:12px;">(you)</span>':''}<small>${m.name?escHtml(m.email)+' · ':''}${when}</small></div></div>
       <div style="min-width:150px;"><select class="form-input" style="padding:7px 10px;font-size:13px;" ${me?'disabled':''} onchange="teamDo('setRole','${m.id}',this.value)">${roleOpts(m.role)}</select></div>
       ${status}<div style="min-width:150px;display:flex;gap:6px;">${acts}</div></div>`);

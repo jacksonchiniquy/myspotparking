@@ -230,6 +230,20 @@ async function notifyLogin(u, byName) {
   });
 }
 
+// New link for an invite. Keeps a several-property invite together: every
+// pending row that shared the old link moves to the new one.
+async function freshInvite(m) {
+  if (m.status !== 'invited') throw new UserError('They\'ve already accepted.');
+  const t = newToken();
+  const where = m.token_hash
+    ? `property_team?token_hash=eq.${m.token_hash}&status=eq.invited`
+    : `property_team?id=eq.${m.id}`;
+  const rows = await sb('PATCH', where, { token_hash: t.token_hash, expires_at: t.expires_at, invited_at: new Date().toISOString() });
+  const ids = rows.map(r => r.property_id);
+  const props = ids.length ? await sb('GET', `properties?id=in.(${ids.join(',')})&select=name&order=name`) : [];
+  return { token: t.token, url: `${SITE}/team-accept.html?t=${t.token}`, names: listNames(props.map(p => p.name)) || 'a property' };
+}
+
 function newToken() {
   const token = crypto.randomBytes(24).toString('base64url');
   return { token, token_hash: hash(token), expires_at: new Date(Date.now() + INVITE_DAYS * 864e5).toISOString() };
@@ -286,11 +300,48 @@ const actions = {
     const me = await signedIn(event);
     const property = await ownerOf(me, propertyId);
     const m = await memberOf(property, memberId);
-    if (m.status !== 'invited') throw new UserError('They\'ve already accepted.');
-    const t = newToken();
-    const [saved] = await sb('PATCH', `property_team?id=eq.${m.id}`, { token_hash: t.token_hash, expires_at: t.expires_at, invited_at: new Date().toISOString() });
-    await sendInvite(property, saved, t.token, m.invited_by_name);
+    const f = await freshInvite(m);
+    await sendInvite({ name: f.names }, m, f.token, m.invited_by_name);
+    await logActivity({ ...(await actorOf(me)), action: 'team.invite_resent', propertyId: property.id, target: m.email,
+      summary: `Resent the invite for ${m.email} (${f.names})` });
     return teamList(property);
+  },
+
+  // A fresh invite link to copy and send another way (text, your own email).
+  // The old link stops working.
+  async inviteLink({ propertyId, memberId }, event) {
+    const me = await signedIn(event);
+    const property = await ownerOf(me, propertyId);
+    const m = await memberOf(property, memberId);
+    const f = await freshInvite(m);
+    await logActivity({ ...(await actorOf(me)), action: 'team.invite_link', propertyId: property.id, target: m.email,
+      summary: `Copied a new invite link for ${m.email} (${f.names})` });
+    return { url: f.url, email: m.email, names: f.names };
+  },
+
+  // Admin: everyone invited who hasn't accepted yet, by email
+  async pending(body, event) {
+    const me = await signedIn(event); requireAdmin(me);
+    const rows = await sb('GET', 'property_team?status=eq.invited&select=*&order=invited_at.desc');
+    const ids = [...new Set(rows.map(r => r.property_id))];
+    const props = ids.length ? await sb('GET', `properties?id=in.(${ids.join(',')})&select=id,name`) : [];
+    const by = {};
+    rows.forEach(r => {
+      const k = String(r.email).toLowerCase();
+      const g = by[k] || (by[k] = { email: r.email, invitedBy: r.invited_by_name || 'LotHQ', invitedAt: r.invited_at, expired: true, items: [] });
+      if (!(r.expires_at && new Date(r.expires_at) < new Date())) g.expired = false;
+      g.items.push({ propertyId: r.property_id, memberId: r.id, role: r.role, name: props.find(p => p.id === r.property_id)?.name || 'Property' });
+    });
+    return { invites: Object.values(by) };
+  },
+
+  async cancelInvites({ email }, event) {
+    const me = await signedIn(event); requireAdmin(me);
+    email = String(email || '').trim().toLowerCase();
+    const rows = await sb('GET', `property_team?status=eq.invited&email=eq.${q(email)}&select=id`);
+    if (rows.length) await sb('DELETE', `property_team?id=in.(${rows.map(r => r.id).join(',')})`);
+    await logActivity({ ...(await actorOf(me)), action: 'team.invite_cancelled', target: email, summary: `Cancelled the invite for ${email}` });
+    return { ok: true, removed: rows.length };
   },
 
   async setRole({ propertyId, memberId, role }, event) {
