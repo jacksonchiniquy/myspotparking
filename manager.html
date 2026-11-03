@@ -273,7 +273,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
         <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         <div class="tn-dropdown" id="dd-prop" onclick="event.stopPropagation()">
           <div class="tn-dd-item" onclick="showPage('properties',document.getElementById('tab-prop'));closeAllDD()"><div class="tn-dd-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 21V9h6v12"/><path d="M3 9h18"/></svg></div><div><div class="tn-dd-label">All Properties</div><div class="tn-dd-sub">Manage locations &amp; zones</div></div></div>
-          <div class="tn-dd-item add-prop-ctl" onclick="openModal('modal-add-property');closeAllDD()"><div class="tn-dd-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a6fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div><div class="tn-dd-label">Add Property</div><div class="tn-dd-sub">Register a new location</div></div></div>
+          <div class="tn-dd-item add-prop-ctl" onclick="addPropertyClick();closeAllDD()"><div class="tn-dd-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a6fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div><div class="tn-dd-label">Add Property</div><div class="tn-dd-sub">Register a new location</div></div></div>
         </div>
       </button>
       <button class="tn-tab" id="tab-res" onclick="toggleDD('dd-res','tab-res')">
@@ -312,7 +312,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
           <div style="font-size:13px;color:var(--text2);" id="dash-date"></div>
         </div>
         <div style="display:flex;gap:10px;">
-          <button class="btn btn-ghost btn-sm add-prop-ctl" onclick="openModal('modal-add-property')">+ Add Property</button>
+          <button class="btn btn-ghost btn-sm add-prop-ctl add-prop-btn" onclick="addPropertyClick()">+ Add Property</button>
           <button class="btn btn-primary" onclick="openModal('modal-issue-permit')">+ Issue Permit</button>
         </div>
       </div>
@@ -352,7 +352,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
 
   <!-- PROPERTIES -->
   <div id="page-properties" class="page">
-    <div class="page-head"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;"><div><div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:3px;">Properties</div><div style="font-size:13px;color:var(--text2);">Manage all parking locations</div></div><button class="btn btn-primary add-prop-ctl" onclick="openModal('modal-add-property')">+ Add Property</button></div></div>
+    <div class="page-head"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;"><div><div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:3px;">Properties</div><div style="font-size:13px;color:var(--text2);">Manage all parking locations</div></div><button class="btn btn-primary add-prop-ctl add-prop-btn" onclick="addPropertyClick()">+ Add Property</button></div></div>
     <div class="content"><div class="prop-grid" id="prop-grid"><div class="loading">Loading properties...</div></div></div>
   </div>
 
@@ -1789,6 +1789,35 @@ async function sendTeamInvite(){
   loadTeamPage();
 }
 
+// ── Add property: on for some managers, a request to LotHQ for everyone else ──
+let canAddProps=false;
+function applyAddPropLabels(){
+  document.querySelectorAll('.add-prop-btn').forEach(b=>b.textContent=canAddProps?'+ Add Property':'+ Request a property');
+  const dd=document.querySelector('.tn-dd-item.add-prop-ctl');
+  if(dd){const l=dd.querySelector('.tn-dd-label'),s=dd.querySelector('.tn-dd-sub');
+    if(l) l.textContent=canAddProps?'Add Property':'Request a Property';
+    if(s) s.textContent=canAddProps?'Register a new location':'LotHQ sets it up for you';}
+}
+function addPropertyClick(){
+  if(canAddProps){openModal('modal-add-property');return;}
+  ['rp-name','rp-addr','rp-spots','rp-units','rp-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('rp-err').classList.remove('show');
+  openModal('modal-request-property');
+  setTimeout(()=>document.getElementById('rp-name').focus(),50);
+}
+async function sendPropertyRequest(){
+  const v=id=>document.getElementById(id).value.trim();
+  const err=document.getElementById('rp-err'),btn=document.getElementById('rp-btn');
+  err.classList.remove('show');
+  if(v('rp-name').length<2){err.textContent='Enter the property name.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Sending…';
+  const r=await teamApi({action:'requestProperty',name:v('rp-name'),address:v('rp-addr'),spots:v('rp-spots'),units:v('rp-units'),notes:v('rp-notes')});
+  btn.disabled=false;btn.textContent='Send request';
+  if(r.error){err.textContent=r.error;err.classList.add('show');return;}
+  closeModal('modal-request-property');
+  toast('✅ Request sent. LotHQ will set it up and email you.');
+}
+
 // ── Team access ──
 const TM_DOES={owner:'Everything, including payouts and the team',manager:'Everything except payouts and the team',leasing:'Units, tenant invites, vehicles and guest passes',viewer:'Sees everything, changes nothing'};
 function applyRoleUI(){
@@ -2053,9 +2082,11 @@ async function loadProperties(){
   }
   allProperties=[...(own||[]),...shared].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
   const tt=document.getElementById('tab-team');if(tt) tt.style.display=ownsAny()?'':'none';
-  // People added to someone else's property (team members only) don't start new properties;
-  // the property's owner or LotHQ adds them. New managers with no properties yet still can.
-  document.body.classList.toggle('no-add-prop',!(own||[]).length&&!!(tm&&tm.length));
+  // Adding properties is a switch LotHQ turns on per manager (Admin → Plan → "Can add properties").
+  // Everyone else gets "Request a property".
+  const {data:mf}=await sb.from('manager_features').select('flags').eq('manager_id',currentUser.id).maybeSingle();
+  canAddProps=!!(mf&&mf.flags&&mf.flags.add_properties);
+  applyAddPropLabels();
   populateSelects();
   renderPropGrid();
   document.getElementById('s-props').textContent=allProperties.length;
@@ -2111,7 +2142,7 @@ function renderRecent(){
 
 function renderPropGrid(){
   const grid=document.getElementById('prop-grid');
-  if(!allProperties.length){grid.innerHTML='<div style="text-align:center;padding:60px;color:var(--text3);">No properties yet. Add your first property.</div>';return;}
+  if(!allProperties.length){grid.innerHTML=`<div style="text-align:center;padding:60px;color:var(--text3);">No properties yet. ${canAddProps?'Add your first property.':'Click <b>Request a property</b> and LotHQ will set it up for you.'}</div>`;return;}
   grid.innerHTML=allProperties.map(p=>{
     const propPermits=allPermits.filter(x=>x.property_id===p.id);
     const activeCount=propPermits.filter(x=>x.status==='active').length;
@@ -6212,6 +6243,25 @@ checkExistingSession();
     <div id="ti-props" style="max-height:240px;overflow:auto;border:1px solid var(--border2,#e2e8f0);border-radius:10px;padding:6px 12px;margin:6px 0 4px;"></div>
     <div class="err-msg" id="ti-err" style="margin-top:10px;"></div>
     <button class="btn btn-primary" id="ti-btn" style="margin-top:14px;" onclick="sendTeamInvite()">Send invite</button>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-request-property">
+  <div class="modal" style="width:520px;max-width:calc(100vw - 32px);">
+    <button class="modal-close" onclick="closeModal('modal-request-property')">✕</button>
+    <div class="modal-title">Request a property</div>
+    <div class="modal-sub">Tell us about the property and LotHQ will set it up and add it to your dashboard. We'll email you when it's ready.</div>
+    <div class="err-msg" id="rp-err"></div>
+    <label class="form-label">Property name *</label>
+    <input class="form-input" id="rp-name" maxlength="120" placeholder="e.g. Maple Gardens" style="margin-bottom:12px;">
+    <label class="form-label">Address</label>
+    <input class="form-input" id="rp-addr" maxlength="200" placeholder="123 Main St, Provo, UT" style="margin-bottom:12px;">
+    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div><label class="form-label">Parking spaces</label><input class="form-input" id="rp-spots" type="number" min="0" placeholder="80"></div>
+      <div><label class="form-label">Units</label><input class="form-input" id="rp-units" type="number" min="0" placeholder="40"></div>
+    </div>
+    <label class="form-label" style="margin-top:12px;">Notes</label>
+    <textarea class="form-input" id="rp-notes" rows="3" maxlength="2000" placeholder="Paid or free parking, towing company, guest parking, anything else we should know" style="resize:vertical;font-family:inherit;"></textarea>
+    <button class="btn btn-primary btn-full" id="rp-btn" style="margin-top:16px;" onclick="sendPropertyRequest()">Send request</button>
   </div>
 </div>
 </body>

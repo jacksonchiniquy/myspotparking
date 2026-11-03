@@ -423,6 +423,53 @@ const actions = {
     return { ...(await personView(u)), lastSignIn, all };
   },
 
+  // Admin: create a property with this manager as its main manager
+  async createProperty({ userId, name, address, totalSpots, zones, units, monthlyRate, propertyType, spaceWord }, event) {
+    const me = await signedIn(event); requireAdmin(me);
+    const u = await personRow(userId);
+    if (u.role !== 'manager') throw new UserError('Only a manager login can run a property.');
+    name = String(name || '').trim().slice(0, 120);
+    if (name.length < 2) throw new UserError('Enter the property name.');
+    const int = v => Math.max(0, parseInt(v, 10) || 0);
+    const row = {
+      manager_id: u.id, name, address: String(address || '').trim().slice(0, 200) || null,
+      total_spots: int(totalSpots), zones: String(zones || '').trim().slice(0, 120) || 'A', units: int(units),
+      monthly_rate: Math.max(0, parseFloat(monthlyRate) || 0), property_type: propertyType === 'self' ? 'self' : 'linked',
+      parking_rates: {},
+    };
+    const word = String(spaceWord || '').trim().slice(0, 30);
+    let created;
+    try { [created] = await sb('POST', 'properties', word ? { ...row, space_word: word } : row); }
+    catch (e) { if (word && /space_word|42703/.test(e.message)) [created] = await sb('POST', 'properties', row); else throw e; }
+    await logActivity({ ...(await actorOf(me)), action: 'property.created', propertyId: created.id, target: name,
+      summary: `Created ${name} for ${nameOf(u)} (${u.email})` });
+    try { await addedEmail(u, [created], 'owner', 'LotHQ'); } catch (e) { console.error('Added email failed:', e.message); }
+    return { ok: true, propertyId: created.id };
+  },
+
+  // Manager → "Request a property": LotHQ sets it up
+  async requestProperty({ name, address, spots, units, notes }, event) {
+    const me = await signedIn(event);
+    if (me.role !== 'manager' && me.role !== 'admin') throw new UserError('Please sign in again.', 401);
+    const clip = (v, n) => String(v || '').trim().slice(0, n);
+    name = clip(name, 120); address = clip(address, 200); notes = clip(notes, 2000);
+    if (name.length < 2) throw new UserError('Enter the property name.');
+    const num = v => (String(v || '').trim() === '' ? '' : String(Math.max(0, parseInt(v, 10) || 0)));
+    spots = num(spots); units = num(units);
+    const who = nameOf(me) || me.email;
+    const rows = [['Property', name], ['Address', address || '—'], ['Parking spaces', spots || '—'], ['Units', units || '—'], ['Notes', notes || '—'],
+      ['Requested by', `${who} (${me.email})${me.company ? ' · ' + me.company : ''}${me.phone ? ' · ' + me.phone : ''}`]];
+    await sendRaw({
+      to: NOTIFY_TO,
+      subject: `Property request: ${name} (from ${who})`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;"><h2 style="margin:0 0 12px;">New property request</h2><table style="border-collapse:collapse;font-size:14px;">${rows.map(([k, v]) => `<tr><td style="padding:6px 14px 6px 0;color:#64748b;vertical-align:top;">${esc(k)}</td><td style="padding:6px 0;white-space:pre-wrap;">${esc(v)}</td></tr>`).join('')}</table><p style="color:#475569;font-size:13px;margin-top:16px;">Add it in Admin → Properties, then open their card in Admin → Managers and click Make main (or add it from their login). The manager's email is above.</p></div>`,
+      text: rows.map(([k, v]) => `${k}: ${v}`).join('\n'),
+    });
+    await logActivity({ ...(await actorOf(me)), action: 'access.property_requested', target: name,
+      summary: `${who} requested a new property: ${name}${address ? ' (' + address + ')' : ''}` });
+    return { ok: true };
+  },
+
   // Admin → Add Manager: create (or finish) a manager login on the server
   async createManager({ email, password, fullName, company, phone, plan, flags, mustChange, notify }, event) {
     const me = await signedIn(event); requireAdmin(me);
