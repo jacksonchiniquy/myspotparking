@@ -12,6 +12,8 @@ const ses = new SESClient({
 });
 
 const FROM = process.env.AWS_SES_FROM_EMAIL || 'noreply@myspotparking.com';
+// Where replies go (noreply@ can't receive mail). Set REPLY_TO_EMAIL in Netlify to change it.
+const REPLY_TO = process.env.REPLY_TO_EMAIL || 'support@myspotparking.com';
 const SITE = process.env.SITE_URL || 'https://myspotparking.com';
 
 // ── Email-safe logo header ───────────────────────────────────────────────────
@@ -55,6 +57,7 @@ async function sendViaSES({ to, subject, html, text }) {
   const cmd = new SendEmailCommand({
     Source: `LotHQ <${FROM}>`,
     Destination: { ToAddresses: [to] },
+    ReplyToAddresses: [REPLY_TO],
     Message: {
       Subject: { Data: subject, Charset: 'UTF-8' },
       Body: {

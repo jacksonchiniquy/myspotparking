@@ -143,6 +143,7 @@ exports.handler = async (event) => {
       });
       await ses.send(new SendEmailCommand({
         Source: `LotHQ <${process.env.AWS_SES_FROM_EMAIL || 'noreply@myspotparking.com'}>`,
+        ReplyToAddresses: [process.env.REPLY_TO_EMAIL || 'support@myspotparking.com'],
         Destination: { ToAddresses: [emailTo] },
         Message: {
           Subject: { Data: `Your parking permit invite — ${propertyName} Unit ${unitNumber}` },
