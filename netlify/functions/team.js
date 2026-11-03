@@ -423,6 +423,73 @@ const actions = {
     return { ...(await personView(u)), lastSignIn, all };
   },
 
+  // Admin → Add Manager: create (or finish) a manager login on the server
+  async createManager({ email, password, fullName, company, phone, plan, flags, mustChange, notify }, event) {
+    const me = await signedIn(event); requireAdmin(me);
+    email = String(email || '').trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) throw new UserError('Enter a valid email address.');
+    password = String(password || '');
+    if (password.length < 8) throw new UserError('The temporary password needs at least 8 characters.');
+    fullName = String(fullName || '').trim().slice(0, 120);
+    if (fullName.length < 2) throw new UserError('Enter their name.');
+    plan = ['starter', 'pro', 'enterprise'].includes(plan) ? plan : 'starter';
+
+    const [existing] = await sb('GET', `users?email=eq.${q(email)}&select=*&limit=1`);
+    if (existing && existing.role === 'manager') throw new UserError('That email already has a manager login. Find them in the Managers list.');
+    if (existing && !['manager_pending', 'manager_declined'].includes(existing.role)) {
+      throw new UserError('That email is already used for a resident, enforcement or admin login. Use a different email for this manager.');
+    }
+    let id = existing?.id || null;
+    if (!id) {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+        body: JSON.stringify({ email, password, email_confirm: true, user_metadata: { name: fullName, role: 'manager' } }),
+      });
+      const out = await res.json().catch(() => ({}));
+      if (res.ok && out.id) id = out.id;
+      else if (/registered|exists/i.test(JSON.stringify(out))) {
+        // A login exists with no profile (e.g. an earlier attempt). Find it and finish it.
+        for (let page = 1; page <= 20 && !id; page++) {
+          const list = await authAdmin('GET', `users?page=${page}&per_page=200`);
+          const users = list.users || [];
+          const hit = users.find(u => String(u.email || '').toLowerCase() === email);
+          if (hit) id = hit.id;
+          if (users.length < 200) break;
+        }
+        if (!id) throw new UserError('That email already has a LotHQ login, but it couldn\'t be found. Contact support.');
+      } else {
+        const msg = out.msg || out.message || '';
+        if (/password/i.test(msg)) throw new UserError(msg);
+        throw new Error(`Create login failed: ${res.status} ${JSON.stringify(out)}`);
+      }
+    }
+    // Make sure the password is the one typed, and the login is confirmed
+    await authAdmin('PUT', `users/${id}`, { password, email_confirm: true });
+    const profile = { id, email, full_name: fullName, company: String(company || '').trim().slice(0, 120) || null,
+      phone: String(phone || '').trim().slice(0, 40) || null, role: 'manager' };
+    if (existing) await sb('PATCH', `users?id=eq.${id}`, profile);
+    else {
+      const [row] = await sb('GET', `users?id=eq.${id}&select=id`);
+      if (row) await sb('PATCH', `users?id=eq.${id}`, profile); else await sb('POST', 'users', profile);
+    }
+    if (mustChange) {
+      try { await sb('PATCH', `users?id=eq.${id}`, { must_change_password: true }); }
+      catch (e) { console.error('must_change_password not set:', e.message); }
+    }
+    const f = flags && typeof flags === 'object' ? flags : {};
+    const [mf] = await sb('GET', `manager_features?manager_id=eq.${id}&select=manager_id`);
+    const feat = { plan, flags: f, updated_at: new Date().toISOString() };
+    if (mf) await sb('PATCH', `manager_features?manager_id=eq.${id}`, feat); else await sb('POST', 'manager_features', { manager_id: id, ...feat });
+    await logActivity({ ...(await actorOf(me)), action: 'team.manager_created', target: email, summary: `Created a manager login for ${fullName} (${email})` });
+    let notified = false, notifyError = null;
+    if (notify) {
+      try { await notifyLogin({ email }, 'LotHQ'); notified = true; }
+      catch (e) { console.error('Notify failed:', e.message); notifyError = 'The login was created, but the email didn\'t send. Use Notify on their card to try again.'; }
+    }
+    return { ok: true, userId: id, notified, notifyError };
+  },
+
   async setTempPassword({ userId, password }, event) {
     const me = await signedIn(event); requireAdmin(me);
     const u = await personRow(userId);
