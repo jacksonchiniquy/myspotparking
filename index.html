@@ -458,8 +458,14 @@ footer { background: #080E19; padding: 48px 60px 36px; }
     <a class="nav-link" href="get-started.html">Contact</a>
   </div>
   <div class="nav-right">
-    <a class="nav-signin" href="portals.html" title="Property managers and enforcement">Business Login</a>
-    <a class="nav-cta" href="login.html" style="margin-right:4px;">LotHQ Login</a>
+    <div class="nav-login">
+      <button class="nav-signin nav-login-btn" type="button" aria-haspopup="true" aria-expanded="false">Login <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <div class="nav-login-menu" role="menu">
+        <a href="login.html" role="menuitem"><b>LotHQ Login</b><span>Residents, tenants and guests</span></a>
+        <a href="manager.html" role="menuitem"><b>Manager</b><span>Property managers and HOAs</span></a>
+        <a href="enforcer.html" role="menuitem"><b>Enforcement</b><span>Towing and patrol officers</span></a>
+      </div>
+    </div>
     <a class="nav-cta nav-talk" href="get-started.html">Talk to Our Team</a>
   </div>
 </nav>

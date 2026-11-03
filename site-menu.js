@@ -14,7 +14,20 @@
     '.nav-panel a{display:block;padding:13px 12px;font-size:16px;font-weight:500;color:var(--ink,#0B1220);text-decoration:none;border-radius:8px;font-family:Inter,sans-serif;}' +
     '.nav-panel a:hover,.nav-panel a:focus-visible{background:var(--blue-light,rgba(27,111,255,.08));color:var(--blue,#1B6FFF);}' +
     '.nav-panel a.nav-panel-cta{margin-top:8px;text-align:center;background:var(--blue,#1B6FFF);color:#fff;font-weight:600;}' +
-    '@media(max-width:960px){.nav-burger{display:inline-flex;}}';
+    '@media(max-width:960px){.nav-burger{display:inline-flex;}}' +
+    // Login drop-down (top bar)
+    '.nav-login{position:relative;}' +
+    '.nav-login-btn{gap:6px;}' +
+    '.nav-login-btn svg{transition:transform .18s;}' +
+    '.nav-login.open .nav-login-btn{border-color:var(--blue,#2859a8);color:var(--blue,#2859a8);}' +
+    '.nav-login.open .nav-login-btn svg{transform:rotate(180deg);}' +
+    '.nav-login-menu{display:none;position:absolute;right:0;top:calc(100% + 8px);width:270px;background:#fff;border:1px solid var(--border,#e2e8f0);border-radius:12px;box-shadow:0 14px 32px rgba(11,18,32,.14);padding:6px;z-index:600;}' +
+    '.nav-login.open .nav-login-menu{display:block;}' +
+    '.nav-login-menu a{display:block;padding:10px 12px;border-radius:8px;text-decoration:none;color:var(--ink,#0B1220);font-family:Inter,sans-serif;}' +
+    '.nav-login-menu a:hover,.nav-login-menu a:focus-visible{background:var(--blue-light,rgba(40,89,168,.08));outline:none;}' +
+    '.nav-login-menu b{display:block;font-size:14px;font-weight:600;}' +
+    '.nav-login-menu span{display:block;font-size:12.5px;color:var(--slate,#55607d);margin-top:2px;}' +
+    '.nav-panel .nav-panel-h{display:block;padding:12px 12px 4px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--slate,#55607d);font-family:Inter,sans-serif;}';
   document.head.appendChild(css);
 
   var panel = document.createElement('div');
@@ -26,6 +39,19 @@
     c.textContent = a.textContent.trim();
     panel.appendChild(c);
   });
+  var loginMenu = nav.querySelector('.nav-login-menu');
+  if (loginMenu) {
+    var h = document.createElement('span');
+    h.className = 'nav-panel-h';
+    h.textContent = 'Login';
+    panel.appendChild(h);
+    loginMenu.querySelectorAll('a').forEach(function (a) {
+      var c = document.createElement('a');
+      c.href = a.getAttribute('href');
+      c.textContent = a.querySelector('b') ? a.querySelector('b').textContent : a.textContent.trim();
+      panel.appendChild(c);
+    });
+  }
   var cta = nav.querySelector('.nav-right .nav-talk');
   if (cta) {
     var c = document.createElement('a');
@@ -57,4 +83,21 @@
   document.addEventListener('click', function (e) { if (!panel.contains(e.target)) set(false); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') set(false); });
   window.addEventListener('resize', function () { if (window.innerWidth > 960) set(false); });
+
+  // Login drop-down: click to open (works on phones too), hover to open on desktop
+  var login = nav.querySelector('.nav-login');
+  if (login) {
+    var lb = login.querySelector('.nav-login-btn');
+    var hoverable = window.matchMedia('(hover: hover)').matches;
+    var timer;
+    function setL(on) { login.classList.toggle('open', on); lb.setAttribute('aria-expanded', on ? 'true' : 'false'); }
+    // With a mouse, hovering already opened it, so a click keeps it open instead of closing it
+    lb.addEventListener('click', function (e) { e.stopPropagation(); set(false); setL(hoverable ? true : !login.classList.contains('open')); });
+    if (hoverable) {
+      login.addEventListener('mouseenter', function () { clearTimeout(timer); setL(true); });
+      login.addEventListener('mouseleave', function () { timer = setTimeout(function () { setL(false); }, 180); });
+    }
+    document.addEventListener('click', function (e) { if (!login.contains(e.target)) setL(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setL(false); });
+  }
 })();
