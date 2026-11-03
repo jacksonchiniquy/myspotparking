@@ -11,10 +11,10 @@ const ses = new SESClient({
   },
 });
 
-const FROM = process.env.AWS_SES_FROM_EMAIL || 'noreply@myspotparking.com';
+const FROM = process.env.AWS_SES_FROM_EMAIL || 'noreply@lothq.com';
 // Where replies go (noreply@ can't receive mail). Set REPLY_TO_EMAIL in Netlify to change it.
 const REPLY_TO = process.env.REPLY_TO_EMAIL || 'support@myspotparking.com';
-const SITE = process.env.SITE_URL || 'https://myspotparking.com';
+const SITE = process.env.SITE_URL || 'https://lothq.com';
 
 // ── Email-safe logo header ───────────────────────────────────────────────────
 // Uses a table-based layout (email client safe) with an inline SVG logo mark.

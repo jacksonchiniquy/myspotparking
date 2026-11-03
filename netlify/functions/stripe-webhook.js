@@ -20,7 +20,7 @@ const connect = require('./lib/connect');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY; // service role key for server-side writes
-const SITE = process.env.SITE_URL || 'https://myspotparking.com';
+const SITE = process.env.SITE_URL || 'https://lothq.com';
 
 // ── Supabase helpers ─────────────────────────────────────────
 function sbHeaders() {

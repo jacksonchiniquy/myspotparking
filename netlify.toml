@@ -17,6 +17,17 @@ from = "/login"
 to = "/login.html"
 status = 200
 
+# Privacy Policy and Terms (lothq.com/privacy, lothq.com/terms)
+[[redirects]]
+from = "/privacy"
+to = "/privacy.html"
+status = 200
+
+[[redirects]]
+from = "/terms"
+to = "/terms.html"
+status = 200
+
 # Help Center (lothq.com/help)
 [[redirects]]
 from = "/help"

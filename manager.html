@@ -708,7 +708,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
                   </div>
                   <span id="pay-code-lock" style="font-size:11px;font-weight:600;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:4px 10px;">🔒 Permanent — printed on signs</span>
                 </div>
-                <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;">Put the sticker on a LotHQ Pay to Park sign. Drivers scan it, or enter the code at <strong>myspotparking.com/park</strong>. No app or account needed.</div>
+                <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;">Put the sticker on a LotHQ Pay to Park sign. Drivers scan it, or enter the code at <strong>lothq.com/park</strong>. No app or account needed.</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                   <button class="btn btn-primary btn-sm" onclick="downloadSticker()">Download Sticker</button>
                   <button class="btn btn-ghost btn-sm" onclick="copyPayLink()">Copy Pay Link</button>
@@ -3551,12 +3551,12 @@ function stickerSpec(stall){
     shapes.push(...qrShapes(getPayLink(),140,40,470));
     T('PROPERTY CODE',375,560,26,'#5D6886');
     T(code,375,645,78,'#1B2340');
-    T('myspotparking.com/park',375,700,24,'#5D6886');
+    T('lothq.com/park',375,700,24,'#5D6886');
   }else{
     shapes.push(...qrShapes(getPayLink(stall),165,34,420));
     T('ZONE',215,505,22,'#5D6886');
     T(code,215,565,52,'#1B2340');
-    T('myspotparking.com/park',215,610,21,'#5D6886');
+    T('lothq.com/park',215,610,21,'#5D6886');
     const bx=420,by=470,bw=270,bh=230,r=22;
     shapes.push({d:`M${bx+r} ${by}H${bx+bw-r}A${r} ${r} 0 0 1 ${bx+bw} ${by+r}V${by+bh-r}A${r} ${r} 0 0 1 ${bx+bw-r} ${by+bh}H${bx+r}A${r} ${r} 0 0 1 ${bx} ${by+bh-r}V${by+r}A${r} ${r} 0 0 1 ${bx+r} ${by}Z`,fill:'#374269'});
     T('STALL',bx+bw/2,by+52,24,'#C9D4F0');

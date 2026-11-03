@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terms of Use — LotHQ</title>
+<meta name="description" content="The terms for using LotHQ&#x27;s parking permit, guest pass, Pay to Park and enforcement tools.">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0B1220;
+  --ink2: #1E2A3B;
+  --slate: #4A5568;
+  --slate2: #718096;
+  --blue: #1B6FFF;
+  --blue-dark: #0D5AE5;
+  --blue-light: rgba(27,111,255,0.08);
+  --green: #00C87A;
+  --amber: #F59E0B;
+  --white: #FFFFFF;
+  --bg: #F5F6F8;
+  --bg2: #EBEDF0;
+  --border: rgba(11,18,32,0.10);
+  --border2: rgba(11,18,32,0.06);
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { background: var(--white); color: var(--ink); font-family: 'Inter', sans-serif; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
+/* ── TYPOGRAPHY ── */
+.display { font-family: 'Sora', sans-serif; }
+h1, h2, h3 { font-family: 'Sora', sans-serif; }
+
+/* ── NAV ── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 60px; height: 64px;
+  background: rgba(255,255,255,0.95); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+.nav-mark {
+  width: 36px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-mark svg { width: 36px; height: 38px; }
+.nav-name { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+.nav-name span { color: #374269; font-weight: 800; }
+.nav-name em { font-style: normal; color: #2859a8; font-weight: 600; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; display: block; line-height: 1.1; margin-top: 1px; }
+.nav-links { display: flex; align-items: center; gap: 2px; }
+.nav-link { padding: 7px 14px; font-size: 14px; font-weight: 500; color: var(--slate); text-decoration: none; border-radius: 7px; transition: all .18s; }
+.nav-link:hover { color: var(--blue); background: var(--blue-light); }
+.nav-right { display: flex; align-items: center; gap: 10px; }
+.nav-signin { padding: 7px 16px; font-size: 14px; font-weight: 500; color: var(--slate); background: none; border: 1px solid var(--border); border-radius: 7px; cursor: pointer; text-decoration: none; font-family: 'Inter', sans-serif; transition: all .18s; display: inline-flex; align-items: center; }
+.nav-signin:hover { border-color: var(--blue); color: var(--blue); }
+.nav-cta { padding: 8px 20px; font-size: 14px; font-weight: 600; color: white; background: var(--blue); border: none; border-radius: 7px; cursor: pointer; text-decoration: none; font-family: 'Inter', sans-serif; transition: all .18s; display: inline-flex; align-items: center; letter-spacing: -0.01em; }
+.nav-cta:hover { background: var(--blue-dark); }
+footer { background: #080E19; padding: 48px 60px 36px; }
+.footer-inner { max-width: 1100px; margin: 0 auto; }
+.footer-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; padding-bottom: 32px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 24px; }
+.footer-brand-name { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; color: white; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.footer-brand-desc { font-size: 13px; color: rgba(255,255,255,0.35); line-height: 1.6; max-width: 220px; }
+.footer-cols { display: flex; gap: 48px; }
+.footer-col-title { font-size: 11px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(255,255,255,0.25); margin-bottom: 14px; }
+.footer-links { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+.footer-links a { font-size: 13px; color: rgba(255,255,255,0.45); text-decoration: none; transition: color .18s; }
+.footer-links a:hover { color: white; }
+.footer-bottom { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: rgba(255,255,255,0.25); }
+
+.lg-hero{padding:120px 24px 34px;background:linear-gradient(180deg,#EEF3FF 0%,#fff 100%);text-align:center;}
+.lg-hero h1{font-family:'Sora',sans-serif;font-size:40px;font-weight:700;letter-spacing:-.03em;color:var(--ink);}
+.lg-hero p{color:var(--slate);font-size:15px;margin-top:10px;}
+.lg-main{max-width:780px;margin:0 auto;padding:10px 24px 80px;}
+.lg-main h2{font-family:'Sora',sans-serif;font-size:21px;font-weight:700;letter-spacing:-.02em;margin:36px 0 10px;color:var(--ink);scroll-margin-top:80px;}
+.lg-main p,.lg-main li{font-size:15.5px;color:#3a4458;line-height:1.75;}
+.lg-main p{margin:0 0 12px;}
+.lg-main ul{margin:0 0 14px 22px;}
+.lg-main li{margin-bottom:6px;}
+.lg-main a{color:var(--blue);font-weight:600;text-decoration:none;}
+.lg-summary{background:#F5F8FF;border:1px solid var(--border);border-radius:14px;padding:18px 22px;margin-top:22px;}
+.lg-summary p{margin:0;}
+.lg-toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;}
+.lg-toc a{font-size:13px;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--slate);font-weight:500;}
+@media(max-width:960px){.nav{padding:0 20px;}.nav-links{display:none;}.footer-row{flex-direction:column;}.footer-cols{flex-wrap:wrap;gap:28px;}.footer-bottom{flex-direction:column;gap:10px;text-align:center;}}
+@media(max-width:420px){.nav-logo .nav-mark{display:none;}}
+@media(max-width:620px){.nav{padding:0 14px;}.nav-right{gap:6px;}.nav-right .nav-talk{display:none;}.nav-signin,.nav-cta{padding:7px 11px;font-size:13px;white-space:nowrap;}.nav-name em{display:none;}.lg-hero h1{font-size:30px;}}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-logo" href="index.html">
+    <div class="nav-mark">
+      <svg width="36" height="38" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="#374269" opacity="0.2"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg>
+    </div>
+    <span class="nav-name"><span>Lot<b style="color:#2859a8;font-weight:inherit;">HQ</b></span><em>Parking</em></span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="index.html#for-who">Solutions</a>
+    <a class="nav-link" href="index.html#modes">Parking Types</a>
+    <a class="nav-link" href="index.html#features">Features</a>
+    <a class="nav-link" href="index.html#how">How It Works</a>
+    <a class="nav-link" href="index.html#faq">FAQ</a>
+    <a class="nav-link" href="help.html">Help</a>
+    <a class="nav-link" href="get-started.html">Contact</a>
+  </div>
+  <div class="nav-right">
+    <div class="nav-login">
+      <button class="nav-signin nav-login-btn" type="button" aria-haspopup="true" aria-expanded="false">Login <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <div class="nav-login-menu" role="menu">
+        <a href="login.html" role="menuitem"><b>LotHQ Login</b><span>Residents, tenants and guests</span></a>
+        <a href="manager.html" role="menuitem"><b>Manager</b><span>Property managers and HOAs</span></a>
+        <a href="enforcer.html" role="menuitem"><b>Enforcement</b><span>Towing and patrol officers</span></a>
+      </div>
+    </div>
+    <a class="nav-cta nav-talk" href="get-started.html">Talk to Our Team</a>
+  </div>
+</nav>
+<script src="site-menu.js" defer></script>
+<div class="lg-hero"><h1>Terms of Use</h1><p>Last updated November 3, 2026</p></div>
+<main class="lg-main"><div class="lg-summary"><p><b>The short version:</b> LotHQ is the software; each property sets its own parking rules, prices and enforcement. Enter accurate plates, keep your password private, and ask your property manager about tows, tickets and refunds.</p></div><div class="lg-toc"><a href="#agreement">Agreement</a><a href="#what-lothq-does">What LotHQ does</a><a href="#parking-rules-and-enforcement">Parking rules and enforcement</a><a href="#your-responsibilities">Your responsibilities</a><a href="#payments">Payments</a><a href="#acceptable-use">Acceptable use</a><a href="#accounts-for-managers-and-enforcement">Accounts for managers and enforcement</a><a href="#availability-and-changes">Availability and changes</a><a href="#disclaimers">Disclaimers</a><a href="#limitation-of-liability">Limitation of liability</a><a href="#privacy">Privacy</a><a href="#governing-law">Governing law</a><a href="#changes-to-these-terms">Changes to these terms</a><a href="#contact">Contact</a></div><h2 id="agreement">Agreement</h2><p>These Terms of Use apply to everyone who uses lothq.com or a LotHQ portal or page, including residents, unit tenants, guests, Pay to Park drivers, property managers and enforcement officers. By using LotHQ, you agree to these terms. If you don't agree, don't use LotHQ. Questions: <a href="mailto:support@myspotparking.com">support@myspotparking.com</a>.</p><p>Properties and enforcement companies that sign up with LotHQ also have a separate written agreement with us. If that agreement conflicts with these terms, the agreement controls for that customer.</p><h2 id="what-lothq-does">What LotHQ does</h2><p>LotHQ is software that helps properties manage parking: permits tied to license plates, unit spots, guest passes, Pay to Park, and plate checks by enforcement. LotHQ does not own or operate the parking lots, set their rules or prices, or tow or ticket vehicles.</p><h2 id="parking-rules-and-enforcement">Parking rules and enforcement</h2><ul><li>Each property sets its own parking rules, prices and enforcement, shown in its Parking Terms. When you add a vehicle, give a guest pass or pay to park, you agree to that property's Parking Terms.</li><li>Decisions to tow, boot, ticket or warn are made by the property and its enforcement company under their rules and the law, not by LotHQ.</li><li>Questions about a tow, ticket, refund or your parking should go to the property manager or the enforcement company named on the property's signs.</li></ul><h2 id="your-responsibilities">Your responsibilities</h2><ul><li>Enter accurate information, especially your license plate. Permits and paid time are tied to the plate you enter; a wrong plate may not be recognized.</li><li>Keep your vehicles and passes up to date, for example when you change cars or move out.</li><li>Keep your password private, and tell us or your manager if you think someone else is using your account.</li><li>Only add vehicles and guests you're allowed to, and use guest passes for real guests.</li></ul><h2 id="payments">Payments</h2><ul><li>Payments are processed by Stripe and are subject to Stripe's terms. Paid parking is paid to the property (or the business it chooses) unless the property tells you otherwise.</li><li>Prices, billing schedules and refund decisions are set by the property. Ask the property manager for refunds.</li><li>Paid time starts when your payment goes through. Recurring spot payments renew until cancelled through the property.</li></ul><h2 id="acceptable-use">Acceptable use</h2><p>Don't misuse LotHQ. For example, don't:</p><ul><li>enter false information or someone else's plate to avoid paying or to get someone towed;</li><li>try to get into accounts, properties or data you're not allowed to see;</li><li>interfere with or overload the service, or copy it with bots or scraping;</li><li>use LotHQ to harass anyone or to break the law.</li></ul><p>We may suspend or end access for anyone who breaks these terms or puts others at risk.</p><h2 id="accounts-for-managers-and-enforcement">Accounts for managers and enforcement</h2><p>Managers and officers must keep the information they enter accurate, follow the property's rules and the law when enforcing, and only give access to people who need it. Anyone given access to a property (an owner, manager, leasing agent or view-only user) is responsible for what they do with it.</p><h2 id="availability-and-changes">Availability and changes</h2><p>We work to keep LotHQ available and accurate, but it may sometimes be unavailable or have errors, for example during maintenance or an outage of an internet or payment provider. We may change, add or remove features over time.</p><h2 id="disclaimers">Disclaimers</h2><p>LotHQ is provided "as is" and "as available." To the extent the law allows, we disclaim all warranties, express or implied, including warranties of merchantability, fitness for a particular purpose and non-infringement. We don't guarantee that the service will be uninterrupted or error-free, or that any vehicle will or won't be towed, booted or ticketed.</p><h2 id="limitation-of-liability">Limitation of liability</h2><p>To the extent the law allows, LotHQ won't be liable for indirect, incidental, special, consequential or punitive damages, or for lost profits or data. This includes damages from towing, booting, ticketing or parking decisions made by properties or enforcement companies. Our total liability for any claim relating to LotHQ is limited to the greater of the amount you paid LotHQ itself in the 12 months before the claim, or $100. Some places don't allow these limits, so they may not fully apply to you.</p><h2 id="privacy">Privacy</h2><p>Our <a href="privacy.html">Privacy Policy</a> explains what information we collect and how we use it.</p><h2 id="governing-law">Governing law</h2><p>These terms are governed by the laws of the State of Utah, without regard to its conflict-of-law rules. Any dispute will be handled in the state or federal courts located in Utah, unless the law requires otherwise.</p><h2 id="changes-to-these-terms">Changes to these terms</h2><p>We may update these terms. We'll change the date at the top, and for significant changes we'll give notice in the portals or by email. Using LotHQ after an update means you accept the new terms.</p><h2 id="contact">Contact</h2><p>Questions about these terms: <a href="mailto:support@myspotparking.com">support@myspotparking.com</a>.</p></main>
+<footer>
+  <div class="footer-inner">
+    <div class="footer-row">
+      <div>
+        <div class="footer-brand-name">
+          <div class="nav-mark" style="width:28px;height:30px;">
+            <svg width="28" height="30" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="#374269" opacity="0.2"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg>
+          </div>
+          LotHQ
+        </div>
+        <p class="footer-brand-desc">Digital parking permit management for property managers, residents, and enforcement teams.</p>
+      </div>
+      <div class="footer-cols">
+        <div>
+          <div class="footer-col-title">Portals</div>
+          <ul class="footer-links">
+            <li><a href="manager.html">Property Manager</a></li>
+            <li><a href="login.html">LotHQ Login</a></li>
+            <li><a href="enforcer.html">Enforcement</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Company</div>
+          <ul class="footer-links">
+            <li><a href="get-started.html">Get Started</a></li>
+            <li><a href="get-started.html">Contact Sales</a></li>
+            <li><a href="help.html">Help Center</a></li>
+            <li><a href="mailto:support@myspotparking.com">Support</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Legal</div>
+          <ul class="footer-links">
+            <li><a href="privacy.html">Privacy Policy</a></li>
+            <li><a href="terms.html">Terms of Use</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 LotHQ. All rights reserved.</span>
+      <span>Payments secured by Stripe · Built in Utah</span>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
