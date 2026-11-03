@@ -1788,6 +1788,7 @@ async function loadInvites(){
   const r=await teamCall({action:'pending'});
   const wrap=document.getElementById('inv-wrap');
   _invites=r.error?[]:r.invites;
+  if(r.error){wrap.style.display='block';document.getElementById('tbl-invites').innerHTML=`<tr><td colspan="4" style="color:#ff7b72;font-size:12.5px;">Couldn't load invites: ${escA(r.error)}</td></tr>`;return;}
   wrap.style.display=_invites.length?'block':'none';
   const AC={owner:'Owner / Admin',manager:'Manager',leasing:'Leasing agent',viewer:'View only'};
   document.getElementById('tbl-invites').innerHTML=_invites.map((g,i)=>`<tr>
