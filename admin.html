@@ -838,6 +838,7 @@ function enterApp(){
 
 async function loadAll(){
   await Promise.all([loadPendingManagers(),loadManagers(),loadProperties(),loadPermits(),loadResidents(),loadViolations(),loadStaff(),loadFeatureFlags()]);
+  renderManagers(allManagers); // counts need properties and permits, which may finish loading after managers
   await loadEnforcement(); // after properties, so property names show
   renderDashboard();
   restoreFromHash();
@@ -934,6 +935,7 @@ async function loadProperties(){
   document.getElementById('cnt-properties').textContent=allProperties.length;
   document.getElementById('s-properties').textContent=allProperties.length;
   renderProperties(allProperties);
+  if(allManagers.length) renderManagers(allManagers);
 }
 
 async function loadPermits(){
