@@ -72,7 +72,20 @@ async function freshen(acct) {
 
 async function accountLink(acct, propertyId) {
   const back = `${SITE}/manager.html?payouts=PARAM#property/${propertyId}/payouts`;
-  return connect.onboardingLink(acct.stripe_account_id, back.replace('PARAM', 'refresh'), back.replace('PARAM', 'done'));
+  const refresh = back.replace('PARAM', 'refresh'), ret = back.replace('PARAM', 'done');
+  try {
+    return await connect.onboardingLink(acct.stripe_account_id, refresh, ret);
+  } catch (e2) {
+    console.error('Sign-up link (v2) failed:', e2.code, e2.message);
+    // Stripe also accepts the older link type for new accounts
+    try {
+      const link = await stripe.accountLinks.create({ account: acct.stripe_account_id, type: 'account_onboarding', refresh_url: refresh, return_url: ret });
+      return link.url;
+    } catch (e1) {
+      console.error('Sign-up link (v1) failed:', e1.code, e1.message);
+      throw new UserError(`Stripe couldn't open the sign-up page: ${e2.message}`, 502);
+    }
+  }
 }
 
 // Stripe errors that mean LotHQ's own Connect setup isn't finished
