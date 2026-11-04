@@ -11,6 +11,63 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
+// Stripe's newer "Accounts v2" API, which new Connect platforms must use to
+// create payout accounts. LotHQ's Stripe library predates it, so these calls
+// go straight to Stripe. Accounts made this way still work with every v1 call
+// LotHQ uses (Checkout, billing, retrieving status), per Stripe's docs.
+const STRIPE_V2_VERSION = process.env.STRIPE_V2_VERSION || '2026-10-28.endive';
+class StripeV2Error extends Error {
+  constructor(status, body) {
+    const e = (body && body.error) || {};
+    super(e.message || `Stripe ${status}`);
+    this.status = status; this.code = e.code || e.type || null;
+  }
+}
+async function stripeV2(method, path, body) {
+  const res = await fetch(`https://api.stripe.com${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`, 'Stripe-Version': STRIPE_V2_VERSION, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const out = await res.json().catch(() => ({}));
+  if (!res.ok) throw new StripeV2Error(res.status, out);
+  return out;
+}
+
+// A payout account the HOA / company / owner runs themselves: full Stripe
+// Dashboard, Stripe's own pricing (they pay Stripe's card fees) and Stripe
+// covers losses. Same setup as Stripe's former "Standard" accounts.
+async function createConnectedAccount({ name, email, metadata }) {
+  const body = {
+    display_name: name,
+    identity: { country: 'us' },
+    dashboard: 'full',
+    defaults: { currency: 'usd', responsibilities: { fees_collector: 'stripe', losses_collector: 'stripe' } },
+    configuration: { merchant: { capabilities: { card_payments: { requested: true } } } },
+    metadata: metadata || {},
+  };
+  if (email) body.contact_email = email;
+  return stripeV2('POST', '/v2/core/accounts', body);
+}
+
+// Stripe-hosted sign-up page for a payout account
+async function onboardingLink(accountId, refreshUrl, returnUrl) {
+  const link = await stripeV2('POST', '/v2/core/account_links', {
+    account: accountId,
+    use_case: { type: 'account_onboarding', account_onboarding: { configurations: ['merchant'], refresh_url: refreshUrl, return_url: returnUrl } },
+  });
+  return link.url;
+}
+
+// Ask Stripe for an account's latest status (v1 view) and save it
+async function refreshAccount(stripeAccountId) {
+  const res = await fetch(`https://api.stripe.com/v1/accounts/${encodeURIComponent(stripeAccountId)}`, {
+    headers: { Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}` },
+  });
+  if (!res.ok) throw new Error(`Stripe account lookup ${res.status}`);
+  return syncAccount(await res.json());
+}
+
 // Stripe's standard US card price, for the examples managers see (not for charging)
 const CARD_PERCENT = 2.9;
 const CARD_FIXED_CENTS = 30;
@@ -60,7 +117,12 @@ class PaymentsPaused extends Error {
 // Throws PaymentsPaused when a payout account is linked but not ready.
 async function routeFor(property) {
   if (!property || !property.payout_account_id) return { account: null };
-  const [acct] = await sb('GET', `payout_accounts?id=eq.${property.payout_account_id}&select=*`);
+  let [acct] = await sb('GET', `payout_accounts?id=eq.${property.payout_account_id}&select=*`);
+  if (acct && !isReady(acct)) {
+    // Newer accounts don't always send LotHQ a status update, so check with Stripe first
+    try { acct = (await refreshAccount(acct.stripe_account_id)) || acct; }
+    catch (e) { console.error('Refreshing payout account failed:', e.message); }
+  }
   if (!isReady(acct)) throw new PaymentsPaused();
   return { account: acct.stripe_account_id };
 }
@@ -143,5 +205,6 @@ function statusOf(acct) {
 module.exports = {
   feeCents, feePercent, cardFeeEstimate, routeFor, opts, paymentFeeParams, subscriptionFeeParams,
   accountForSubscription, portalUrl, syncAccount, invoiceSubscription, isReady, statusOf, PaymentsPaused,
+  createConnectedAccount, onboardingLink, refreshAccount, StripeV2Error,
   CARD_PERCENT, CARD_FIXED_CENTS,
 };

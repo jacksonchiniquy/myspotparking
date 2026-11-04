@@ -72,12 +72,11 @@ async function freshen(acct) {
 
 async function accountLink(acct, propertyId) {
   const back = `${SITE}/manager.html?payouts=PARAM#property/${propertyId}/payouts`;
-  const link = await stripe.accountLinks.create({
-    account: acct.stripe_account_id, type: 'account_onboarding',
-    refresh_url: back.replace('PARAM', 'refresh'), return_url: back.replace('PARAM', 'done'),
-  });
-  return link.url;
+  return connect.onboardingLink(acct.stripe_account_id, back.replace('PARAM', 'refresh'), back.replace('PARAM', 'done'));
 }
+
+// Stripe errors that mean LotHQ's own Connect setup isn't finished
+const PLATFORM_NOT_READY = /connect_profile_not_submitted|platform_registration_required|account_create_activation_required|connect_identity_not_verified|cannot_create_connected_account|accounts_v2_access_blocked/;
 
 const actions = {
   async status(body, a) {
@@ -128,19 +127,17 @@ const actions = {
       };
       let created;
       try {
-        // "Stripe handles pricing": the account pays Stripe's fees, Stripe covers
-        // account losses, and the owner gets the full Stripe Dashboard
-        created = await stripe.accounts.create({
-          ...params,
-          controller: { fees: { payer: 'account' }, losses: { payments: 'stripe' }, stripe_dashboard: { type: 'full' } },
+        created = await connect.createConnectedAccount({
+          name, email: a.email,
+          metadata: { lothq_property: a.property.id, payee_type: payeeType, set_up_by: a.email || a.userId },
         });
       } catch (e) {
-        if (/signed up for Connect|platform profile|connect/i.test(e.message || '') && !/controller/i.test(e.message || '')) {
-          console.error('Stripe Connect not ready:', e.message);
+        console.error('Creating payout account failed:', e.code, e.message);
+        if (PLATFORM_NOT_READY.test(e.code || '') || /review|activat|platform/i.test(e.message || '')) {
           throw new UserError(a.admin ? `Stripe says: ${e.message}` : 'LotHQ is finishing its payment setup. Please try again later.', 503);
         }
-        if (!/controller/i.test(e.message || '')) throw e;
-        created = await stripe.accounts.create({ ...params, type: 'standard' }); // same setup, older style
+        if (e instanceof connect.StripeV2Error && e.status === 400) throw new UserError(`Stripe couldn't start the setup: ${e.message}`);
+        throw e;
       }
       [acct] = await sb('POST', 'payout_accounts', {
         stripe_account_id: created.id, owner_id: a.userId, label: name, payee_type: payeeType,
