@@ -39,6 +39,18 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 .tn-name{font-size:13px;color:var(--text2);}
 .btn-signout{background:none;border:1px solid var(--border);color:var(--text3);padding:5px 12px;border-radius:7px;cursor:pointer;font-size:12px;font-family:'Bricolage Grotesque',sans-serif;transition:all .2s;}
 .btn-signout:hover{border-color:var(--red);color:var(--red);}
+.me-wrap{position:relative;}
+.me-btn{display:flex;align-items:center;gap:8px;background:none;border:1px solid transparent;border-radius:9px;padding:3px 8px 3px 3px;cursor:pointer;font-family:inherit;color:var(--text2);}
+.me-btn:hover,.me-wrap.open .me-btn{border-color:var(--border);background:var(--surface2,#f4f7fc);}
+.me-menu{display:none;position:absolute;right:0;top:calc(100% + 8px);width:250px;background:#fff;border:1px solid var(--border,#e2e8f0);border-radius:12px;box-shadow:0 14px 32px rgba(11,18,32,.14);padding:6px;z-index:700;}
+.me-wrap.open .me-menu{display:block;}
+.me-head{padding:10px 12px 10px;border-bottom:1px solid var(--border2,#eef1f6);margin-bottom:4px;}
+.me-head b{display:block;font-size:14px;color:var(--text);}
+.me-head span{display:block;font-size:12px;color:var(--text3);margin-top:2px;word-break:break-all;}
+.me-menu button,.me-menu a{display:block;width:100%;text-align:left;background:none;border:none;padding:9px 12px;border-radius:8px;font-size:13.5px;color:var(--text);cursor:pointer;font-family:inherit;text-decoration:none;}
+.me-menu button:hover,.me-menu a:hover{background:var(--bluelight,#eef4ff);}
+.me-menu .me-out{color:#b91c1c;}
+@media(max-width:620px){.tn-name{display:none;}}
 .page{display:none;padding-top:60px;min-height:100vh;}
 .page.active{display:block;}
 #gate{position:fixed;inset:0;z-index:900;background:var(--bg);display:flex;align-items:center;justify-content:center;}
@@ -297,9 +309,20 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
     </div>
     <div class="tn-right">
       <span class="tn-badge">Manager</span>
-      <div class="tn-avatar" id="tn-avatar">--</div>
-      <span class="tn-name" id="tn-name">Loading...</span>
-      <button class="btn-signout" onclick="signOut()">Sign Out</button>
+      <div class="me-wrap" id="me-wrap">
+        <button class="me-btn" type="button" onclick="toggleMeMenu(event)" aria-haspopup="true">
+          <div class="tn-avatar" id="tn-avatar">--</div>
+          <span class="tn-name" id="tn-name">Loading...</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="me-menu" id="me-menu" role="menu">
+          <div class="me-head"><b id="me-name"></b><span id="me-email"></span></div>
+          <button type="button" onclick="openProfile()">✏️&nbsp; My profile</button>
+          <button type="button" onclick="openChangePw()">🔑&nbsp; Change password</button>
+          <a href="/help.html" target="_blank" rel="noopener">❓&nbsp; Help Center</a>
+          <button type="button" class="me-out" onclick="closeMeMenu();signOut()">↪&nbsp; Sign out</button>
+        </div>
+      </div>
     </div>
   </nav>
 
@@ -1618,6 +1641,8 @@ function enterApp(profile){
   const initials=(profile.full_name||'?').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('tn-avatar').textContent=initials;
   document.getElementById('tn-name').textContent=profile.full_name||profile.email;
+  document.getElementById('me-name').textContent=profile.full_name||'';
+  document.getElementById('me-email').textContent=profile.email||'';
   const hr=new Date().getHours();
   const firstName=(profile.full_name||'').split(' ')[0]||'there';
   document.getElementById('dash-greeting').textContent=(hr<12?'Good morning':hr<17?'Good afternoon':'Good evening')+', '+firstName+'!';
@@ -1684,6 +1709,56 @@ async function teamCopyLink(propertyId,memberId,btn){
   if(r.error){toast(r.error);return;}
   if(await copyText(r.url)) toast('🔗 Invite link copied. Paste it in a text or email to '+r.email);
 }
+// ── My account menu (top right) ──
+function toggleMeMenu(e){e.stopPropagation();document.getElementById('me-wrap').classList.toggle('open');}
+function closeMeMenu(){document.getElementById('me-wrap').classList.remove('open');}
+document.addEventListener('click',e=>{if(!e.target.closest('#me-wrap'))closeMeMenu();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMeMenu();});
+function openProfile(){
+  closeMeMenu();
+  document.getElementById('mp-name').value=currentUser.full_name||'';
+  document.getElementById('mp-phone').value=currentUser.phone||'';
+  document.getElementById('mp-company').value=currentUser.company||'';
+  document.getElementById('mp-email').value=currentUser.email||'';
+  document.getElementById('mp-err').classList.remove('show');
+  openModal('modal-profile');
+}
+async function saveProfile(){
+  const err=document.getElementById('mp-err'),btn=document.getElementById('mp-btn');
+  err.classList.remove('show');
+  const fullName=document.getElementById('mp-name').value.trim();
+  if(fullName.length<2){err.textContent='Enter your name.';err.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Saving…';
+  const r=await teamApi({action:'updateProfile',fullName,phone:document.getElementById('mp-phone').value,company:document.getElementById('mp-company').value});
+  btn.disabled=false;btn.textContent='Save';
+  if(r.error){err.textContent=r.error;err.classList.add('show');return;}
+  Object.assign(currentUser,r.user);
+  document.getElementById('tn-name').textContent=currentUser.full_name;
+  document.getElementById('tn-avatar').textContent=currentUser.full_name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('me-name').textContent=currentUser.full_name;
+  closeModal('modal-profile');toast('✅ Profile saved');
+}
+function openChangePw(){
+  closeMeMenu();
+  ['cp-new','cp-new2'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cp-err').classList.remove('show');
+  openModal('modal-changepw');
+}
+async function saveChangePw(){
+  const a=document.getElementById('cp-new').value,b=document.getElementById('cp-new2').value;
+  const err=document.getElementById('cp-err'),btn=document.getElementById('cp-btn');
+  const show=m=>{err.textContent=m;err.classList.add('show');};
+  err.classList.remove('show');
+  if(a.length<8) return show('Use at least 8 characters.');
+  if(a!==b) return show('The two passwords don\'t match.');
+  btn.disabled=true;btn.textContent='Saving…';
+  const r=await teamApi({action:'changePassword',password:a});
+  btn.disabled=false;btn.textContent='Change password';
+  if(r.error) return show(r.error);
+  if(currentUser?.email) await sb.auth.signInWithPassword({email:currentUser.email,password:a}).catch(()=>{});
+  closeModal('modal-changepw');toast('✅ Password changed');
+}
+
 // ── Team page (top bar; Owners) ──
 const ownsAny=()=>Object.values(myRoles).includes('owner');
 let _tp=null,_tpPerson=null;
@@ -6243,6 +6318,37 @@ checkExistingSession();
     <div id="ti-props" style="max-height:240px;overflow:auto;border:1px solid var(--border2,#e2e8f0);border-radius:10px;padding:6px 12px;margin:6px 0 4px;"></div>
     <div class="err-msg" id="ti-err" style="margin-top:10px;"></div>
     <button class="btn btn-primary" id="ti-btn" style="margin-top:14px;" onclick="sendTeamInvite()">Send invite</button>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-profile">
+  <div class="modal" style="width:480px;max-width:calc(100vw - 32px);">
+    <button class="modal-close" onclick="closeModal('modal-profile')">✕</button>
+    <div class="modal-title">My profile</div>
+    <div class="modal-sub">This is how you appear to your team and to LotHQ.</div>
+    <div class="err-msg" id="mp-err"></div>
+    <label class="form-label">Name *</label>
+    <input class="form-input" id="mp-name" maxlength="120" style="margin-bottom:12px;">
+    <label class="form-label">Phone</label>
+    <input class="form-input" id="mp-phone" type="tel" maxlength="40" style="margin-bottom:12px;">
+    <label class="form-label">Company</label>
+    <input class="form-input" id="mp-company" maxlength="120" style="margin-bottom:12px;">
+    <label class="form-label">Email (your login)</label>
+    <input class="form-input" id="mp-email" readonly style="opacity:.7;">
+    <div style="font-size:12px;color:var(--text3);margin-top:6px;">Need to change it? Contact LotHQ at <a href="mailto:support@myspotparking.com">support@myspotparking.com</a>.</div>
+    <button class="btn btn-primary btn-full" id="mp-btn" style="margin-top:16px;" onclick="saveProfile()">Save</button>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-changepw">
+  <div class="modal" style="width:420px;max-width:calc(100vw - 32px);">
+    <button class="modal-close" onclick="closeModal('modal-changepw')">✕</button>
+    <div class="modal-title">Change password</div>
+    <div class="modal-sub">You'll stay signed in on this device.</div>
+    <div class="err-msg" id="cp-err"></div>
+    <label class="form-label">New password</label>
+    <input class="form-input" id="cp-new" type="password" autocomplete="new-password" placeholder="At least 8 characters" style="margin-bottom:12px;">
+    <label class="form-label">Type it again</label>
+    <input class="form-input" id="cp-new2" type="password" autocomplete="new-password" onkeydown="if(event.key==='Enter')saveChangePw()">
+    <button class="btn btn-primary btn-full" id="cp-btn" style="margin-top:16px;" onclick="saveChangePw()">Change password</button>
   </div>
 </div>
 <div class="modal-overlay" id="modal-request-property">

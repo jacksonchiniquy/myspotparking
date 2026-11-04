@@ -730,6 +730,33 @@ const actions = {
     return { ok: true, removed: rows.length };
   },
 
+  // ── Anyone signed in: edit their own name, phone and company ──
+  async updateProfile({ fullName, phone, company }, event) {
+    const me = await signedIn(event);
+    fullName = String(fullName || '').trim().slice(0, 120);
+    if (fullName.length < 2) throw new UserError('Enter your name.');
+    const fields = { full_name: fullName, phone: String(phone || '').trim().slice(0, 40) || null, company: String(company || '').trim().slice(0, 120) || null };
+    const [row] = await sb('PATCH', `users?id=eq.${me.id}`, fields);
+    await logActivity({ ...(await actorOf(me)), action: 'auth.profile_updated', target: me.email, summary: 'Updated their profile' });
+    return { ok: true, user: { full_name: row.full_name, phone: row.phone, company: row.company, email: row.email } };
+  },
+
+  // ── Admin: change a login's email address ──
+  async changeEmail({ userId, email }, event) {
+    const me = await signedIn(event); requireAdmin(me);
+    const u = await personRow(userId);
+    email = String(email || '').trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) throw new UserError('Enter a valid email address.');
+    if (email === String(u.email || '').toLowerCase()) return { ok: true };
+    const [taken] = await sb('GET', `users?email=eq.${q(email)}&select=id&limit=1`);
+    if (taken) throw new UserError('Another LotHQ login already uses that email.');
+    await authAdmin('PUT', `users/${u.id}`, { email, email_confirm: true });
+    await sb('PATCH', `users?id=eq.${u.id}`, { email });
+    await sb('PATCH', `property_team?user_id=eq.${u.id}`, { email });
+    await logActivity({ ...(await actorOf(me)), action: 'team.email_changed', target: email, summary: `Changed ${nameOf(u)}'s login email from ${u.email} to ${email}` });
+    return { ok: true };
+  },
+
   // ── Anyone signed in: choose a new password (clears "must change password") ──
   async changePassword({ password }, event) {
     const me = await signedIn(event);
