@@ -351,14 +351,14 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
         <div class="rev-main">
           <div class="rev-label">Monthly Revenue (estimated)</div>
           <div class="rev-val" id="arr-val">$0</div>
-          <div class="rev-sub">Based on active Stripe subscriptions</div>
+          <div class="rev-sub" id="arr-sub">Based on actual payments</div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="openStripeRevenue()">Stripe Dashboard →</button>
       </div>
       <div class="chart-grid">
         <div class="chart-card">
           <div class="chart-title">Revenue Trend</div>
-          <div class="chart-sub">Monthly permit revenue</div>
+          <div class="chart-sub">Pay to Park paid each month, last 12 months</div>
           <div style="position:relative;height:220px;"><canvas id="chart-rev"></canvas></div>
         </div>
         <div class="chart-card">
@@ -522,7 +522,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
       <div class="stat-grid" style="margin-bottom:24px;">
         <div class="stat-card blue"><div class="stat-label">Active Permits</div><div class="stat-val blue" id="pd-active">—</div><div class="stat-sub">Valid right now</div></div>
         <div class="stat-card green"><div class="stat-label">Occupancy</div><div class="stat-val green" id="pd-occupancy">—</div><div class="stat-sub">Of total spots</div></div>
-        <div class="stat-card amber"><div class="stat-label">Monthly Revenue</div><div class="stat-val amber" id="pd-revenue">—</div><div class="stat-sub">From active permits</div></div>
+        <div class="stat-card amber"><div class="stat-label">Monthly Revenue</div><div class="stat-val amber" id="pd-revenue">—</div><div class="stat-sub" id="pd-revenue-sub">Paid spots, per month</div></div>
         <div class="stat-card red"><div class="stat-label">Violations</div><div class="stat-val red" id="pd-violations">—</div><div class="stat-sub">Open citations</div></div>
       </div>
 
@@ -1666,7 +1666,7 @@ async function signOut(){
 async function loadAllData(){
   // Properties first: permits and violations are loaded per property
   await loadProperties();
-  await Promise.all([loadPermits(),loadResidents(),loadViolations()]);
+  await Promise.all([loadPermits(),loadResidents(),loadViolations(),loadRevenue()]);
   renderDashboard();
   initCharts();
   restoreFromHash();
@@ -2172,7 +2172,7 @@ async function loadProperties(){
 }
 
 async function loadPermits(){
-  if(!allProperties.length){allPermits=[];renderPermitTables(allPermits);renderRecent();document.getElementById('s-active').textContent=0;document.getElementById('arr-val').textContent='$0';return;}
+  if(!allProperties.length){allPermits=[];renderPermitTables(allPermits);renderRecent();document.getElementById('s-active').textContent=0;return;}
   const propIds=allProperties.map(p=>p.id);
   const {data}=await sb.from('permits').select('*').in('property_id',propIds).order('created_at',{ascending:false});
   allPermits=data||[];
@@ -2180,8 +2180,49 @@ async function loadPermits(){
   renderRecent();
   const active=allPermits.filter(p=>p.status==='active').length;
   document.getElementById('s-active').textContent=active;
-  const mrr=allPermits.filter(p=>p.status==='active'&&p.plan==='monthly').length*12+allPermits.filter(p=>p.status==='active'&&p.plan==='annual').length*(99/12);
-  document.getElementById('arr-val').textContent='$'+Math.round(mrr).toLocaleString();
+}
+
+// ── Revenue: only money that was actually paid ──
+// Recurring = unit spots paid monthly (by card, or marked paid outside LotHQ).
+// Pay to Park = sessions that were paid, by month.
+let revInfo={recurring:0,card:0,outside:0,spots:0,byProp:{},p2pMonth:0,months:[],monthTotals:[]};
+async function loadRevenue(){
+  const now=new Date();
+  const months=[],keys=[];
+  for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(d.toLocaleString('en-US',{month:'short'}));keys.push(d.getFullYear()+'-'+d.getMonth());}
+  revInfo={recurring:0,card:0,outside:0,spots:0,byProp:{},p2pMonth:0,months,monthTotals:new Array(12).fill(0)};
+  if(allProperties.length){
+    const propIds=allProperties.map(p=>p.id);
+    const since=new Date(now.getFullYear(),now.getMonth()-11,1).toISOString();
+    const [u,ss]=await Promise.all([
+      sb.from('property_units').select('property_id,monthly_amount,spot_paid,paid_via,billing_type').in('property_id',propIds).eq('spot_paid',true),
+      sb.from('parking_sessions').select('property_id,amount_paid,started_at,status').in('property_id',propIds).gte('started_at',since),
+    ]);
+    (u.data||[]).forEach(x=>{
+      const amt=Number(x.monthly_amount)||0;
+      if(!(amt>0)||(x.billing_type&&x.billing_type!=='monthly')) return;
+      revInfo.recurring+=amt;revInfo.spots++;
+      if(x.paid_via==='manual') revInfo.outside+=amt; else revInfo.card+=amt;
+      revInfo.byProp[x.property_id]=(revInfo.byProp[x.property_id]||0)+amt;
+    });
+    (ss.data||[]).forEach(x=>{
+      if(!x.started_at||['pending','canceled','cancelled','failed'].includes(x.status)) return;
+      const d=new Date(x.started_at),i=keys.indexOf(d.getFullYear()+'-'+d.getMonth());
+      if(i<0) return;
+      revInfo.monthTotals[i]+=(Number(x.amount_paid)||0)/100;
+    });
+    revInfo.p2pMonth=revInfo.monthTotals[11];
+  }
+  const fmt=n=>'$'+(Math.round(n*100)/100).toLocaleString(undefined,{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2});
+  const val=document.getElementById('arr-val'),sub=document.getElementById('arr-sub');
+  if(!revInfo.recurring&&!revInfo.p2pMonth){val.textContent='No payments yet';sub.textContent='Paid spots and Pay to Park will show here once people pay.';}
+  else{
+    val.textContent=fmt(revInfo.recurring)+'/mo';
+    const bits=[];
+    if(revInfo.spots) bits.push(`${revInfo.spots} paid spot${revInfo.spots===1?'':'s'}${revInfo.outside?` (${fmt(revInfo.outside)} paid outside LotHQ)`:''}`);
+    bits.push(`${fmt(revInfo.p2pMonth)} Pay to Park this month`);
+    sub.textContent=bits.join(' · ');
+  }
 }
 
 async function loadResidents(){
@@ -3226,8 +3267,8 @@ function exportViolations(){
 function initCharts(){
   Chart.defaults.font.family="'Bricolage Grotesque',sans-serif";
   Chart.defaults.color='#94a3b8';
-  const months=['May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr'];
-  const revData=[0,0,0,0,0,0,0,0,0,0,0,allPermits.filter(p=>p.status==='active').length*12];
+  const months=revInfo.months.length?revInfo.months:[''];
+  const revData=revInfo.monthTotals.length?revInfo.monthTotals.map(v=>Math.round(v*100)/100):[0];
   const rCtx=document.getElementById('chart-rev').getContext('2d');
   const grad=rCtx.createLinearGradient(0,0,0,220);
   grad.addColorStop(0,'rgba(26,111,255,0.18)');grad.addColorStop(1,'rgba(26,111,255,0.01)');
@@ -3347,7 +3388,7 @@ function renderPropertyDetail(propId){
   const expired=propPermits.filter(x=>x.status==='expired'||x.status==='revoked');
   // Stats
   const occupancy=p.total_spots?Math.round(active.length/p.total_spots*100):0;
-  const revenue=active.filter(x=>x.plan==='monthly').length*(p.monthly_rate||12)+active.filter(x=>x.plan==='annual').length*((p.monthly_rate||12)*10/12);
+  const revenue=revInfo.byProp[propId]||0;
   const openViolations=propViolations.filter(x=>x.status==='Open').length;
   document.getElementById('pd-active').textContent=active.length;
   document.getElementById('pd-occupancy').textContent=occupancy+'%';

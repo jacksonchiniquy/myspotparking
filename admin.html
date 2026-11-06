@@ -323,7 +323,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       </div>
 
       <div id="panel-properties" class="panel">
-        <div class="section-head"><div class="section-title">All Properties</div></div>
+        <div class="section-head"><div class="section-title">All Properties</div><button class="btn btn-primary btn-sm" onclick="openPropEdit(null)">+ Add Property</button></div>
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th title="Which actions enforcement officers can take at this property">Enforcement</th><th title="Code printed on Pay to Park signs, and whether drivers enter a stall number">Pay to Park</th><th title="Lets residents give guest passes; the manager sets the pass types">Guest Passes</th><th title="LotHQ's fee on each parking payment, the LotHQ subscription, and whether the property's payouts are set up">LotHQ Billing</th><th title="Who can sign in and work on this property">Access</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
       </div>
 
@@ -508,12 +508,40 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div style="display:flex;gap:8px;"><button class="btn btn-primary" id="tp-save" onclick="savePropTerms()">Save</button><button class="btn btn-ghost" onclick="closeModal('modal-terms-prop')">Cancel</button></div>
   </div>
 </div>
+<div class="modal-overlay" id="modal-propedit">
+  <div class="modal" style="width:560px;">
+    <button class="modal-close" onclick="closeModal('modal-propedit')">✕</button>
+    <div class="modal-title" id="pe-title">Property</div>
+    <div class="modal-sub" id="pe-sub"></div>
+    <div class="err-msg" id="pe-err"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="grid-column:1/-1;"><div class="form-label">Property name *</div><input class="form-input" id="pe-name" maxlength="120"></div>
+      <div style="grid-column:1/-1;"><div class="form-label">Address</div><input class="form-input" id="pe-addr" maxlength="200"></div>
+      <div><div class="form-label">Parking spaces</div><input class="form-input" id="pe-spots" type="number" min="0"></div>
+      <div><div class="form-label">Units</div><input class="form-input" id="pe-units" type="number" min="0"></div>
+      <div><div class="form-label">Zones</div><input class="form-input" id="pe-zones" placeholder="A, B, Guest"></div>
+      <div><div class="form-label">Default monthly rate $</div><input class="form-input" id="pe-rate" type="number" min="0" step="0.01"></div>
+      <div><div class="form-label">Type</div><select class="form-input" id="pe-type"><option value="linked">Linked portal (residents get accounts)</option><option value="self">Self-managed (no resident accounts)</option></select></div>
+      <div><div class="form-label">Space word</div><input class="form-input" id="pe-word" maxlength="30" placeholder="Unit, Apartment, Lot…"></div>
+      <div style="grid-column:1/-1;"><div class="form-label">Main manager *</div><select class="form-input" id="pe-mgr"></select>
+        <div style="font-size:11.5px;color:var(--text3);margin-top:5px;" id="pe-mgr-note">The account this property belongs to. Changing it keeps the old main manager on the team as Manager.</div></div>
+    </div>
+    <button class="btn btn-primary" id="pe-btn" style="margin-top:16px;" onclick="savePropEdit()">Save</button>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-person">
   <div class="modal" style="width:660px;">
     <button class="modal-close" onclick="closeModal('modal-person')">✕</button>
     <div class="modal-title">🏢 <span id="pr-name"></span></div>
     <div class="modal-sub" id="pr-sub"></div>
     <div class="err-msg" id="pr-err"></div>
+    <div class="form-label">Details</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:16px;">
+      <input class="form-input" id="pr-fname" placeholder="Name" maxlength="120">
+      <input class="form-input" id="pr-phone" placeholder="Phone" maxlength="40">
+      <input class="form-input" id="pr-company" placeholder="Company" maxlength="120">
+      <button class="btn btn-ghost" onclick="personSaveDetails()">Save</button>
+    </div>
     <div class="form-label">Properties</div>
     <div id="pr-list"><div class="loading">Loading…</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;">
@@ -542,12 +570,16 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <input class="form-input" id="pr-email" type="email" placeholder="Login email" style="flex:1;min-width:200px;">
       <button class="btn btn-ghost" onclick="personEmail()">Change email</button>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-      <input class="form-input" id="pr-pass" type="text" placeholder="New temporary password" style="flex:1;min-width:180px;">
-      <button class="btn btn-ghost" onclick="personPassword()">Set temporary password</button>
-      <button class="btn btn-ghost" onclick="personNotify()">✉ Notify</button>
+    <div id="pr-reset" style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">🔑 Reset password</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <input class="form-input" id="pr-pass" type="text" placeholder="New temporary password" style="flex:1;min-width:180px;">
+        <button class="btn btn-ghost" onclick="personPassword()">Set temporary password</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px;"><span style="font-size:12px;color:var(--text3);">or</span>
+        <button class="btn btn-ghost" onclick="personNotify()">✉ Email them a reset link</button></div>
+      <div style="font-size:11.5px;color:var(--text3);margin-top:8px;" id="pr-login-note">A temporary password works right away; give it to them and they'll choose their own at the next sign-in. The reset link lets them choose a new password themselves.</div>
     </div>
-    <div style="font-size:11.5px;color:var(--text3);margin-top:6px;" id="pr-login-note">A temporary password makes them choose their own at the next sign-in. Notify emails them a link to choose their password.</div>
   </div>
 </div>
 <div class="modal-overlay" id="modal-access">
@@ -1024,7 +1056,8 @@ function renderManagers(data){
       <td><div class="tbl-actions">
         <button class="btn btn-ghost btn-sm" onclick="openPerson('${m.id}')">🏢 Properties</button>
         <button class="btn btn-ghost btn-sm" onclick="openFeatureModal('${m.id}')">💎 Plan</button>
-        <button class="btn btn-ghost btn-sm" onclick="impersonate('${m.id}','manager')">View</button>
+        <button class="btn btn-ghost btn-sm" onclick="openPerson('${m.id}')">View</button>
+        <button class="btn btn-ghost btn-sm" title="Reset their password" onclick="openPerson('${m.id}','reset')">🔑 Reset</button>
         <button class="btn btn-danger btn-sm" onclick="confirmDelete('user','${m.id}','${(m.full_name||m.email||'').replace(/'/g,'')}')">Delete</button>
       </div></td>
     </tr>`;
@@ -1052,6 +1085,7 @@ function renderProperties(data){
       <td style="white-space:nowrap;">${billingCell(p)}</td>
       <td style="white-space:nowrap;">${accessCell(p)}</td>
       <td><div class="tbl-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openPropEdit('${p.id}')">Edit</button>
         <button class="btn btn-danger btn-sm" onclick="confirmDelete('property','${p.id}','${(p.name||'').replace(/'/g,'')}')">Delete</button>
       </div></td>
     </tr>`;
@@ -1838,9 +1872,9 @@ async function inviteCancel(i){
 }
 
 // ── A manager's card: their properties and login (admin only) ──
-let _prId=null,_pr=null,_prBusy=false;
-async function openPerson(id){
-  _prId=id;_pr=null;
+let _prId=null,_pr=null,_prBusy=false,_prFocus=null;
+async function openPerson(id,focus){
+  _prId=id;_pr=null;_prFocus=focus||null;
   const m=allManagers.find(x=>x.id===id)||{};
   document.getElementById('pr-name').textContent=m.full_name||m.email||'Manager';
   document.getElementById('pr-sub').textContent=[m.email,m.company].filter(Boolean).join(' · ');
@@ -1859,6 +1893,13 @@ function renderPerson(){
   const r=_pr,ago=d=>{if(!d)return 'never signed in';const s=(Date.now()-new Date(d))/1000;return 'last sign-in '+(s<3600?Math.max(1,Math.round(s/60))+' min':s<86400?Math.round(s/3600)+' hours':Math.round(s/86400)+' days')+' ago';};
   document.getElementById('pr-name').textContent=r.name||r.email;
   document.getElementById('pr-email').value=r.email||'';
+  if(_prFocus!=='kept'){
+    document.getElementById('pr-fname').value=r.name||'';
+    document.getElementById('pr-phone').value=r.phone||'';
+    document.getElementById('pr-company').value=r.company||'';
+  }
+  if(_prFocus==='reset'){_prFocus='kept';setTimeout(()=>{document.getElementById('pr-reset').scrollIntoView({block:'center'});document.getElementById('pr-pass').focus();},50);}
+  else _prFocus='kept';
   document.getElementById('pr-sub').textContent=[r.email,r.company,ago(r.lastSignIn),r.mustChange?'must choose a new password':''].filter(Boolean).join(' · ');
   const opts=sel=>Object.entries(AC_ROLES).map(([k,v])=>`<option value="${k}" ${k===sel?'selected':''}>${v}</option>`).join('');
   const row=(a,b,c)=>`<div style="display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);"><div style="flex:1;min-width:0;font-size:13px;">${a}</div><div style="width:150px;flex-shrink:0;">${b}</div><div style="display:flex;gap:6px;flex-shrink:0;justify-content:flex-end;width:170px;">${c}</div></div>`;
@@ -1908,6 +1949,46 @@ async function personCreateProperty(){
   b.disabled=false;b.textContent='Create property';
   if(r&&!r.error){['np-name','np-addr','np-spots','np-units','np-zones','np-rate','np-word'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('pr-new').open=false;await loadProperties();}
+}
+async function personSaveDetails(){
+  const fullName=document.getElementById('pr-fname').value.trim();
+  if(fullName.length<2) return personErr('Enter their name.');
+  const r=await personDo({action:'updateProfile',userId:_prId,fullName,phone:document.getElementById('pr-phone').value,company:document.getElementById('pr-company').value},'✅ Details saved');
+  if(r&&!r.error) loadManagers();
+}
+// ── Add / edit a property (Properties page) ──
+let _peId=null;
+function openPropEdit(id){
+  _peId=id;
+  const p=id?allProperties.find(x=>x.id===id)||{}:{};
+  document.getElementById('pe-title').textContent=id?'Edit '+(p.name||'property'):'Add a property';
+  document.getElementById('pe-sub').textContent=id?'Changes show up for the property\'s managers right away.':'The main manager can set rates, the lot map and units from their portal afterward.';
+  document.getElementById('pe-err').style.display='none';
+  const v=(f,x)=>document.getElementById(f).value=x??'';
+  v('pe-name',p.name);v('pe-addr',p.address);v('pe-spots',p.total_spots);v('pe-units',p.units);v('pe-zones',p.zones);v('pe-rate',p.monthly_rate);v('pe-word',p.space_word);
+  document.getElementById('pe-type').value=p.property_type==='self'?'self':'linked';
+  const mgrs=[...allManagers].sort((a,b)=>String(a.full_name||a.email).localeCompare(String(b.full_name||b.email)));
+  document.getElementById('pe-mgr').innerHTML=(id?'':'<option value="">Choose a manager…</option>')+mgrs.map(m=>`<option value="${m.id}" ${m.id===p.manager_id?'selected':''}>${escA(m.full_name||m.email)} · ${escA(m.email||'')}</option>`).join('');
+  document.getElementById('pe-mgr-note').style.display=id?'block':'none';
+  openModal('modal-propedit');
+}
+async function savePropEdit(){
+  const v=id=>document.getElementById(id).value.trim();
+  const err=document.getElementById('pe-err');
+  const fail=m=>{err.textContent=m;err.style.display='block';};
+  if(v('pe-name').length<2) return fail('Enter the property name.');
+  const mgr=document.getElementById('pe-mgr').value;
+  if(!mgr) return fail('Choose the main manager.');
+  const p=_peId?allProperties.find(x=>x.id===_peId):null;
+  if(p&&mgr!==p.manager_id&&!confirm(`Make ${mgrName(mgr)} the main manager of ${p.name}? ${mgrName(p.manager_id)} stays on its team as Manager.`)) return;
+  const b=document.getElementById('pe-btn');b.disabled=true;b.textContent='Saving…';
+  const fields={name:v('pe-name'),address:v('pe-addr'),totalSpots:v('pe-spots'),units:v('pe-units'),zones:v('pe-zones'),monthlyRate:v('pe-rate'),propertyType:document.getElementById('pe-type').value,spaceWord:v('pe-word')};
+  _acId=_peId;
+  const r=await teamCall(_peId?{action:'updateProperty',propertyId:_peId,managerId:mgr,...fields}:{action:'createProperty',userId:mgr,...fields});
+  b.disabled=false;b.textContent='Save';
+  if(r.error) return fail(r.error);
+  closeModal('modal-propedit');toast(_peId?'✅ Property saved':'✅ Property created');
+  await loadProperties();renderManagers(allManagers);
 }
 async function personEmail(){
   const em=document.getElementById('pr-email').value.trim();

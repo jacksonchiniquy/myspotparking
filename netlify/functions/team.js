@@ -423,6 +423,30 @@ const actions = {
     return { ...(await personView(u)), lastSignIn, all };
   },
 
+  // Admin: edit a property's details and, optionally, hand it to another main manager
+  async updateProperty({ propertyId, name, address, totalSpots, zones, units, monthlyRate, propertyType, spaceWord, managerId }, event) {
+    const me = await signedIn(event); requireAdmin(me);
+    if (!UUID_RE.test(String(propertyId || ''))) throw new UserError('Property not found.', 404);
+    const [property] = await sb('GET', `properties?id=eq.${propertyId}&select=*`);
+    if (!property) throw new UserError('Property not found.', 404);
+    name = String(name || '').trim().slice(0, 120);
+    if (name.length < 2) throw new UserError('Enter the property name.');
+    const int = v => Math.max(0, parseInt(v, 10) || 0);
+    const fields = {
+      name, address: String(address || '').trim().slice(0, 200) || null, total_spots: int(totalSpots),
+      zones: String(zones || '').trim().slice(0, 120) || 'A', units: int(units),
+      monthly_rate: Math.max(0, parseFloat(monthlyRate) || 0), property_type: propertyType === 'self' ? 'self' : 'linked',
+    };
+    const word = String(spaceWord || '').trim().slice(0, 30);
+    try { await sb('PATCH', `properties?id=eq.${property.id}`, word ? { ...fields, space_word: word } : fields); }
+    catch (e) { if (word && /space_word|42703/.test(e.message)) await sb('PATCH', `properties?id=eq.${property.id}`, fields); else throw e; }
+    const changed = Object.keys(fields).filter(k => String(fields[k] ?? '') !== String(property[k] ?? ''));
+    if (changed.length) await logActivity({ ...(await actorOf(me)), action: 'property.updated', propertyId: property.id, target: name,
+      summary: `Edited ${name} (${changed.join(', ').replace(/_/g, ' ')})` });
+    if (managerId && managerId !== property.manager_id) await actions.makeMain({ propertyId: property.id, userId: managerId }, event);
+    return { ok: true };
+  },
+
   // Admin: create a property with this manager as its main manager
   async createProperty({ userId, name, address, totalSpots, zones, units, monthlyRate, propertyType, spaceWord }, event) {
     const me = await signedIn(event); requireAdmin(me);
@@ -731,13 +755,16 @@ const actions = {
   },
 
   // ── Anyone signed in: edit their own name, phone and company ──
-  async updateProfile({ fullName, phone, company }, event) {
-    const me = await signedIn(event);
+  async updateProfile({ fullName, phone, company, userId }, event) {
+    let me = await signedIn(event);
+    const actor = me;
+    if (userId && userId !== me.id) { requireAdmin(me); me = await personRow(userId); }   // admin editing someone
     fullName = String(fullName || '').trim().slice(0, 120);
     if (fullName.length < 2) throw new UserError('Enter your name.');
     const fields = { full_name: fullName, phone: String(phone || '').trim().slice(0, 40) || null, company: String(company || '').trim().slice(0, 120) || null };
     const [row] = await sb('PATCH', `users?id=eq.${me.id}`, fields);
-    await logActivity({ ...(await actorOf(me)), action: 'auth.profile_updated', target: me.email, summary: 'Updated their profile' });
+    await logActivity({ ...(await actorOf(actor)), action: 'auth.profile_updated', target: me.email,
+      summary: actor.id === me.id ? 'Updated their profile' : `Updated ${fullName}'s profile` });
     return { ok: true, user: { full_name: row.full_name, phone: row.phone, company: row.company, email: row.email } };
   },
 
