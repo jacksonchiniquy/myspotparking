@@ -1503,7 +1503,11 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON,{
   auth:{storageKey:'msp-auth-manager'},
   global:{headers:{'x-msp-portal':'manager'}},
 });
-sb.auth.onAuthStateChange(ev=>{if(ev==='PASSWORD_RECOVERY'){pwRecovery=true;if(currentUser) showPwGate();}});
+sb.auth.onAuthStateChange((ev,session)=>{
+  if(ev==='PASSWORD_RECOVERY'){pwRecovery=true;if(currentUser) showPwGate();return;}
+  // Another tab signed out, or signed in as someone else: reload so this tab never shows the wrong account
+  if(currentUser&&(ev==='SIGNED_OUT'||(session&&session.user&&session.user.id!==currentUser.id))) location.replace(location.pathname);
+});
 
 let currentUser=null;
 let allPermits=[];
@@ -1654,8 +1658,8 @@ function enterApp(profile){
 
 async function signOut(){
   await sb.auth.signOut();
-  document.getElementById('gate').style.display='flex';
-  document.getElementById('app').style.display='none';
+  // Start fresh so nothing from this account stays on screen for the next one
+  location.replace(location.pathname);
 }
 
 // -- DATA LOADING --
@@ -2168,7 +2172,7 @@ async function loadProperties(){
 }
 
 async function loadPermits(){
-  if(!allProperties.length)return;
+  if(!allProperties.length){allPermits=[];renderPermitTables(allPermits);renderRecent();document.getElementById('s-active').textContent=0;document.getElementById('arr-val').textContent='$0';return;}
   const propIds=allProperties.map(p=>p.id);
   const {data}=await sb.from('permits').select('*').in('property_id',propIds).order('created_at',{ascending:false});
   allPermits=data||[];
@@ -2188,7 +2192,7 @@ async function loadResidents(){
 }
 
 async function loadViolations(){
-  if(!allProperties.length)return;
+  if(!allProperties.length){allViolations=[];renderViolationsTable();document.getElementById('s-violations').textContent=0;return;}
   const propIds=allProperties.map(p=>p.id);
   const {data}=await sb.from('violations').select('*').in('property_id',propIds).order('noted_at',{ascending:false});
   allViolations=data||[];
