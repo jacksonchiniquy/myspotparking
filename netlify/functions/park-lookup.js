@@ -34,7 +34,7 @@ exports.handler = async (event) => {
   try {
     let rows;
     try {
-      rows = await sb('GET', `properties?${filter}&select=id,name,address,park_code,stall_mode,transient_rates&limit=1`);
+      rows = await sb('GET', `properties?${filter}&select=*&limit=1`);
     } catch (e) {
       // Database not updated yet (park codes SQL not run): still serve lookups by id
       if (!body.id) throw e;
@@ -42,6 +42,7 @@ exports.handler = async (event) => {
     }
     const p = rows && rows[0];
     if (!p) return reply(404, { error: 'Property code not found.' });
+    if (p.features && p.features.pay_to_park === false) return reply(410, { error: 'Pay to Park isn\'t offered at this property. Please check the signs or contact the property manager.' });
     const { termsFor } = require('./lib/terms');
     const terms = await termsFor(p.id, 'pay');
     return reply(200, {

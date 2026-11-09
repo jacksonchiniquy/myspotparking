@@ -31,6 +31,7 @@ exports.handler = async (event) => {
   try {
     const [property] = await sb('GET', `properties?id=eq.${propertyId}&select=*`);
     if (!property) return reply(404, { error: 'Property not found.' });
+    if (!require('./lib/features').on(property, 'pay_to_park')) return reply(410, { error: 'Pay to Park isn\'t offered at this property.' });
 
     // Stall number: required, optional or not used, as the property is set up
     const stallMode = property.stall_mode || 'off';

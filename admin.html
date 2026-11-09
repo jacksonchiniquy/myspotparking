@@ -329,7 +329,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
       <div id="panel-properties" class="panel">
         <div class="section-head"><div class="section-title">All Properties</div><button class="btn btn-primary btn-sm" onclick="openPropEdit(null)">+ Add Property</button></div>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th title="Which actions enforcement officers can take at this property">Enforcement</th><th title="Code printed on Pay to Park signs, and whether drivers enter a stall number">Pay to Park</th><th title="Lets residents give guest passes; the manager sets the pass types">Guest Passes</th><th title="LotHQ's fee on each parking payment, the LotHQ subscription, and whether the property's payouts are set up">LotHQ Billing</th><th title="Who can sign in and work on this property">Access</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th title="Which actions enforcement officers can take at this property">Enforcement</th><th title="Code printed on Pay to Park signs, and whether drivers enter a stall number">Pay to Park</th><th title="Which tabs and tools this property uses">Features</th><th title="LotHQ's fee on each parking payment, the LotHQ subscription, and whether the property's payouts are set up">LotHQ Billing</th><th title="Who can sign in and work on this property">Access</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
       </div>
 
       <!-- PARKING TERMS -->
@@ -528,6 +528,9 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div><div class="form-label">Default monthly rate $</div><input class="form-input" id="pe-rate" type="number" min="0" step="0.01"></div>
       <div><div class="form-label">Type</div><select class="form-input" id="pe-type"><option value="linked">Linked portal (residents get accounts)</option><option value="self">Self-managed (no resident accounts)</option></select></div>
       <div><div class="form-label">Space word</div><input class="form-input" id="pe-word" maxlength="30" placeholder="Unit, Apartment, Lot…"></div>
+      <div style="grid-column:1/-1;" id="pe-feat-wrap"><div class="form-label">Features</div>
+        <div id="pe-feats" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;"></div>
+        <div style="font-size:11.5px;color:var(--text3);margin-top:5px;">Permits are always on. Turning a feature off hides it from the property's managers and turns it off for residents and drivers too. Nothing is deleted.</div></div>
       <div style="grid-column:1/-1;"><div class="form-label">Main manager *</div><select class="form-input" id="pe-mgr"></select>
         <div style="font-size:11.5px;color:var(--text3);margin-top:5px;" id="pe-mgr-note">The account this property belongs to. Changing it keeps the old main manager on the team as Manager.</div></div>
     </div>
@@ -728,19 +731,13 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <button class="btn btn-ghost btn-sm" id="plan-btn-pro" onclick="selectPlan('pro')" style="justify-content:center;">Pro</button>
       <button class="btn btn-ghost btn-sm" id="plan-btn-enterprise" onclick="selectPlan('enterprise')" style="justify-content:center;">Enterprise</button>
     </div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Selecting a tier auto-enables that tier's default features. You can still toggle individual flags below.</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">The plan is a label for how this client is billed.</div>
 
-    <div class="modal-section-label">Core Features (always on)</div>
+    <div class="modal-section-label">Access</div>
     <div id="mf-core-features"></div>
 
-    <div class="modal-section-label">Starter+</div>
-    <div id="mf-starter-features"></div>
-
-    <div class="modal-section-label">Pro+</div>
-    <div id="mf-pro-features"></div>
-
-    <div class="modal-section-label">Enterprise</div>
-    <div id="mf-enterprise-features"></div>
+    <div style="display:none;"><div id="mf-starter-features"></div><div id="mf-pro-features"></div><div id="mf-enterprise-features"></div></div>
+    <div style="font-size:12px;color:var(--text3);margin-top:10px;">Lot map, Pay to Park, guest passes and other tools are now turned on per property: Admin → Properties → Edit → Features.</div>
 
     <div style="display:flex;gap:8px;margin-top:20px;">
       <button class="btn btn-primary" style="flex:1;" id="mf-save-btn" onclick="saveFeatures()">Save Changes</button>
@@ -1088,7 +1085,7 @@ function renderProperties(data){
       </td>
       <td style="white-space:nowrap;">${enforceChips(p)}</td>
       <td style="white-space:nowrap;">${parkCell(p)}</td>
-      <td style="white-space:nowrap;">${p.guest_passes_enabled===undefined?'<span style="font-size:11px;color:var(--text3)" title="Run supabase-guest-passes-1.sql">Not set up</span>':`<button class="btn btn-sm ${p.guest_passes_enabled?'btn-primary':'btn-ghost'}" onclick="toggleGuestPasses('${p.id}',${!p.guest_passes_enabled})">${p.guest_passes_enabled?'On':'Off'}</button>`}</td>
+      <td style="white-space:nowrap;">${featuresCell(p)}</td>
       <td style="white-space:nowrap;">${billingCell(p)}</td>
       <td style="white-space:nowrap;">${accessCell(p)}</td>
       <td><div class="tbl-actions">
@@ -1964,6 +1961,15 @@ async function personSaveDetails(){
   if(r&&!r.error) loadManagers();
 }
 // ── Add / edit a property (Properties page) ──
+const PROP_FEATURES=[['units','Units & tenant invites'],['lot_map','Lot map'],['pay_to_park','Pay to Park'],['guest_passes','Guest passes'],['payouts','Payouts (paid parking)'],['team','Team'],['tenant_history','Tenant history'],['enforcement','Enforcement / violations']];
+const NEW_PROP_FEATURES={units:true,lot_map:false,pay_to_park:false,guest_passes:false,payouts:false,team:true,tenant_history:true,enforcement:true};
+const propFeat=(p,k)=>{const f=p&&p.features;return !(f&&typeof f==='object'&&f[k]===false);};
+function featuresCell(p){
+  if(p.features===undefined) return '<span style="font-size:11px;color:var(--text3)" title="Run supabase-features.sql">Not set up</span>';
+  const on=PROP_FEATURES.filter(([k])=>propFeat(p,k));
+  const extras=['lot_map','pay_to_park','guest_passes','payouts'].filter(k=>propFeat(p,k)).map(k=>PROP_FEATURES.find(x=>x[0]===k)[1].replace(' (paid parking)',''));
+  return `<button class="btn btn-ghost btn-sm" onclick="openPropEdit('${p.id}','features')" title="${escA(on.map(x=>x[1]).join(', '))}">${on.length} of ${PROP_FEATURES.length}</button>${extras.length?`<div style="font-size:11px;color:var(--text3);margin-top:3px;">${escA(extras.join(', '))}</div>`:''}`;
+}
 let _peId=null;
 // ── Property requests ──
 let _preqs=[];
@@ -2003,6 +2009,7 @@ async function approveFromLink(){
 }
 let _peReq=null; // property request being approved, if any
 function openPropEdit(id,prefill){
+  const focusFeat=prefill==='features';if(focusFeat) prefill=null;
   _peId=id;_peReq=prefill&&prefill.requestId||null;
   const p=id?allProperties.find(x=>x.id===id)||{}:(prefill||{});
   document.getElementById('pe-title').textContent=id?'Edit '+(p.name||'property'):_peReq?'Approve: '+(p.name||'property'):'Add a property';
@@ -2014,7 +2021,11 @@ function openPropEdit(id,prefill){
   const mgrs=[...allManagers].sort((a,b)=>String(a.full_name||a.email).localeCompare(String(b.full_name||b.email)));
   document.getElementById('pe-mgr').innerHTML=(id?'':'<option value="">Choose a manager…</option>')+mgrs.map(m=>`<option value="${m.id}" ${m.id===p.manager_id?'selected':''}>${escA(m.full_name||m.email)} · ${escA(m.email||'')}</option>`).join('');
   document.getElementById('pe-mgr-note').style.display=id?'block':'none';
+  const fp=id?p:{features:NEW_PROP_FEATURES};
+  document.getElementById('pe-feats').innerHTML=PROP_FEATURES.map(([k,l])=>`<label style="display:flex;gap:8px;align-items:center;font-size:13px;"><input type="checkbox" data-feat="${k}" ${propFeat(fp,k)?'checked':''}> ${l}</label>`).join('');
+  document.getElementById('pe-feat-wrap').style.display=(id&&p.features===undefined)?'none':'';
   openModal('modal-propedit');
+  if(focusFeat) setTimeout(()=>document.getElementById('pe-feat-wrap').scrollIntoView({block:'center'}),50);
 }
 async function savePropEdit(){
   const v=id=>document.getElementById(id).value.trim();
@@ -2027,6 +2038,7 @@ async function savePropEdit(){
   if(p&&mgr!==p.manager_id&&!confirm(`Make ${mgrName(mgr)} the main manager of ${p.name}? ${mgrName(p.manager_id)} stays on its team as Manager.`)) return;
   const b=document.getElementById('pe-btn');b.disabled=true;b.textContent='Saving…';
   const fields={name:v('pe-name'),address:v('pe-addr'),totalSpots:v('pe-spots'),units:v('pe-units'),zones:v('pe-zones'),monthlyRate:v('pe-rate'),propertyType:document.getElementById('pe-type').value,spaceWord:v('pe-word')};
+  if(document.getElementById('pe-feat-wrap').style.display!=='none'){fields.features={};document.querySelectorAll('#pe-feats input[data-feat]').forEach(c=>fields.features[c.dataset.feat]=c.checked);}
   _acId=_peId;
   const r=await teamCall(_peId?{action:'updateProperty',propertyId:_peId,managerId:mgr,...fields}:{action:'createProperty',userId:mgr,...fields});
   b.disabled=false;b.textContent='Save';

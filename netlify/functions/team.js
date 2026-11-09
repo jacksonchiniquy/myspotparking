@@ -34,6 +34,7 @@ const crypto = require('crypto');
 const { sendRaw, logoHeader } = require('./send-email');
 const { logActivity, userActor } = require('./lib/activity');
 const { ROLES, roleOn, atLeast } = require('./lib/team');
+const feats = require('./lib/features');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -424,7 +425,7 @@ const actions = {
   },
 
   // Admin: edit a property's details and, optionally, hand it to another main manager
-  async updateProperty({ propertyId, name, address, totalSpots, zones, units, monthlyRate, propertyType, spaceWord, managerId }, event) {
+  async updateProperty({ propertyId, name, address, totalSpots, zones, units, monthlyRate, propertyType, spaceWord, managerId, features }, event) {
     const me = await signedIn(event); requireAdmin(me);
     if (!UUID_RE.test(String(propertyId || ''))) throw new UserError('Property not found.', 404);
     const [property] = await sb('GET', `properties?id=eq.${propertyId}&select=*`);
@@ -440,6 +441,18 @@ const actions = {
     const word = String(spaceWord || '').trim().slice(0, 30);
     try { await sb('PATCH', `properties?id=eq.${property.id}`, word ? { ...fields, space_word: word } : fields); }
     catch (e) { if (word && /space_word|42703/.test(e.message)) await sb('PATCH', `properties?id=eq.${property.id}`, fields); else throw e; }
+    if (features) {
+      const f = feats.clean(features);
+      try {
+        await sb('PATCH', `properties?id=eq.${property.id}`, { features: f, guest_passes_enabled: f.guest_passes });
+        const before = property.features || {};
+        const diff = Object.keys(f).filter(k => (before[k] !== false) !== f[k]).map(k => `${feats.FEATURES[k]} ${f[k] ? 'on' : 'off'}`);
+        if (diff.length) await logActivity({ ...(await actorOf(me)), action: 'property.features', propertyId: property.id, target: name, summary: `${name}: ${diff.join(', ')}` });
+      } catch (e) {
+        if (/features|42703/.test(e.message)) throw new UserError('Features aren\'t switched on yet. Run supabase-features.sql in Supabase first.', 503);
+        throw e;
+      }
+    }
     const changed = Object.keys(fields).filter(k => String(fields[k] ?? '') !== String(property[k] ?? ''));
     if (changed.length) await logActivity({ ...(await actorOf(me)), action: 'property.updated', propertyId: property.id, target: name,
       summary: `Edited ${name} (${changed.join(', ').replace(/_/g, ' ')})` });
@@ -448,7 +461,7 @@ const actions = {
   },
 
   // Admin: create a property with this manager as its main manager
-  async createProperty({ userId, name, address, totalSpots, zones, units, monthlyRate, propertyType, spaceWord }, event) {
+  async createProperty({ userId, name, address, totalSpots, zones, units, monthlyRate, propertyType, spaceWord, features }, event) {
     const me = await signedIn(event); requireAdmin(me);
     const u = await personRow(userId);
     if (u.role !== 'manager') throw new UserError('Only a manager login can run a property.');
@@ -461,10 +474,12 @@ const actions = {
       monthly_rate: Math.max(0, parseFloat(monthlyRate) || 0), property_type: propertyType === 'self' ? 'self' : 'linked',
       parking_rates: {},
     };
+    const f = features ? feats.clean(features) : { ...feats.NEW_PROPERTY };
+    const extra = { features: f, guest_passes_enabled: f.guest_passes };
     const word = String(spaceWord || '').trim().slice(0, 30);
     let created;
-    try { [created] = await sb('POST', 'properties', word ? { ...row, space_word: word } : row); }
-    catch (e) { if (word && /space_word|42703/.test(e.message)) [created] = await sb('POST', 'properties', row); else throw e; }
+    try { [created] = await sb('POST', 'properties', { ...row, ...extra, ...(word ? { space_word: word } : {}) }); }
+    catch (e) { if (/space_word|features|guest_passes_enabled|42703/.test(e.message)) [created] = await sb('POST', 'properties', row); else throw e; }
     await logActivity({ ...(await actorOf(me)), action: 'property.created', propertyId: created.id, target: name,
       summary: `Created ${name} for ${nameOf(u)} (${u.email})` });
     try { await addedEmail(u, [created], 'owner', 'LotHQ'); } catch (e) { console.error('Added email failed:', e.message); }

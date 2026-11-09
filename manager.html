@@ -861,11 +861,11 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
       </div>
 
       <!-- Violations for this property -->
-      <div class="sec-head" style="margin-top:36px;margin-bottom:14px;">
+      <div class="sec-head pd-enf" style="margin-top:36px;margin-bottom:14px;">
         <div><div class="sec-title">Violations</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">Vehicles towed, booted or ticketed by enforcement</div></div>
         <button class="btn btn-ghost btn-sm" onclick="exportPropertyViolations()">Export CSV</button>
       </div>
-      <div id="pd-viol-list"></div>
+      <div id="pd-viol-list" class="pd-enf"></div>
     </div>
   </div>
 
@@ -1899,12 +1899,20 @@ async function sendPropertyRequest(){
 
 // ── Team access ──
 const TM_DOES={owner:'Everything, including payouts and the team',manager:'Everything except payouts and the team',leasing:'Units, tenant invites, vehicles and guest passes',viewer:'Sees everything, changes nothing'};
+// Which parts of LotHQ this property uses (set by LotHQ per property). No settings = everything on.
+const PD_FEATURE_TABS={units:'pdit-units',lot_map:'pdit-map',pay_to_park:'pdit-pay',guest_passes:'pdit-guests',payouts:'pdit-payouts',team:'pdit-team',tenant_history:'pdit-history'};
+const PD_TAB_FEATURE={units:'units',map:'lot_map',pay:'pay_to_park',guests:'guest_passes',payouts:'payouts',team:'team',history:'tenant_history'};
+function featOn(key,pid){const p=allProperties.find(x=>x.id===(pid||currentPropertyId));const f=p&&p.features;return !(f&&typeof f==='object'&&f[key]===false);}
 function applyRoleUI(){
   const r=myRole();
   document.body.classList.toggle('ro-leasing',r==='leasing');
   document.body.classList.toggle('ro-viewer',r==='viewer');
   const owner=r==='owner';
   ['pdit-payouts','pdit-team'].forEach(id=>{const el=document.getElementById(id);if(el) el.style.display=owner?'':'none';});
+  Object.entries(PD_FEATURE_TABS).forEach(([k,id])=>{const el=document.getElementById(id);if(el&&!featOn(k)) el.style.display='none';
+    else if(el&&!['pdit-payouts','pdit-team'].includes(id)) el.style.display='';});
+  const ev=featOn('enforcement');
+  document.querySelectorAll('.pd-enf').forEach(el=>el.style.display=ev?'':'none');
   const nm=document.getElementById('pd-name');
   const old=document.getElementById('pd-role-pill');if(old) old.remove();
   if(nm&&r!=='owner'){const pill=document.createElement('span');pill.id='pd-role-pill';pill.className='role-pill';pill.textContent=ROLE_NAMES[r];nm.appendChild(pill);}
@@ -3457,6 +3465,7 @@ function renderPropertyDetail(propId){
 
 function setPDTab(name){
   if((name==='payouts'||name==='team')&&!canRole('owner')) name='all';
+  if(PD_TAB_FEATURE[name]&&!featOn(PD_TAB_FEATURE[name])) name='all';
   ['all','active','expired','map','pay','payouts','team','units','guests','history'].forEach(n=>{
     document.getElementById('pdit-'+n)?.classList.remove('active');
     document.getElementById('pdip-'+n)?.classList.remove('active');
