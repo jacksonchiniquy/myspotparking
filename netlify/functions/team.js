@@ -481,16 +481,75 @@ const actions = {
     const num = v => (String(v || '').trim() === '' ? '' : String(Math.max(0, parseInt(v, 10) || 0)));
     spots = num(spots); units = num(units);
     const who = nameOf(me) || me.email;
+    // Keep the request for Admin → Managers → Property requests (older setups without the table still email)
+    let reqId = null;
+    try {
+      const [saved] = await sb('POST', 'property_requests', { requested_by: me.id, name, address: address || null,
+        spots: spots === '' ? null : Number(spots), units: units === '' ? null : Number(units), notes: notes || null });
+      reqId = saved && saved.id;
+    } catch (e) { console.error('Saving property request failed:', e.message); }
+    const approveUrl = `${SITE}/admin.html${reqId ? '?approve=' + reqId : ''}#managers`;
     const rows = [['Property', name], ['Address', address || '—'], ['Parking spaces', spots || '—'], ['Units', units || '—'], ['Notes', notes || '—'],
       ['Requested by', `${who} (${me.email})${me.company ? ' · ' + me.company : ''}${me.phone ? ' · ' + me.phone : ''}`]];
     await sendRaw({
       to: NOTIFY_TO,
       subject: `Property request: ${name} (from ${who})`,
-      html: `<div style="font-family:Arial,sans-serif;max-width:560px;"><h2 style="margin:0 0 12px;">New property request</h2><table style="border-collapse:collapse;font-size:14px;">${rows.map(([k, v]) => `<tr><td style="padding:6px 14px 6px 0;color:#64748b;vertical-align:top;">${esc(k)}</td><td style="padding:6px 0;white-space:pre-wrap;">${esc(v)}</td></tr>`).join('')}</table><p style="color:#475569;font-size:13px;margin-top:16px;">Add it in Admin → Properties, then open their card in Admin → Managers and click Make main (or add it from their login). The manager's email is above.</p></div>`,
-      text: rows.map(([k, v]) => `${k}: ${v}`).join('\n'),
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;"><h2 style="margin:0 0 12px;">New property request</h2><table style="border-collapse:collapse;font-size:14px;">${rows.map(([k, v]) => `<tr><td style="padding:6px 14px 6px 0;color:#64748b;vertical-align:top;">${esc(k)}</td><td style="padding:6px 0;white-space:pre-wrap;">${esc(v)}</td></tr>`).join('')}</table><p style="margin:22px 0 8px;"><a href="${approveUrl}" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:9px;font-weight:700;margin-right:8px;">✅ Approve &amp; create</a><a href="${SITE}/admin.html#managers" style="display:inline-block;background:#ffffff;color:#2859a8;text-decoration:none;padding:11px 20px;border-radius:9px;font-weight:700;border:1px solid #c7d2e5;">Review in Admin</a></p><p style="color:#64748b;font-size:12px;margin-top:10px;">Approve opens LotHQ Admin with the property filled in and ${esc(who)} as main manager. Check it and click Save. You'll need to be signed in to Admin.</p></div>`,
+      text: rows.map(([k, v]) => `${k}: ${v}`).join('\n') + `\n\nApprove & create: ${approveUrl}`,
     });
     await logActivity({ ...(await actorOf(me)), action: 'access.property_requested', target: name,
       summary: `${who} requested a new property: ${name}${address ? ' (' + address + ')' : ''}` });
+    return { ok: true };
+  },
+
+  // Admin: property requests waiting for a decision
+  async propertyRequests(body, event) {
+    const me = await signedIn(event); requireAdmin(me);
+    let rows;
+    try { rows = await sb('GET', 'property_requests?status=eq.pending&select=*&order=created_at'); }
+    catch (e) { if (/property_requests/.test(e.message)) return { requests: [], missing: true }; throw e; }
+    const ids = [...new Set(rows.map(r => r.requested_by).filter(Boolean))];
+    const users = ids.length ? await sb('GET', `users?id=in.(${ids.join(',')})&select=*`) : [];
+    const byId = Object.fromEntries(users.map(u => [u.id, u]));
+    return { requests: rows.map(r => ({ id: r.id, name: r.name, address: r.address, spots: r.spots, units: r.units, notes: r.notes,
+      createdAt: r.created_at, managerId: r.requested_by, managerName: nameOf(byId[r.requested_by]), managerEmail: byId[r.requested_by]?.email || '' })) };
+  },
+
+  async getPropertyRequest({ requestId }, event) {
+    const me = await signedIn(event); requireAdmin(me);
+    if (!UUID_RE.test(String(requestId || ''))) throw new UserError('Request not found.', 404);
+    const [r] = await sb('GET', `property_requests?id=eq.${requestId}&select=*`);
+    if (!r) throw new UserError('Request not found.', 404);
+    return { id: r.id, status: r.status, name: r.name, address: r.address, spots: r.spots, units: r.units, notes: r.notes, managerId: r.requested_by, propertyId: r.property_id };
+  },
+
+  // Called after Admin creates the property from a request
+  async markRequestApproved({ requestId, propertyId }, event) {
+    const me = await signedIn(event); requireAdmin(me);
+    if (!UUID_RE.test(String(requestId || ''))) throw new UserError('Request not found.', 404);
+    await sb('PATCH', `property_requests?id=eq.${requestId}`, { status: 'approved', property_id: UUID_RE.test(String(propertyId || '')) ? propertyId : null,
+      decided_by: me.id, decided_at: new Date().toISOString() });
+    return { ok: true };
+  },
+
+  async declinePropertyRequest({ requestId, note }, event) {
+    const me = await signedIn(event); requireAdmin(me);
+    if (!UUID_RE.test(String(requestId || ''))) throw new UserError('Request not found.', 404);
+    const [r] = await sb('GET', `property_requests?id=eq.${requestId}&select=*`);
+    if (!r) throw new UserError('Request not found.', 404);
+    if (r.status !== 'pending') throw new UserError('That request was already handled.');
+    note = String(note || '').trim().slice(0, 1000);
+    await sb('PATCH', `property_requests?id=eq.${r.id}`, { status: 'declined', decline_note: note || null, decided_by: me.id, decided_at: new Date().toISOString() });
+    const [u] = r.requested_by ? await sb('GET', `users?id=eq.${r.requested_by}&select=*`) : [];
+    if (u && u.email) {
+      try {
+        await sendRaw({ to: u.email, subject: `About your property request: ${r.name}`,
+          html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">${logoHeader('#2859a8')}<h2 style="margin:0 0 10px;">About ${esc(r.name)}</h2><p style="color:#475569;line-height:1.6;">Thanks for your request to add <strong>${esc(r.name)}</strong> to LotHQ. We're not able to set it up right now.</p>${note ? `<p style="color:#475569;line-height:1.6;background:#f4f7ff;border-radius:8px;padding:12px 14px;">${esc(note)}</p>` : ''}<p style="color:#475569;line-height:1.6;">Questions? Just reply to this email.</p><hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;"><p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ</p></body></html>`,
+          text: `Thanks for your request to add ${r.name} to LotHQ. We're not able to set it up right now.${note ? '\n\n' + note : ''}\n\nQuestions? Just reply to this email.` });
+      } catch (e) { console.error('Decline email failed:', e.message); }
+    }
+    await logActivity({ ...(await actorOf(me)), action: 'access.property_request_declined', target: r.name,
+      summary: `Declined the property request for ${r.name}${u ? ' from ' + nameOf(u) : ''}` });
     return { ok: true };
   },
 
