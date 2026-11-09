@@ -855,6 +855,14 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
           </div>
           <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm" onclick="openBulkDelete()" id="units-bulk-del">Bulk Delete Units</button><button class="btn btn-ghost btn-sm" onclick="openBulkUnits()" id="units-bulk-add">+ Bulk Add Units</button><button class="btn btn-primary btn-sm" onclick="openAddUnitSlot()">+ Add Slot</button></div>
         </div>
+        <div id="units-tools" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-6px 0 16px;">
+          <input class="form-input" id="units-q" type="search" placeholder="Search address, tenant, email, plate or code…" oninput="renderUnitsTab()" style="flex:1;min-width:220px;">
+          <label style="font-size:12px;color:var(--text3);display:flex;align-items:center;gap:6px;">Sort
+            <select class="form-input" id="units-sort" onchange="renderUnitsTab()" style="width:auto;padding:7px 10px;font-size:13px;">
+              <option value="street">Street, then number</option><option value="number">Number</option><option value="status">Status</option><option value="newest">Newest added</option>
+            </select></label>
+          <span id="units-count" style="font-size:12px;color:var(--text3);"></span>
+        </div>
         <div id="units-list" style="display:flex;flex-direction:column;gap:20px;">
           <div style="text-align:center;padding:48px;color:var(--text3);font-size:13px;">Loading units…</div>
         </div>
@@ -5476,6 +5484,7 @@ let _unitSlots=[], _unitPermits=[], _allUnitPermits=[];
 
 async function loadUnitsTab(propId){
   if(!propId) return;
+  if(window._unitsTabProp!==propId){window._unitsTabProp=propId;const q=document.getElementById('units-q');if(q) q.value='';}
   document.getElementById('units-list').innerHTML='<div style="text-align:center;padding:48px;color:var(--text3);font-size:13px;">Loading…</div>';
   const [{data:slots},{data:permits},{data:allPermits}] = await Promise.all([
     sb.from('property_units').select('*').eq('property_id',propId).order('unit_number').order('slot_label'),
@@ -5498,7 +5507,25 @@ function renderUnitsTab(){
   }
   const groups={};
   _unitSlots.forEach(s=>{if(!groups[s.unit_number])groups[s.unit_number]=[];groups[s.unit_number].push(s);});
-  wrap.innerHTML=Object.entries(groups).map(([unitNum,slots])=>{
+  // Search
+  const q=(document.getElementById('units-q')?.value||'').trim().toLowerCase();
+  const plateOf=id=>_unitPermits.filter(p=>p.unit_slot_id===id).map(p=>p.plate||'').join(' ');
+  let entries=Object.entries(groups).filter(([unitNum,slots])=>!q||[unitNum,...slots.map(s=>[s.tenant_name,s.tenant_email,s.invite_code,s.slot_label,plateOf(s.id)].join(' '))].join(' ').toLowerCase().includes(q));
+  // Sort
+  const mode=document.getElementById('units-sort')?.value||'street';
+  const numOf=n=>{const m=String(n).match(/\d+/);return m?parseInt(m[0],10):Infinity;};
+  const streetOf=n=>String(n).replace(/^\s*[\d-]+[a-z]?\s*/i,'').replace(/^(north|south|east|west|[nsew])\.?\s+/i,'').toLowerCase();
+  const statusOf=sl=>sl.some(s=>s.invite_used)?2:sl.some(s=>s.tenant_email)?1:0;
+  const newest=sl=>Math.max(...sl.map(s=>new Date(s.created_at||0).getTime()));
+  const cmpNum=(a,b)=>numOf(a)-numOf(b)||String(a).localeCompare(String(b),undefined,{numeric:true});
+  entries.sort(([a,sa],[b,sb])=>mode==='number'?cmpNum(a,b)
+    :mode==='status'?statusOf(sa)-statusOf(sb)||cmpNum(a,b)
+    :mode==='newest'?newest(sb)-newest(sa)
+    :streetOf(a).localeCompare(streetOf(b))||cmpNum(a,b));
+  const total=Object.keys(groups).length;
+  const cnt=document.getElementById('units-count');if(cnt) cnt.textContent=q?`Showing ${entries.length} of ${total}`:`${total} total`;
+  if(!entries.length){wrap.innerHTML='<div style="text-align:center;padding:48px;color:var(--text3);font-size:13px;">Nothing matches that search.</div>';return;}
+  wrap.innerHTML=entries.map(([unitNum,slots])=>{
     const propId=slots[0].property_id;
     // Use the first slot's invite_code (all slots for a unit share one invite code)
     // The invite lives on one spot of the unit (whichever has the code), not always the first one listed
@@ -5522,7 +5549,7 @@ function renderUnitsTab(){
           <div style="width:36px;height:36px;border-radius:10px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
           <div>
             <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-weight:700;font-size:15px;">Unit ${unitNum}</span>
+              <span style="font-weight:700;font-size:15px;">${escHtml(unitNum)}</span>
               ${usedBadge}
             </div>
             ${tenantInfo}
@@ -5973,7 +6000,7 @@ function renderTenantHistory(){
   if(!_tenancies.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px;">No tenant history yet. It\'s saved each time you use <strong>Move Out Tenant</strong> on the Units tab.</div>';return;}
   if(!list.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px;">No matches.</div>';return;}
   el.innerHTML=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Unit</th><th>Tenant</th><th>Dates</th><th>Vehicles</th><th>Spots</th></tr></thead><tbody>${list.map(t=>`<tr>
-    <td style="font-weight:700;">Unit ${escHtml(t.unit_number)}</td>
+    <td style="font-weight:700;">${escHtml(t.unit_number)}</td>
     <td><div style="font-weight:600;">${escHtml(t.tenant_name||t.tenant_email||'—')}</div>${t.tenant_name&&t.tenant_email?`<div style="font-size:11px;color:var(--text3);">${escHtml(t.tenant_email)}</div>`:''}</td>
     <td style="font-size:12px;white-space:nowrap;">${fmtD(t.moved_in_at)} – ${fmtD(t.moved_out_at)}</td>
     <td><div style="display:flex;gap:4px;flex-wrap:wrap;">${(t.vehicles||[]).map(v=>platePill(v.plate)).join('')||'—'}</div></td>

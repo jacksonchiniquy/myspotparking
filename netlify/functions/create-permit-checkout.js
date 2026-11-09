@@ -12,6 +12,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const connect = require('./lib/connect');
 const { CYCLES, cycleCents, spotMonthlyCents, unitSpots, chosenPaidSpots } = require('./lib/spot-pricing');
+// A unit's display name: addresses and named units show as-is; plain numbers get "Unit"
+const unitLabel = v => { const s = String(v ?? '').trim(); return /[a-z]/i.test(s) ? s : 'Unit ' + s; };
 
 const STRIPE_INTERVALS = {
   monthly:   { interval: 'month', interval_count: 1 },
@@ -81,7 +83,7 @@ exports.handler = async (event) => {
           recurring: STRIPE_INTERVALS[billingInterval],
           product_data: {
             name: `Parking Permit — ${property.name || 'Your Property'}`,
-            description: `Unit ${unit.unit_number} · ${spotNames} · ${billingInterval} billing`.slice(0, 500),
+            description: `${unitLabel(unit.unit_number)} · ${spotNames} · ${billingInterval} billing`.slice(0, 500),
           },
         },
         quantity: 1,
@@ -100,7 +102,7 @@ exports.handler = async (event) => {
     }, connect.opts(account));
 
     await terms.recordAcceptance({ propertyId: unit.property_id, placement: 'signup', version: body.termsVersion,
-      acceptedBy: `${tenantEmail} · Unit ${unit.unit_number}`, event });
+      acceptedBy: `${tenantEmail} · ${unitLabel(unit.unit_number)}`, event });
     return reply(200, { url: session.url });
   } catch (err) {
     if (err instanceof connect.PaymentsPaused) return reply(400, { error: err.message });

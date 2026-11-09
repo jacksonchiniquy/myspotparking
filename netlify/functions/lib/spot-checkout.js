@@ -5,6 +5,8 @@
 const crypto = require('crypto');
 const { spotMonthlyCents } = require('./spot-pricing');
 const connect = require('./connect');
+// A unit's display name: addresses and named units show as-is; plain numbers get "Unit"
+const unitLabel = v => { const s = String(v ?? '').trim(); return /[a-z]/i.test(s) ? s : 'Unit ' + s; };
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -58,7 +60,7 @@ async function createSpotCheckout(stripe, { slot, property, email, successUrl, c
         currency: 'usd', unit_amount: amount, recurring: { interval: 'month', interval_count: 1 },
         product_data: {
           name: `Parking Spot — ${property?.name || 'Your Property'}`,
-          description: `Unit ${slot.unit_number} · ${slot.slot_label || 'Spot'} · monthly`.slice(0, 500),
+          description: `${unitLabel(slot.unit_number)} · ${slot.slot_label || 'Spot'} · monthly`.slice(0, 500),
         },
       },
       quantity: 1,

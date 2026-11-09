@@ -4,6 +4,8 @@
 
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 const { send } = require('./send-email');
+// A unit's display name: addresses and named units show as-is; plain numbers get "Unit"
+const unitLabel = v => { const s = String(v ?? '').trim(); return /[a-z]/i.test(s) ? s : 'Unit ' + s; };
 
 const SITE = process.env.SITE_URL || 'https://lothq.com';
 
@@ -51,7 +53,7 @@ async function buildFlyer({ propertyName, propertyAddress, unitNumber, inviteCod
     page.drawText(propertyAddress, { x: 64, y: height - 262, size: 10, font: regularFont, color: grayText });
   }
   page.drawText('YOUR UNIT', { x: 340, y: height - 228, size: 9, font: boldFont, color: grayText });
-  page.drawText(`Unit ${unitNumber}`, { x: 340, y: height - 244, size: 20, font: boldFont, color: blue });
+  { const ul = unitLabel(unitNumber); page.drawText(ul.slice(0, 40), { x: 340, y: height - 244, size: ul.length > 26 ? 10 : ul.length > 14 ? 13 : 20, font: boldFont, color: blue }); }
   if (slotLabel) {
     page.drawText(slotLabel, { x: 340, y: height - 264, size: 10, font: regularFont, color: grayText });
   }
@@ -146,7 +148,7 @@ exports.handler = async (event) => {
         ReplyToAddresses: [process.env.REPLY_TO_EMAIL || 'support@myspotparking.com'],
         Destination: { ToAddresses: [emailTo] },
         Message: {
-          Subject: { Data: `Your parking permit invite — ${propertyName} Unit ${unitNumber}` },
+          Subject: { Data: `Your parking permit invite — ${propertyName} ${unitLabel(unitNumber)}` },
           Body: {
             Html: {
               Data: `
@@ -155,7 +157,7 @@ exports.handler = async (event) => {
     <div style="color:#fff;font-size:20px;font-weight:700;">🅿 LotHQ</div>
   </div>
   <h2>Set up your parking permit</h2>
-  <p style="color:#475569;">You have been invited to set up a parking permit for <strong>${propertyName}</strong> — Unit <strong>${unitNumber}</strong>.</p>
+  <p style="color:#475569;">You have been invited to set up a parking permit for <strong>${propertyName}</strong> — <strong>${unitLabel(unitNumber)}</strong>.</p>
   <div style="background:#f4f7ff;border-radius:10px;padding:20px;margin:24px 0;text-align:center;">
     <div style="font-size:12px;color:#64748b;margin-bottom:8px;">YOUR INVITE CODE</div>
     <div style="font-size:32px;font-weight:700;font-family:monospace;letter-spacing:4px;color:#1a6fff;">${inviteCode}</div>
@@ -166,7 +168,7 @@ exports.handler = async (event) => {
   <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ</p>
 </body></html>`,
             },
-            Text: { Data: `Set up your parking permit for ${propertyName} Unit ${unitNumber}.\n\nInvite code: ${inviteCode}\n\nVisit: ${signupUrl}` },
+            Text: { Data: `Set up your parking permit for ${propertyName} ${unitLabel(unitNumber)}.\n\nInvite code: ${inviteCode}\n\nVisit: ${signupUrl}` },
           },
         },
       }));

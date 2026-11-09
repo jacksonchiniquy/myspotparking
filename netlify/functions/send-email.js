@@ -2,6 +2,8 @@
 // Provider-agnostic wrapper: swap sendViaSES for another provider if needed
 
 const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
+// A unit's display name: addresses and named units show as-is; plain numbers get "Unit"
+const unitLabel = v => { const s = String(v ?? '').trim(); return /[a-z]/i.test(s) ? s : 'Unit ' + s; };
 
 const ses = new SESClient({
   region: process.env.AWS_SES_REGION || 'us-east-1',
@@ -83,7 +85,7 @@ function welcomeEmail({ name, email, password, propertyName, unitNumber, plate, 
 <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
   ${logoHeader('#2859a8')}
   <h2 style="margin:0 0 8px;font-family:Arial,sans-serif;color:#0f172a;">Welcome, ${name}!</h2>
-  <p style="color:#475569;margin:0 0 24px;">Your parking permit for <strong>${propertyName}</strong> — Unit <strong>${unitNumber}</strong> is now active.</p>
+  <p style="color:#475569;margin:0 0 24px;">Your parking permit for <strong>${propertyName}</strong> — <strong>${unitLabel(unitNumber)}</strong> is now active.</p>
   <div style="background:#f4f7ff;border-radius:10px;padding:20px;margin-bottom:24px;">
     <div style="font-size:12px;color:#64748b;margin-bottom:4px;letter-spacing:0.08em;font-weight:600;">UNIT NUMBER</div>
     <div style="font-size:16px;font-weight:700;font-family:monospace;color:#0f172a;">${unitNumber}</div>
@@ -124,12 +126,12 @@ function permitSuspendedEmail({ name, propertyName, unitNumber }) {
 <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
   ${logoHeader('#d97706')}
   <h2 style="margin:0 0 8px;font-family:Arial,sans-serif;color:#0f172a;">Permit Suspended</h2>
-  <p style="color:#475569;margin:0 0 24px;">Hi ${name}, your parking permit for <strong>${propertyName}</strong> — Unit <strong>${unitNumber}</strong> has been suspended due to non-payment.</p>
+  <p style="color:#475569;margin:0 0 24px;">Hi ${name}, your parking permit for <strong>${propertyName}</strong> — <strong>${unitLabel(unitNumber)}</strong> has been suspended due to non-payment.</p>
   <p style="color:#475569;margin:0 0 24px;">Please contact your property manager to reinstate your permit.</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
   <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ</p>
 </body></html>`,
-    text: `Hi ${name},\n\nYour parking permit for ${propertyName} Unit ${unitNumber} has been suspended. Contact your property manager to reinstate it.`,
+    text: `Hi ${name},\n\nYour parking permit for ${propertyName} ${unitLabel(unitNumber)} has been suspended. Contact your property manager to reinstate it.`,
   };
 }
 
@@ -152,12 +154,12 @@ function renewalReminderEmail({ name, propertyName, renewalDate, portalUrl }) {
 
 function inviteFlyerEmail({ email, propertyName, unitNumber, inviteCode, inviteLink }) {
   return {
-    subject: `Your parking invite — ${propertyName} Unit ${unitNumber}`,
+    subject: `Your parking invite — ${propertyName} ${unitLabel(unitNumber)}`,
     html: `
 <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
   ${logoHeader('#2859a8')}
   <h2 style="margin:0 0 8px;font-family:Arial,sans-serif;color:#0f172a;">You've been invited!</h2>
-  <p style="color:#475569;margin:0 0 24px;">Your property manager has set up a parking spot for you at <strong>${propertyName}</strong> — Unit <strong>${unitNumber}</strong>.</p>
+  <p style="color:#475569;margin:0 0 24px;">Your property manager has set up a parking spot for you at <strong>${propertyName}</strong> — <strong>${unitLabel(unitNumber)}</strong>.</p>
   <div style="background:#f4f7ff;border-radius:10px;padding:20px;margin-bottom:24px;text-align:center;">
     <div style="font-size:12px;color:#64748b;margin-bottom:8px;letter-spacing:0.08em;font-weight:600;">YOUR INVITE CODE</div>
     <div style="font-size:28px;font-weight:800;font-family:monospace;letter-spacing:4px;color:#2859a8;">${inviteCode}</div>
@@ -168,7 +170,7 @@ function inviteFlyerEmail({ email, propertyName, unitNumber, inviteCode, inviteL
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
   <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ · Provo, UT</p>
 </body></html>`,
-    text: `You've been invited to set up parking at ${propertyName} Unit ${unitNumber}.\n\nInvite Code: ${inviteCode}\n\nSign up here: ${inviteLink}`,
+    text: `You've been invited to set up parking at ${propertyName} ${unitLabel(unitNumber)}.\n\nInvite Code: ${inviteCode}\n\nSign up here: ${inviteLink}`,
   };
 }
 
@@ -180,7 +182,7 @@ function passwordResetEmail({ name, password, propertyName, unitNumber, property
 <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
   ${logoHeader('#2859a8')}
   <h2 style="margin:0 0 8px;font-family:Arial,sans-serif;color:#0f172a;">Password Reset</h2>
-  <p style="color:#475569;margin:0 0 24px;">Hi ${name}, here is your new temporary password for <strong>${propertyName}</strong> — Unit <strong>${unitNumber}</strong>.</p>
+  <p style="color:#475569;margin:0 0 24px;">Hi ${name}, here is your new temporary password for <strong>${propertyName}</strong> — <strong>${unitLabel(unitNumber)}</strong>.</p>
   <div style="background:#f4f7ff;border-radius:10px;padding:20px;margin-bottom:24px;">
     <div style="font-size:12px;color:#64748b;margin-bottom:4px;letter-spacing:0.08em;font-weight:600;">UNIT NUMBER</div>
     <div style="font-size:16px;font-weight:700;font-family:monospace;color:#0f172a;">${unitNumber}</div>
@@ -192,7 +194,7 @@ function passwordResetEmail({ name, password, propertyName, unitNumber, property
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
   <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ · Provo, UT</p>
 </body></html>`,
-    text: `Password Reset\n\nHi ${name},\n\nYour new temporary password for ${propertyName} Unit ${unitNumber}:\n\nPassword: ${password}\n\nLog in at: ${loginUrl}\n\nSet a permanent password in Account Settings once logged in.`,
+    text: `Password Reset\n\nHi ${name},\n\nYour new temporary password for ${propertyName} ${unitLabel(unitNumber)}:\n\nPassword: ${password}\n\nLog in at: ${loginUrl}\n\nSet a permanent password in Account Settings once logged in.`,
   };
 }
 
@@ -210,7 +212,7 @@ function managerAlertEmail({ managerEmail, eventType, tenantName, tenantEmail, p
   const title = titles[eventType] || 'Permit Alert';
   const color = colors[eventType] || '#2859a8';
   return {
-    subject: `${title} — ${propertyName} Unit ${unitNumber}`,
+    subject: `${title} — ${propertyName} ${unitLabel(unitNumber)}`,
     html: `
 <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
   ${logoHeader(color)}
@@ -285,7 +287,7 @@ exports.handler = async (event) => {
     await sendViaSES({ to, ...template });
     await require('./lib/activity').logActivity({
       actorId: userId, actorName: me?.full_name || me?.name || me?.email || null, actorRole: me?.role, portal: 'manager',
-      action: 'unit.invite_sent', propertyId, target: `Unit ${unitNumber}`, summary: `Emailed the signup invite to ${to}`,
+      action: 'unit.invite_sent', propertyId, target: `${unitLabel(unitNumber)}`, summary: `Emailed the signup invite to ${to}`,
       details: { to, invite_code: inviteCode },
     });
     return reply(200, { ok: true });

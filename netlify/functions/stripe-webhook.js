@@ -17,6 +17,8 @@ const { send, sendRaw, logoHeader } = require('./send-email');
 const { activateSession } = require('./lib/parking');
 const { logActivity, money } = require('./lib/activity');
 const connect = require('./lib/connect');
+// A unit's display name: addresses and named units show as-is; plain numbers get "Unit"
+const unitLabel = v => { const s = String(v ?? '').trim(); return /[a-z]/i.test(s) ? s : 'Unit ' + s; };
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY; // service role key for server-side writes
@@ -116,13 +118,13 @@ async function handleCheckoutCompleted(session, account) {
     await sbUpdate('property_units',
       { spot_paid: true, paid_via: 'card', spot_subscription_id: session.subscription || null, stripe_customer_id: session.customer || null, ...acctCol },
       `id=eq.${meta.slot_id}&property_id=eq.${meta.property_id}&billing_type=eq.monthly`);
-    console.log(`Spot ${meta.slot_id} paid for Unit ${meta.unit_number}`);
+    console.log(`Spot ${meta.slot_id} paid for ${unitLabel(meta.unit_number)}`);
     {
       const slotRows = await sbSelect('property_units', `id=eq.${meta.slot_id}&select=slot_label`);
       const label = (Array.isArray(slotRows) && slotRows[0]?.slot_label) || 'a spot';
       await logActivity({
-        actorName: session.customer_details?.name || session.customer_details?.email || `Unit ${meta.unit_number} resident`,
-        actorRole: 'unit', portal: 'unit', action: 'billing.spot_paid', propertyId: meta.property_id, target: `Unit ${meta.unit_number}`,
+        actorName: session.customer_details?.name || session.customer_details?.email || `${unitLabel(meta.unit_number)} resident`,
+        actorRole: 'unit', portal: 'unit', action: 'billing.spot_paid', propertyId: meta.property_id, target: `${unitLabel(meta.unit_number)}`,
         summary: `Paid for ${label} — ${money(session.amount_total)}/mo by card`,
         details: { slot_id: meta.slot_id, subscription: session.subscription || null },
       });
@@ -264,10 +266,10 @@ async function handleCheckoutCompleted(session, account) {
     }
   }
 
-  console.log(`Permit created for ${tenant_email} at ${propertyName} Unit ${unit_number}`);
+  console.log(`Permit created for ${tenant_email} at ${propertyName} ${unitLabel(unit_number)}`);
   await logActivity({
     actorId: userId || null, actorName: tenant_name || tenant_email, actorRole: 'holder', portal: 'signup',
-    action: 'unit.signed_up', propertyId: property_id, target: `Unit ${unit_number}`,
+    action: 'unit.signed_up', propertyId: property_id, target: `${unitLabel(unit_number)}`,
     summary: `Signed up with invite ${invite_code} and paid ${money(session.amount_total)} (${billing_interval || 'monthly'})`,
     details: { email: tenant_email, spots: String(meta.spot_ids || '').split(',').filter(Boolean) },
   });
@@ -329,23 +331,23 @@ async function spotAddedEmails(meta, session) {
   if (residentEmail) {
     try { await sendRaw({
       to: residentEmail,
-      subject: `${spot} is now active — Unit ${meta.unit_number}`,
+      subject: `${spot} is now active — ${unitLabel(meta.unit_number)}`,
       html: emailShell('#059669', `${spot} is now active`,
-        `Thanks! Your payment went through and ${escH(spot)} has been added to Unit ${escH(meta.unit_number)}. ${escH(nextStep.line)}`,
+        `Thanks! Your payment went through and ${escH(spot)} has been added to ${unitLabel(escH(meta.unit_number))}. ${escH(nextStep.line)}`,
         rows, nextStep.button,
         'Billed monthly by card. To update your card or cancel this spot, open Account → Manage Billing in your unit portal.'),
-      text: `${spot} is now active on Unit ${meta.unit_number} at ${propertyName} (${price}).\n\n${nextStep.line} ${nextStep.button[1]}\nTo update your card or cancel, open Account → Manage Billing in your unit portal.`,
+      text: `${spot} is now active on ${unitLabel(meta.unit_number)} at ${propertyName} (${price}).\n\n${nextStep.line} ${nextStep.button[1]}\nTo update your card or cancel, open Account → Manage Billing in your unit portal.`,
     }); console.log('Spot added email sent to resident', residentEmail); }
     catch (e) { console.error('Resident spot email failed:', e.message); }
   } else console.log('Spot added: no resident email on file');
   if (property?.manager_email) {
     try { await sendRaw({
       to: property.manager_email,
-      subject: `Unit ${meta.unit_number} added ${spot} (${price}) — ${propertyName}`,
+      subject: `${unitLabel(meta.unit_number)} added ${spot} (${price}) — ${propertyName}`,
       html: emailShell('#2859a8', 'Paid spot added',
         `${escH(residentName)}${residentEmail ? ' (' + escH(residentEmail) + ')' : ''} paid for an extra spot. It now shows as <strong>PAID · CARD</strong> on your Units tab.`,
         rows, ['Open Manager Dashboard →', `${SITE}/manager.html`], ''),
-      text: `Unit ${meta.unit_number} at ${propertyName} added ${spot} (${price}), paid by card.\n\n${SITE}/manager.html`,
+      text: `${unitLabel(meta.unit_number)} at ${propertyName} added ${spot} (${price}), paid by card.\n\n${SITE}/manager.html`,
     }); console.log('Spot added email sent to manager', property.manager_email); }
     catch (e) { console.error('Manager spot email failed:', e.message); }
   } else console.log('Spot added: no manager email for property');
@@ -383,7 +385,7 @@ async function handleInvoicePaid(invoice, account) {
   const ctx = await subscriptionContext(subscriptionId);
   await logActivity({
     actorName: 'Stripe', actorRole: 'system', portal: 'system', action: 'billing.payment_received',
-    propertyId: ctx.propertyId, target: ctx.unit ? `Unit ${ctx.unit}` : null,
+    propertyId: ctx.propertyId, target: ctx.unit ? `${unitLabel(ctx.unit)}` : null,
     summary: `Payment received: ${money(invoice.amount_paid)}${ctx.who ? ' from ' + ctx.who : ''}`,
     details: { subscription: subscriptionId, invoice: invoice.id },
   });
@@ -414,7 +416,7 @@ async function handlePaymentFailed(invoice, account) {
     const ctx = await subscriptionContext(subscriptionId);
     await logActivity({
       actorName: 'Stripe', actorRole: 'system', portal: 'system', action: 'billing.payment_failed',
-      propertyId: ctx.propertyId, target: ctx.unit ? `Unit ${ctx.unit}` : null,
+      propertyId: ctx.propertyId, target: ctx.unit ? `${unitLabel(ctx.unit)}` : null,
       summary: `Payment failed: ${money(invoice.amount_due)}${ctx.who ? ' for ' + ctx.who : ''}`,
       details: { subscription: subscriptionId, invoice: invoice.id },
     });
@@ -479,7 +481,7 @@ async function handleSubscriptionDeleted(subscription, account) {
     const ctx = await subscriptionContext(subscriptionId);
     await logActivity({
       actorName: 'Stripe', actorRole: 'system', portal: 'system', action: 'billing.subscription_ended',
-      propertyId: ctx.propertyId, target: ctx.unit ? `Unit ${ctx.unit}` : null,
+      propertyId: ctx.propertyId, target: ctx.unit ? `${unitLabel(ctx.unit)}` : null,
       summary: `Card billing ended${ctx.who ? ' for ' + ctx.who : ''} — paid spots locked`,
       details: { subscription: subscriptionId },
     });

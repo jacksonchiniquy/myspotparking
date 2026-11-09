@@ -35,6 +35,8 @@ const { spotMonthlyCents } = require('./lib/spot-pricing');
 const stripe = () => require('stripe')(process.env.STRIPE_SECRET_KEY);
 const SITE = process.env.SITE_URL || 'https://lothq.com';
 const GP = require('./lib/guest-passes');
+// A unit's display name: addresses and named units show as-is; plain numbers get "Unit"
+const unitLabel = v => { const s = String(v ?? '').trim(); return /[a-z]/i.test(s) ? s : 'Unit ' + s; };
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -123,7 +125,7 @@ function vehicleFields(v) {
 // "Maria Lopez · Unit 101" for the terms acceptance record
 function unitWho(u) {
   const name = (u.slots || []).find(s => s.tenant_name)?.tenant_name || (u.slots || []).find(s => s.tenant_email)?.tenant_email || '';
-  return `${name ? name + ' · ' : ''}Unit ${u.unitNumber}`;
+  return `${name ? name + ' · ' : ''}${unitLabel(u.unitNumber)}`;
 }
 
 async function propertyName(propertyId) {
@@ -442,10 +444,10 @@ const actions = {
     const typeName = String(u.slot.slot_type || '').replace(/^(stall|zone)-/, '').replace(/\b\w/g, c => c.toUpperCase());
     await sendRaw({
       to,
-      subject: `${spot} has been added to Unit ${u.unitNumber} — complete payment`,
+      subject: `${spot} has been added to ${unitLabel(u.unitNumber)} — complete payment`,
       html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
   ${logoHeader('#1a6fff')}
-  <h2 style="margin:0 0 8px;">${escH(spot)} has been added to Unit ${escH(u.unitNumber)}</h2>
+  <h2 style="margin:0 0 8px;">${escH(spot)} has been added to ${unitLabel(escH(u.unitNumber))}</h2>
   <p style="color:#475569;margin:0 0 20px;line-height:1.5;">Your property manager at <strong>${escH(property.name || 'your property')}</strong> added a parking spot to your unit. Complete payment to start using it.</p>
   <div style="background:#f4f7ff;border-radius:10px;padding:14px 20px;margin-bottom:22px;"><table width="100%" cellpadding="0" cellspacing="0">
     <tr><td style="padding:5px 0;color:#64748b;font-size:13px;">Spot</td><td style="padding:5px 0;text-align:right;font-weight:700;">${escH(spot)}${typeName ? ' · ' + escH(typeName) : ''}</td></tr>
@@ -455,7 +457,7 @@ const actions = {
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
   <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ</p>
 </body></html>`,
-      text: `${spot} has been added to Unit ${u.unitNumber} at ${property.name || 'your property'} (${price}).\n\nPay and add the spot: ${link}\n\nBilled monthly by card. This link works for 30 days.`,
+      text: `${spot} has been added to ${unitLabel(u.unitNumber)} at ${property.name || 'your property'} (${price}).\n\nPay and add the spot: ${link}\n\nBilled monthly by card. This link works for 30 days.`,
     });
     if (!u.slots.some(x => x.tenant_email)) {
       await sb('PATCH', `property_units?property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}`, { tenant_email: to });
@@ -738,10 +740,10 @@ async function logUnitAction(body, result, ctx) {
   const tenant = (u.slots || []).find(x => x.tenant_name || x.tenant_email) || {};
   await logActivity({
     actorId: isManager ? u.userId : null,
-    actorName: isManager ? (u.me?.full_name || u.me?.name || u.me?.email) : (tenant.tenant_name || tenant.tenant_email || `Unit ${u.unitNumber} resident`),
+    actorName: isManager ? (u.me?.full_name || u.me?.name || u.me?.email) : (tenant.tenant_name || tenant.tenant_email || `${unitLabel(u.unitNumber)} resident`),
     actorRole: isManager ? (u.me?.role || 'manager') : 'unit',
     portal: isManager ? 'manager' : 'unit',
-    action, summary, propertyId: u.propertyId, target: `Unit ${u.unitNumber}`,
+    action, summary, propertyId: u.propertyId, target: `${unitLabel(u.unitNumber)}`,
     details: details && typeof details === 'object' ? details : {},
   });
 }

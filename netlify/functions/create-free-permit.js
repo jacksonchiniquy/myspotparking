@@ -5,6 +5,8 @@
 const { send } = require('./send-email');
 const { hashPassword } = require('./lib/unit-password');
 const { unitSpots, isPaid } = require('./lib/spot-pricing');
+// A unit's display name: addresses and named units show as-is; plain numbers get "Unit"
+const unitLabel = v => { const s = String(v ?? '').trim(); return /[a-z]/i.test(s) ? s : 'Unit ' + s; };
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -154,11 +156,11 @@ exports.handler = async (event) => {
 
     await require('./lib/activity').logActivity({
       actorId: userId || null, actorName: tenantName || tenantEmail, actorRole: 'holder', portal: 'signup',
-      action: 'unit.signed_up', propertyId, target: `Unit ${unitNumber}`,
+      action: 'unit.signed_up', propertyId, target: `${unitLabel(unitNumber)}`,
       summary: `Signed up with invite ${inviteCode} (no payment)`, details: { email: tenantEmail },
     });
     await terms.recordAcceptance({ propertyId: unit.property_id, placement: 'signup', version: termsVersion,
-      acceptedBy: `${tenantName ? tenantName + ' · ' : ''}${tenantEmail} · Unit ${unit.unit_number}`, userId, event });
+      acceptedBy: `${tenantName ? tenantName + ' · ' : ''}${tenantEmail} · ${unitLabel(unit.unit_number)}`, userId, event });
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
