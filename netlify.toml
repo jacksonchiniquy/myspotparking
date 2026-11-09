@@ -43,3 +43,19 @@ schedule = "*/15 * * * *"
 from = "/guest"
 to = "/guest.html"
 status = 200
+
+# Browser security settings for every page
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Other websites can't show LotHQ inside their own page (stops click-tricking)
+    X-Frame-Options = "DENY"
+    Content-Security-Policy = "frame-ancestors 'none'"
+    # Always use a secure connection to lothq.com
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    # Browsers don't guess file types
+    X-Content-Type-Options = "nosniff"
+    # Links to other sites don't reveal full LotHQ page addresses
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # LotHQ doesn't use the microphone, location or payment-request APIs; the camera only through photo uploads
+    Permissions-Policy = "microphone=(), geolocation=(), payment=(), usb=()"

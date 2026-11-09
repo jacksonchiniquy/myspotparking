@@ -33,6 +33,23 @@ function esc(s) {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+async function countSince(filter) {
+  const since = new Date(Date.now() - 3600e3).toISOString();
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/pricing_inquiries?select=id&created_at=gte.${encodeURIComponent(since)}${filter}`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'count=exact', Range: '0-0' },
+  });
+  if (!res.ok) return 0;
+  const m = (res.headers.get('content-range') || '').match(/\/(\d+)$/);
+  return m ? parseInt(m[1], 10) : 0;
+}
+async function tooMany(email) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return false;
+  try {
+    const [mine, all] = await Promise.all([countSince(`&email=eq.${encodeURIComponent(email)}`), countSince('')]);
+    return mine >= 3 || all >= 30;
+  } catch { return false; }
+}
+
 async function saveLead(lead) {
   if (!SUPABASE_URL || !SUPABASE_KEY) throw new Error('Supabase not configured');
   const res = await fetch(`${SUPABASE_URL}/rest/v1/pricing_inquiries`, {
@@ -106,6 +123,10 @@ exports.handler = async (event) => {
   if (missing.length) return reply(400, { error: 'Please fill in: ' + missing.join(', ').replace(/_/g, ' ') });
   if (!EMAIL_RE.test(lead.email)) return reply(400, { error: 'Please enter a valid email address' });
   if (!UNIT_OPTIONS.includes(lead.units)) return reply(400, { error: 'Please choose a unit range' });
+
+  // Flood protection: at most 3 messages per email address and 30 overall per hour.
+  // Extra ones get a normal "thanks" so senders don't learn the limit.
+  if (await tooMany(lead.email)) { console.warn('pricing-inquiry rate limited:', lead.email); return reply(200, { ok: true }); }
 
   const [saved, emailed] = await Promise.allSettled([saveLead(lead), sendRaw(leadEmail(lead))]);
   if (saved.status === 'rejected') console.error('pricing-inquiry save failed:', saved.reason);
