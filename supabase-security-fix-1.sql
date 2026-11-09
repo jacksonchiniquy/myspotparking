@@ -12,7 +12,7 @@
 --    Public pages (Pay to Park, property search, sign-up) are unaffected:
 --    they go through LotHQ's server.
 -- 2. Users: managers can no longer edit other managers' or admins'
---    profiles. People edit their own; managers edit residents; admins anyone.
+--    profiles. People edit their own; managers edit their own residents; admins anyone.
 -- No data is changed or deleted. Shows the resulting rules at the end.
 -- ============================================================
 
@@ -32,12 +32,11 @@ create policy "properties: residents read" on public.properties for select using
 drop policy if exists "properties: enforcement reads" on public.properties;
 create policy "properties: enforcement reads" on public.properties for select using (public.enforces_property(id));
 
--- 2. Users
+-- 2. Users: remove the old "any manager can edit any user" rule. Existing rules
+--    already cover the rest: people edit their own row, managers edit their own
+--    residents (manager_sees_resident), admins edit anyone.
 drop policy if exists "Managers can update users status" on public.users;
 drop policy if exists "users: who can update" on public.users;
-create policy "users: who can update" on public.users for update
-  using (id = auth.uid() or public.is_admin() or (role = 'holder' and public.is_manager_or_admin()))
-  with check (id = auth.uid() or public.is_admin() or (role = 'holder' and public.is_manager_or_admin()));
 
 commit;
 
