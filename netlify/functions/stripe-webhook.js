@@ -119,6 +119,8 @@ async function handleCheckoutCompleted(session, account) {
       { spot_paid: true, paid_via: 'card', spot_subscription_id: session.subscription || null, stripe_customer_id: session.customer || null, ...acctCol },
       `id=eq.${meta.slot_id}&property_id=eq.${meta.property_id}&billing_type=eq.monthly`);
     console.log(`Spot ${meta.slot_id} paid for ${unitLabel(meta.unit_number)}`);
+    try { await sbUpdate('property_units', { billing_cycle: 'monthly', cycle_pct: 0 }, `id=eq.${meta.slot_id}`); } catch (e) { /* before the discounts database step */ }
+    await require('./lib/spot-billing').afterCheckout(stripe, session.subscription, meta);
     {
       const slotRows = await sbSelect('property_units', `id=eq.${meta.slot_id}&select=slot_label`);
       const label = (Array.isArray(slotRows) && slotRows[0]?.slot_label) || 'a spot';
@@ -158,6 +160,14 @@ async function handleCheckoutCompleted(session, account) {
       { spot_paid: true, paid_via: 'card', spot_subscription_id: session.subscription || null, stripe_customer_id: session.customer || null, ...acctCol },
       ids.length ? `${unitFilter}&id=in.(${ids.join(',')})` : `${unitFilter}&invite_code=eq.${encodeURIComponent(invite_code)}`);
   } catch (e) { console.error('Marking paid spots failed (non-fatal):', e.message); }
+  // 1c. Remember the billing cycle they chose, then put any spot discounts on their billing
+  try {
+    const ids = String(meta.spot_ids || '').split(',').filter(id => /^[0-9a-f-]{36}$/i.test(id));
+    if (ids.length && meta.billing_interval) await sbUpdate('property_units',
+      { billing_cycle: meta.billing_interval, cycle_pct: meta.cycle_pct != null && meta.cycle_pct !== '' ? Number(meta.cycle_pct) : null },
+      `id=in.(${ids.join(',')})`);
+  } catch (e) { /* before the discounts database step */ }
+  await require('./lib/spot-billing').afterCheckout(stripe, session.subscription, meta);
 
   // 2. Generate password and save to ALL slots for this unit (some slots have null invite_code)
   const password = generatePassword();

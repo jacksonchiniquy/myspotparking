@@ -50,10 +50,14 @@ async function createSpotCheckout(stripe, { slot, property, email, successUrl, c
   const found = await unitCustomerInfo(slot.property_id, slot.unit_number);
   // Reuse the resident's saved card only if it's in the same Stripe account
   const customer = found.customer && found.account === account ? found.customer : null;
-  const metadata = { kind: 'spot_addon', slot_id: slot.id, property_id: slot.property_id, unit_number: slot.unit_number };
+  const spotBilling = require('./spot-billing');
+  const disc = await spotBilling.checkoutCoupon(stripe, account, [slot], property, amount, 1);
+  const metadata = { kind: 'spot_addon', slot_id: slot.id, property_id: slot.property_id, unit_number: slot.unit_number,
+    ...(disc ? { discount_coupon: disc.coupon, discount_shares: spotBilling.sharesMeta(disc.shares) } : {}) };
   return stripe.checkout.sessions.create({
     mode: 'subscription',
     payment_method_types: ['card'],
+    ...(disc ? { discounts: [{ coupon: disc.coupon }] } : {}),
     ...(customer ? { customer } : email ? { customer_email: email } : {}),
     line_items: [{
       price_data: {

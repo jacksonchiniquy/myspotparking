@@ -1,7 +1,7 @@
 // invite-lookup.js — used by signup.html to look up an invite code.
 // Returns only what the sign-up page needs (never passwords, emails or other units).
 
-const { unitSpots, publicSpot } = require('./lib/spot-pricing');
+const { unitSpots, publicSpot, cyclesFor } = require('./lib/spot-pricing');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -34,6 +34,7 @@ exports.handler = async (event) => {
         billing_type: u.billing_type, monthly_amount: u.monthly_amount,
         properties: { name: p.name },
         spots,
+        cycles: Object.values(cyclesFor(p)).map(c => ({ id: c.id, months: c.months, pct: c.pct, on: c.on })),
       },
       terms: u.invite_used ? { required: false } : await require('./lib/terms').termsFor(u.property_id, 'signup'),
     });

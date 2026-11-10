@@ -57,6 +57,8 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
 .rate-name{font-size:15px;font-weight:600;margin-bottom:2px;}
 .rate-desc{font-size:12px;color:var(--slate2);}
 .rate-price{font-family:'Sora',sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.04em;color:var(--blue);}
+.rate-price s{font-size:14px;font-weight:500;color:var(--slate2);margin-right:6px;}
+.promo-btn{border:1.5px solid var(--border);background:#fff;border-radius:10px;padding:0 16px;font-weight:700;font-size:14px;color:var(--ink);cursor:pointer;font-family:'Inter',sans-serif;}
 .rate-price span{font-size:12px;font-weight:500;color:var(--slate2);margin-left:2px;}
 
 /* VEHICLE FORM */
@@ -157,6 +159,14 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
           <div class="section-label">Select Parking Duration</div>
           <div class="rate-grid" id="rate-grid">
             <!-- Populated by JS -->
+          </div>
+          <div id="promo-wrap" style="display:none;margin-top:12px;">
+            <label class="form-label" for="promo">Promo code</label>
+            <div style="display:flex;gap:8px;">
+              <input class="form-input plate-input" id="promo" type="text" placeholder="Have a code?" maxlength="20" autocomplete="off" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9\-]/g,'');" onkeydown="if(event.key==='Enter'){event.preventDefault();applyPromo();}">
+              <button type="button" class="promo-btn" id="promo-btn" onclick="applyPromo()">Apply</button>
+            </div>
+            <div id="promo-msg" style="font-size:12.5px;margin-top:6px;display:none;"></div>
           </div>
         </div>
 
@@ -303,22 +313,49 @@ async function init(){
   }
 
   const rates=prop.rates||[];
-  const grid=document.getElementById('rate-grid');
-  grid.innerHTML=rates.map((r,i)=>`
-    <div class="rate-option${i===1?' selected':''}" onclick="selectRate(${i})" id="rate-${i}">
+  selectedRateIndex=rates.length>1?1:0;
+  selectedRate=rates[selectedRateIndex];
+  renderRates();
+  document.getElementById('promo-wrap').style.display=prop.promos?'':'none';
+  updateSummary();
+  showScreen('form');
+}
+
+// ── Promo codes ──
+let promo=null; // {code,label,prices:{rateKey:cents|null}}
+const rateKey=(r,i)=>r.id||String(i);
+function priceOf(r,i){
+  if(promo&&promo.prices){const p=promo.prices[rateKey(r,i)];if(p!=null) return p;}
+  return r.amount;
+}
+const fmtPrice=c=>c===0?'Free':'$'+(c/100).toFixed(2);
+function renderRates(){
+  const rates=currentProperty.rates||[];
+  document.getElementById('rate-grid').innerHTML=rates.map((r,i)=>{
+    const p=priceOf(r,i);
+    return `<div class="rate-option${i===selectedRateIndex?' selected':''}" onclick="selectRate(${i})" id="rate-${i}">
       <div class="rate-left">
         <div class="rate-name">${escH(r.name)}</div>
         <div class="rate-desc">${escH(r.desc||'')}</div>
       </div>
-      <div class="rate-price">$${(r.amount/100).toFixed(2)}</div>
-    </div>
-  `).join('');
-
-  // Default select second option (or first)
-  selectedRateIndex=rates.length>1?1:0;
-  selectedRate=rates[selectedRateIndex];
-  updateSummary();
-  showScreen('form');
+      <div class="rate-price">${p!==r.amount?`<s>$${(r.amount/100).toFixed(2)}</s>`:''}${fmtPrice(p)}</div>
+    </div>`;}).join('');
+}
+async function applyPromo(){
+  const code=document.getElementById('promo').value.trim();
+  const msg=document.getElementById('promo-msg'),btn=document.getElementById('promo-btn');
+  const show=(t,ok)=>{msg.textContent=t;msg.style.color=ok?'#00a063':'#dc2626';msg.style.display='';};
+  if(promo&&promo.code===code){return;}
+  if(!code){promo=null;msg.style.display='none';renderRates();updateSummary();return;}
+  btn.disabled=true;btn.textContent='…';
+  try{
+    const res=await fetch('/.netlify/functions/park-lookup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:currentProperty.id,promo:code})});
+    const d=await res.json().catch(()=>({}));
+    if(d.promo){promo={code:d.promo.code,label:d.promo.label,prices:d.prices||{}};show('✓ '+d.promo.code+' · '+d.promo.label+' applied',true);}
+    else{promo=null;show(d.error||'That code isn\'t valid here.',false);}
+  }catch(e){promo=null;show('Couldn\'t check that code. Please try again.',false);}
+  btn.disabled=false;btn.textContent='Apply';
+  renderRates();updateSummary();
 }
 
 function selectRate(idx){
@@ -340,15 +377,15 @@ function updateSummary(){
   const stallOk=!(currentProperty&&currentProperty.stall_mode==='required')||!!stall;
   document.getElementById('sum-stall-row').style.display=stall?'':'none';
   document.getElementById('sum-stall').textContent=stall;
+  const cur=selectedRate?priceOf(selectedRate,selectedRateIndex):0;
   if(selectedRate){
-    const amt='$'+(selectedRate.amount/100).toFixed(2);
-    btn.lastChild.textContent=' Pay '+amt+' & Park';
+    btn.lastChild.textContent=cur===0?' Park for Free':' Pay '+fmtPrice(cur)+' & Park';
   }
   if(selectedRate&&plate.length>=2&&stallOk){
     box.style.display='block';
     document.getElementById('sum-duration').textContent=selectedRate.name;
     document.getElementById('sum-plate').textContent=plate;
-    document.getElementById('sum-total').textContent='$'+(selectedRate.amount/100).toFixed(2);
+    document.getElementById('sum-total').textContent=fmtPrice(cur)+(promo&&cur!==selectedRate.amount?' ('+promo.code+')':'');
     btn.disabled=false;
   } else {
     box.style.display='none';
@@ -385,6 +422,7 @@ async function startPayment(){
         stall:currentProperty.stall_mode!=='off'?document.getElementById('stall').value.trim():'',
         rateId:selectedRate.id||null,
         rateIndex:selectedRateIndex,
+        promo:promo?promo.code:null,
         termsVersion:payTerms?payTerms.version:null
       })
     });
@@ -398,6 +436,8 @@ async function startPayment(){
       return;
     }
 
+    // Free with a code: no card step
+    if(data.free&&data.session){showSuccessScreen(data.session);return;}
     // Redirect to Stripe Checkout
     window.location.href=data.url;
 

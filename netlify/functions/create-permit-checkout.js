@@ -11,7 +11,8 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const connect = require('./lib/connect');
-const { CYCLES, cycleCents, spotMonthlyCents, unitSpots, chosenPaidSpots } = require('./lib/spot-pricing');
+const { CYCLES, cycleCents, cyclesFor, spotMonthlyCents, unitSpots, chosenPaidSpots } = require('./lib/spot-pricing');
+const spotBilling = require('./lib/spot-billing');
 // A unit's display name: addresses and named units show as-is; plain numbers get "Unit"
 const unitLabel = v => { const s = String(v ?? '').trim(); return /[a-z]/i.test(s) ? s : 'Unit ' + s; };
 
@@ -63,18 +64,24 @@ exports.handler = async (event) => {
     if (chosen.some(s => !(spotMonthlyCents(s, property) > 0))) {
       return reply(400, { error: 'Pricing is not set up for this spot. Contact your property manager.' });
     }
-    const amount = cycleCents(monthlyCents, billingInterval);
+    const cycles = cyclesFor(property);
+    if (!cycles[billingInterval].on) return reply(400, { error: 'That billing option isn\'t offered here. Please pick another.' });
+    const cyclePct = cycles[billingInterval].pct;
+    const amount = cycleCents(monthlyCents, billingInterval, cyclePct);
     if (!(amount >= 50)) return reply(400, { error: 'Pricing is not set up for this property. Contact your property manager.' });
     const spotNames = chosen.map(s => s.slot_label || 'Spot').join(', ');
 
     // Where the money goes: the property's payout account (LotHQ keeps its fee), or LotHQ's own
     const { account } = await connect.routeFor(property);
     const subFee = connect.subscriptionFeeParams(property, account, amount);
+    // Spot discounts the manager set come off through one coupon at checkout
+    const disc = await spotBilling.checkoutCoupon(stripe, account, chosen, property, amount, CYCLES[billingInterval].months);
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       ...(Object.keys(subFee).length ? { subscription_data: subFee } : {}),
       payment_method_types: ['card'],
+      ...(disc ? { discounts: [{ coupon: disc.coupon }] } : {}),
       customer_email: tenantEmail,
       line_items: [{
         price_data: {
@@ -96,6 +103,8 @@ exports.handler = async (event) => {
         tenant_email: tenantEmail,
         billing_interval: billingInterval,
         spot_ids: chosen.map(s => s.id).join(','),
+        cycle_pct: String(cyclePct),
+        ...(disc ? { discount_coupon: disc.coupon, discount_shares: spotBilling.sharesMeta(disc.shares) } : {}),
       },
       success_url: `${SITE}/signup.html?signup=success`,
       cancel_url: `${SITE}/signup.html?invite=${encodeURIComponent(inviteCode)}&cancelled=true`,

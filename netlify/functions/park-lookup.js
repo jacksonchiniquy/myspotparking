@@ -23,6 +23,29 @@ exports.handler = async (event) => {
   let body;
   try { body = JSON.parse(event.body || '{}'); } catch { return reply(400, { error: 'Invalid request' }); }
 
+  // Check a promo code: { id, promo: 'GUEST50' } → the price of each option with it
+  if (body.promo !== undefined) {
+    if (!UUID_RE.test(String(body.id || ''))) return reply(404, { error: 'Property not found.' });
+    try {
+      const promo = require('./lib/promo');
+      const [p] = await sb('GET', `properties?id=eq.${body.id}&select=*`);
+      if (!p) return reply(404, { error: 'Property not found.' });
+      const found = await promo.findPromo(p.id, body.promo);
+      const general = await promo.promoProblem(found, null, null);
+      if (general) return reply(200, { error: general });
+      const prices = {};
+      ratesFor(p).forEach((r, i) => {
+        const key = r.id || String(i);
+        const ok = !(Array.isArray(found.rate_ids) && found.rate_ids.length && !found.rate_ids.includes(String(r.id || r.name)));
+        prices[key] = ok ? promo.priceWith(found, Math.round(Number(r.amount))) : null;
+      });
+      return reply(200, { promo: { code: found.code, label: promo.promoLabel(found) }, prices });
+    } catch (err) {
+      console.error('park-lookup promo error:', err.message);
+      return reply(500, { error: 'Couldn\'t check that code. Please try again.' });
+    }
+  }
+
   let filter;
   if (body.id && UUID_RE.test(String(body.id))) filter = `id=eq.${body.id}`;
   else {
@@ -51,6 +74,7 @@ exports.handler = async (event) => {
         id: p.id, name: p.name, address: p.address || '',
         park_code: p.park_code || null,
         stall_mode: p.stall_mode || 'off',
+        promos: await hasPromos(p.id),
         rates: ratesFor(p).map(r => ({ id: r.id || null, name: r.name, minutes: r.minutes, amount: r.amount, desc: r.desc || '' })),
       },
     });
@@ -59,5 +83,11 @@ exports.handler = async (event) => {
     return reply(500, { error: 'Something went wrong. Please try again.' });
   }
 };
+
+// Show the promo code box only when the property has a code that's on
+async function hasPromos(propertyId) {
+  try { return (await sb('GET', `promo_codes?property_id=eq.${propertyId}&active=eq.true&select=id&limit=1`)).length > 0; }
+  catch { return false; }
+}
 
 exports.normalizeCode = normalizeCode;

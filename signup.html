@@ -67,6 +67,8 @@ main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:9
 .spot-type{font-size:11px;color:var(--text3);}
 .spot-price{margin-left:auto;font-weight:700;white-space:nowrap;}
 .spot-price.free{color:#00a063;}
+.spot-disc{font-size:11px;font-weight:700;color:#00a063;text-align:right;margin-top:2px;}
+.disc-note{font-size:12px;color:#00a063;background:rgba(0,200,122,.08);border-radius:8px;padding:8px 10px;margin:-8px 0 14px;}
 .spot-total{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin:-8px 2px 16px;}
 
 /* Buttons */
@@ -276,10 +278,14 @@ async function lookupInvite() {
 
     // Populate step 2
     document.getElementById('banner-prop-name').textContent = _property?.name || 'Your Property';
-    document.getElementById('banner-unit').textContent = `Unit ${unit.unit_number}`;
+    document.getElementById('banner-unit').textContent = /[a-z]/i.test(String(unit.unit_number)) ? unit.unit_number : `Unit ${unit.unit_number}`;
     _spots = Array.isArray(unit.spots) && unit.spots.length ? unit.spots
       : [{ id: null, slot_label: unit.slot_label, slot_type: '', billing_type: unit.billing_type === 'monthly' ? 'monthly' : 'free', monthly_cents: 0 }];
     _chosen = new Set(_spots.filter(sp => sp.billing_type === 'monthly' && sp.id).map(sp => sp.id)); // paid spots start ticked
+    if (Array.isArray(unit.cycles) && unit.cycles.length) {
+      CYCLES = {}; unit.cycles.forEach(c => { if (c.on) CYCLES[c.id] = [c.months, (Number(c.pct) || 0) / 100]; });
+      if (!CYCLES[_selectedBilling]) _selectedBilling = Object.keys(CYCLES)[0] || 'monthly';
+    }
     renderSpots();
 
     goToStep(2);
@@ -293,7 +299,7 @@ async function lookupInvite() {
 
 // ── Spots + billing options ───────────────────────────────
 let _spots = [], _chosen = new Set();
-const CYCLES = { monthly: [1, 0], quarterly: [3, 0.05], yearly: [12, 0.15] }; // same math as the server
+let CYCLES = { monthly: [1, 0], quarterly: [3, 0.05], yearly: [12, 0.15] }; // replaced by the property's own options
 const money = c => '$' + (c / 100).toFixed(2);
 const escH = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const typeName = t => String(t || '').replace(/^(stall|zone)-/, '').replace(/\b\w/g, c => c.toUpperCase());
@@ -313,7 +319,8 @@ function renderSpots() {
       return `<div class="spot-row"><span class="spot-check">✓</span>${label}<span class="spot-price free">${sp.billing_type === 'prepaid' ? 'Paid · included' : 'Free · included'}</span></div>`;
     }
     const on = _chosen.has(sp.id);
-    return `<label class="spot-row paid${on ? ' on' : ''}"><input type="checkbox" ${on ? 'checked' : ''} onchange="toggleSpot('${sp.id}', this.checked)">${label}<span class="spot-price">${sp.monthly_cents ? money(sp.monthly_cents) + '/mo' : 'Paid'}</span></label>`;
+    const disc = sp.discount ? `<div class="spot-disc">🏷 ${escH(sp.discount.label)}</div>` : '';
+    return `<label class="spot-row paid${on ? ' on' : ''}"><input type="checkbox" ${on ? 'checked' : ''} onchange="toggleSpot('${sp.id}', this.checked)">${label}<span class="spot-price">${sp.monthly_cents ? money(sp.monthly_cents) + '/mo' : 'Paid'}${disc}</span></label>`;
   }).join('');
 
   const monthly = chosenMonthlyCents();
@@ -342,11 +349,19 @@ function toggleSpot(id, on) {
 
 function buildBillingOptions(monthly) {
   const price = id => Math.round(monthly * CYCLES[id][0] * (1 - CYCLES[id][1]));
+  const pctTxt = id => CYCLES[id] && CYCLES[id][1] > 0 ? `Save ${+(CYCLES[id][1] * 100).toFixed(2)}%` : '';
   const opts = [
     { id: 'monthly', label: 'Monthly', save: '', note: 'billed monthly' },
-    { id: 'quarterly', label: 'Quarterly', save: 'Save 5%', note: 'billed every 3 mo' },
-    { id: 'yearly', label: 'Yearly', save: 'Save 15%', note: 'billed annually' },
-  ];
+    { id: 'quarterly', label: 'Quarterly', save: pctTxt('quarterly'), note: 'billed every 3 mo' },
+    { id: 'yearly', label: 'Yearly', save: pctTxt('yearly'), note: 'billed annually' },
+  ].filter(o => CYCLES[o.id]);
+  const grid = document.getElementById('billing-grid');
+  grid.style.gridTemplateColumns = `repeat(${opts.length},1fr)`;
+  const discs = _spots.filter(sp => sp.billing_type === 'monthly' && _chosen.has(sp.id) && sp.discount);
+  let note = document.getElementById('disc-note');
+  if (!note) { note = document.createElement('div'); note.id = 'disc-note'; note.className = 'disc-note'; grid.after(note); }
+  note.style.display = discs.length ? '' : 'none';
+  note.textContent = discs.length ? '🏷 Your discount (' + discs.map(sp => sp.discount.label).join(', ') + ') comes off at checkout.' : '';
   document.getElementById('billing-grid').innerHTML = opts.map(o => {
     const c = price(o.id);
     return `

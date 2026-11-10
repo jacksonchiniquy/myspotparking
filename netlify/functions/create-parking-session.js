@@ -50,27 +50,58 @@ exports.handler = async (event) => {
       return reply(400, { error: 'That parking option is no longer available. Please refresh and try again.' });
     }
 
+    // Promo code (if the driver typed one)
+    let promo = null, price = amount;
+    if (body.promo) {
+      const P = require('./lib/promo');
+      promo = await P.findPromo(property.id, body.promo);
+      const problem = await P.promoProblem(promo, rate, plate);
+      if (problem) return reply(400, { error: problem, promo: true });
+      price = P.priceWith(promo, amount);
+    }
+
+    // Free with a code: no card needed, parking starts now
+    if (promo && price === 0) {
+      const P = require('./lib/promo');
+      if (!(await P.useIt(promo.id))) return reply(400, { error: 'That code has been used up.', promo: true });
+      const start = new Date();
+      const [row] = await sb('POST', 'parking_sessions', {
+        property_id: property.id, plate, vehicle_desc: vehicleDesc || null, email,
+        ...(stall ? { stall } : {}),
+        rate_name: rate.name || null, amount_paid: 0, original_cents: amount, promo_code: promo.code, duration_minutes: minutes,
+        status: 'active', started_at: start.toISOString(), expires_at: new Date(start.getTime() + minutes * 60000).toISOString(),
+      });
+      await terms.recordAcceptance({ propertyId: property.id, placement: 'pay', version: body.termsVersion, plate,
+        acceptedBy: email || 'Pay to Park visitor', event });
+      if (email) { try { await require('./lib/parking').sendReceipt(row, email); } catch (e) { console.error('Free parking receipt failed:', e.message); } }
+      await require('./lib/activity').logActivity({ actorName: email || 'Pay to Park driver', actorRole: 'driver', portal: 'pay',
+        action: 'pay.session_free', propertyId: property.id, target: plate,
+        summary: `Parked ${plate} free with code ${promo.code}${rate.name ? ' · ' + rate.name : ''}`, details: { promo: promo.code, minutes } });
+      return reply(200, { free: true, session: { status: 'active', plate, vehicle_desc: vehicleDesc || null, stall: stall || null, property_name: property.name || '',
+        duration_minutes: minutes, started_at: row.started_at, expires_at: row.expires_at } });
+    }
+
     // Where the money goes: the property's payout account (LotHQ keeps its fee), or LotHQ's own
     const { account } = await connect.routeFor(property);
-    const lothqFee = account ? connect.feeCents(property, amount) : null;
+    const lothqFee = account ? connect.feeCents(property, price) : null;
 
     const checkout = await stripe.checkout.sessions.create({
       mode: 'payment',
-      ...connect.paymentFeeParams(property, account, amount),
+      ...connect.paymentFeeParams(property, account, price),
       payment_method_types: ['card'],
       customer_email: email || undefined,
       line_items: [{
         price_data: {
           currency: 'usd',
-          unit_amount: amount,
+          unit_amount: price,
           product_data: {
             name: `Parking — ${property.name}`,
-            description: `${rate.name} · Plate: ${plate}${stall ? ' · Stall ' + stall : ''}${vehicleDesc ? ' · ' + vehicleDesc : ''}`,
+            description: `${rate.name} · Plate: ${plate}${stall ? ' · Stall ' + stall : ''}${vehicleDesc ? ' · ' + vehicleDesc : ''}${promo ? ` · Code ${promo.code} (was $${(amount / 100).toFixed(2)})` : ''}`,
           },
         },
         quantity: 1,
       }],
-      metadata: { kind: 'parking_session', property_id: property.id, plate, stall, duration_minutes: String(minutes), rate_name: String(rate.name || '') },
+      metadata: { kind: 'parking_session', property_id: property.id, plate, stall, duration_minutes: String(minutes), rate_name: String(rate.name || ''), ...(promo ? { promo_code: promo.code } : {}) },
       success_url: `${SITE}/pay.html?lot=${property.id}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${SITE}/pay.html?lot=${property.id}${stall ? '&s=' + encodeURIComponent(stall) : ''}`,
     }, connect.opts(account));
@@ -78,7 +109,8 @@ exports.handler = async (event) => {
     await sb('POST', 'parking_sessions', {
       property_id: property.id, plate, vehicle_desc: vehicleDesc || null, email,
       ...(stall ? { stall } : {}),
-      rate_name: rate.name || null, amount_paid: amount /* cents */, duration_minutes: minutes,
+      rate_name: rate.name || null, amount_paid: price /* cents */, duration_minutes: minutes,
+      ...(promo ? { promo_code: promo.code, original_cents: amount } : {}),
       stripe_session_id: checkout.id, status: 'pending',
       ...(account ? { stripe_account_id: account, lothq_fee_cents: lothqFee } : {}),
       // Placeholder; replaced with the real times when payment is confirmed.

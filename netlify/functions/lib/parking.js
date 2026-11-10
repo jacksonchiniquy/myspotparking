@@ -50,6 +50,14 @@ async function activateSession(checkout) {
     amount_paid: checkout.amount_total ?? row.amount_paid, // cents
   });
   if (updated && updated[0]) {
+    // Paid with a promo code: count the use
+    if (updated[0].promo_code) {
+      try {
+        const P = require('./promo');
+        const pr = await P.findPromo(updated[0].property_id, updated[0].promo_code);
+        if (pr) await P.useIt(pr.id);
+      } catch (e) { console.error('Counting promo use failed:', e.message); }
+    }
     // First (and only) activation: send the driver a receipt
     const to = updated[0].email || checkout.customer_details?.email;
     if (to) {
@@ -73,7 +81,9 @@ async function sendReceipt(row, to) {
   const rows = [
     ['Plate', row.plate], ['Vehicle', row.vehicle_desc || '—'], ['Location', name + (property?.address ? ` — ${property.address}` : '')],
     ['Duration', fmtDuration(Number(row.duration_minutes) || 0)], ['Started', fmtTime(row.started_at)],
-    ['Expires', fmtTime(row.expires_at)], ['Amount Paid', amount],
+    ['Expires', fmtTime(row.expires_at)],
+    ...(row.promo_code ? [['Promo code', row.promo_code + (row.original_cents ? ` (was $${(Number(row.original_cents) / 100).toFixed(2)})` : '')]] : []),
+    ['Amount Paid', Number(row.amount_paid) > 0 ? amount : 'Free'],
   ];
   const table = rows.map(([k, v]) => `<tr><td style="padding:6px 0;color:#64748b;font-size:13px;">${k}</td><td style="padding:6px 0;text-align:right;font-weight:700;font-size:14px;">${esc(v)}</td></tr>`).join('');
   await sendRaw({
@@ -92,4 +102,4 @@ async function sendReceipt(row, to) {
   });
 }
 
-module.exports = { DEFAULT_RATES, ratesFor, sb, activateSession };
+module.exports = { DEFAULT_RATES, ratesFor, sb, activateSession, sendReceipt };

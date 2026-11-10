@@ -106,6 +106,10 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 .pill-expired::before{background:var(--red);}
 .pill-refunded{background:rgba(245,158,11,.12);color:#a16207;border:1px solid rgba(245,158,11,.25);}
 .pill-refunded::before{background:var(--amber);}
+.ds-seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+.ds-seg span{padding:7px 12px;font-size:12.5px;color:var(--text2);border-right:1px solid var(--border);cursor:pointer;user-select:none;}
+.ds-seg span:last-child{border-right:0;}
+.ds-seg span.on{background:var(--blue);color:#fff;font-weight:700;}
 .rf-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:7px 0;border-bottom:1px solid var(--border);}
 .rf-row span{color:var(--text3);}
 .rf-opt{display:flex;align-items:center;gap:9px;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;margin-top:7px;font-size:13px;cursor:pointer;}
@@ -784,6 +788,18 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
             <button class="btn btn-ghost btn-sm btn-full" id="save-rates-btn" onclick="saveRates()">Save Rates</button>
           </div>
 
+          <!-- Promo codes -->
+          <div id="promo-card" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;">
+              <div>
+                <div style="font-size:16px;font-weight:700;margin-bottom:3px;">Promo Codes</div>
+                <div style="font-size:12px;color:var(--text2);">Codes drivers type on the payment page for a discount or free parking.</div>
+              </div>
+              <button class="btn btn-primary btn-sm" id="promo-new-btn" onclick="openPromo()">+ New Code</button>
+            </div>
+            <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Code</th><th>Discount</th><th>Used</th><th>Ends</th><th>Status</th><th></th></tr></thead><tbody id="promo-body"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody></table></div>
+          </div>
+
           <!-- Recent Transient Sessions -->
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -926,7 +942,27 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
     </div>
     <div class="form-group" id="us-billing-amount-wrap" style="display:none;">
       <label class="form-label">Monthly Amount ($)</label>
-      <input class="form-input" id="us-monthly-amount" type="number" min="0" step="0.01" placeholder="e.g. 75.00">
+      <input class="form-input" id="us-monthly-amount" type="number" min="0" step="0.01" placeholder="e.g. 75.00" oninput="dsPreview()">
+    </div>
+    <div class="form-group" id="ds-wrap" style="display:none;">
+      <label class="form-label">Discount</label>
+      <div class="ds-seg" id="ds-type">
+        <span data-v="" onclick="dsType('')">None</span><span data-v="pct" onclick="dsType('pct')">% off</span><span data-v="amount" onclick="dsType('amount')">$ off a month</span>
+      </div>
+      <div id="ds-body" style="display:none;">
+        <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+          <span id="ds-pre" style="font-size:13px;color:var(--text2);display:none;">$</span>
+          <input class="form-input" id="ds-value" type="number" min="0" step="0.01" style="width:110px;" oninput="dsPreview()">
+          <span id="ds-post" style="font-size:13px;color:var(--text2);">%</span>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin:12px 0 4px;">How long?</div>
+        <label class="rf-opt"><input type="radio" name="ds-dur" value="forever" onchange="dsPreview()" checked> Every payment (until removed)</label>
+        <label class="rf-opt"><input type="radio" name="ds-dur" value="months" onchange="dsPreview()"> For <input id="ds-months" type="number" min="1" max="36" value="3" style="width:56px;padding:4px 6px;border:1px solid var(--border);border-radius:7px;font-size:13px;" oninput="document.querySelector('input[name=ds-dur][value=months]').checked=true;dsPreview()"> months, then back to full price</label>
+        <label class="rf-opt"><input type="radio" name="ds-dur" value="once" onchange="dsPreview()"> Next payment only</label>
+        <input class="form-input" id="ds-note" type="text" maxlength="200" placeholder="Note (optional, only managers see it)" style="margin-top:10px;">
+        <div id="ds-preview" style="display:none;background:#ecfdf5;border:1px solid #bbf7d0;border-radius:10px;padding:9px 12px;margin-top:10px;font-size:12.5px;color:#166534;line-height:1.5;"></div>
+      </div>
+      <label id="ds-email-wrap" style="display:none;align-items:center;gap:8px;font-size:12.5px;color:var(--text2);margin-top:10px;cursor:pointer;"><input type="checkbox" id="ds-email" checked> Email the tenant about a discount or price change</label>
     </div>
     <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="us-notes" type="text" placeholder="Optional internal note"></div>
     <button class="btn btn-primary btn-full" id="us-save-btn" onclick="saveUnitSlot()">Save Slot</button>
@@ -985,6 +1021,55 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
 </div>
 
 <!-- MODAL: Move Out Tenant -->
+<!-- MODAL: Change a card-paying tenant's price? -->
+<div class="modal-overlay" id="modal-price-change">
+  <div class="modal" style="width:460px;max-width:calc(100vw - 32px);">
+    <button class="modal-close" onclick="closeModal('modal-price-change')">✕</button>
+    <div class="modal-title" id="pc-title">Change this tenant's price?</div>
+    <div class="modal-sub" id="pc-sub"></div>
+    <label class="rf-opt"><input type="radio" name="pc-apply" value="yes" checked> <div><b>Change their billing too</b><div style="font-size:11.5px;color:var(--text3);" id="pc-yes-sub"></div></div></label>
+    <label class="rf-opt"><input type="radio" name="pc-apply" value="no"> <div><b id="pc-no-title">Keep their current price</b><div style="font-size:11.5px;color:var(--text3);" id="pc-no-sub"></div></div></label>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text2);margin-top:12px;cursor:pointer;"><input type="checkbox" id="pc-email" checked> Email the tenant about the change</label>
+    <div style="font-size:11.5px;color:#92400e;background:#fff8e6;border-radius:8px;padding:9px 11px;margin-top:12px;line-height:1.5;">Raising a price? Make sure tenants got whatever notice their lease or HOA rules call for first.</div>
+    <div class="err-msg" id="pc-err"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-primary" id="pc-btn" style="flex:1;" onclick="pcConfirm()">Save price</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-price-change')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Pay to Park promo code -->
+<div class="modal-overlay" id="modal-promo">
+  <div class="modal" style="width:480px;max-width:calc(100vw - 32px);">
+    <button class="modal-close" onclick="closeModal('modal-promo')">✕</button>
+    <div class="modal-title" id="pm-title">New promo code</div>
+    <div class="modal-sub">Drivers type this on the payment page. Codes only work at this property.</div>
+    <div class="rf-lbl">Code</div>
+    <input class="form-input" id="pm-code" maxlength="20" placeholder="e.g. GUEST50" style="font-family:'JetBrains Mono',monospace;text-transform:uppercase;margin-top:6px;" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
+    <div class="rf-lbl">Discount</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
+      <div class="ds-seg" id="pm-kind"><span data-v="pct" onclick="pmKind('pct')">% off</span><span data-v="amount" onclick="pmKind('amount')">$ off</span><span data-v="free" onclick="pmKind('free')">Free</span></div>
+      <span id="pm-val-wrap"><span id="pm-pre" style="font-size:13px;color:var(--text2);">$</span> <input id="pm-value" type="number" min="0" step="0.01" style="width:90px;padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-size:13px;"> <span id="pm-post" style="font-size:13px;color:var(--text2);">%</span></span>
+    </div>
+    <div class="rf-lbl">Works on</div>
+    <div id="pm-rates" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
+    <div style="font-size:11.5px;color:var(--text3);margin-top:4px;">Leave all unticked to work on every rate.</div>
+    <div class="rf-lbl">Limits <span style="font-weight:400;color:var(--text3);">(optional)</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+      <input class="form-input" id="pm-max" type="number" min="1" placeholder="Max uses" style="width:120px;">
+      <input class="form-input" id="pm-ends" type="date" title="Last day the code works" style="width:160px;">
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text2);margin-top:10px;cursor:pointer;"><input type="checkbox" id="pm-once"> One use per plate per day</label>
+    <div style="font-size:11.5px;color:var(--text2);background:var(--surface2);border-radius:8px;padding:9px 11px;margin-top:12px;line-height:1.5;">Card payments must be at least $0.50, so a code that brings the price below that makes it free.</div>
+    <div class="err-msg" id="pm-err"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-primary" id="pm-btn" style="flex:1;" onclick="savePromo()">Create code</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-promo')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Refund a Pay to Park payment -->
 <div class="modal-overlay" id="modal-refund">
   <div class="modal" style="width:460px;max-width:calc(100vw - 32px);max-height:calc(100vh - 40px);overflow-y:auto;">
@@ -1139,7 +1224,17 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Units / Tenants</label><input class="form-input" id="pp-units" type="number" placeholder="40"></div>
-      <div class="form-group"><label class="form-label">Default Monthly Rate ($)</label><input class="form-input" id="pp-rate" type="number" placeholder="0" min="0"></div>
+      <div class="form-group"><label class="form-label">Default Monthly Rate ($)</label><input class="form-input" id="pp-rate" type="number" placeholder="0" min="0" oninput="if(document.getElementById('pa-wrap').style.display!=='none')paPreview()"></div>
+    </div>
+    <div class="form-group" id="pa-wrap" style="display:none;">
+      <label class="form-label">Pay-ahead options <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3);">what tenants can choose at sign-up</span></label>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tr style="color:var(--text3);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;"><td></td><td style="padding:4px 6px;">Offer?</td><td style="padding:4px 6px;">Savings</td><td style="padding:4px 6px;" id="pa-at">At the default rate</td></tr>
+        <tr><td style="padding:6px 0;font-weight:600;">Monthly</td><td style="padding:6px;"><input type="checkbox" id="pa-on-monthly" onchange="paPreview()"></td><td style="padding:6px;color:var(--text3);">—</td><td style="padding:6px;" id="pa-p-monthly"></td></tr>
+        <tr><td style="padding:6px 0;font-weight:600;">Quarterly</td><td style="padding:6px;"><input type="checkbox" id="pa-on-quarterly" onchange="paPreview()"></td><td style="padding:6px;"><input id="pa-pct-quarterly" type="number" min="0" max="50" step="0.5" style="width:62px;padding:5px 7px;border:1px solid var(--border);border-radius:7px;" oninput="paPreview()"> %</td><td style="padding:6px;" id="pa-p-quarterly"></td></tr>
+        <tr><td style="padding:6px 0;font-weight:600;">Yearly</td><td style="padding:6px;"><input type="checkbox" id="pa-on-yearly" onchange="paPreview()"></td><td style="padding:6px;"><input id="pa-pct-yearly" type="number" min="0" max="50" step="0.5" style="width:62px;padding:5px 7px;border:1px solid var(--border);border-radius:7px;" oninput="paPreview()"> %</td><td style="padding:6px;" id="pa-p-yearly"></td></tr>
+      </table>
+      <div style="font-size:11.5px;color:var(--text3);margin-top:4px;">Set savings to 0% to offer it at full price. Untick to hide it. Changes apply to new sign-ups; people already paying keep their plan.</div>
     </div>
     <div class="form-group">
       <label class="form-label" for="pp-word-sel">What do people here call their space?</label>
@@ -3689,7 +3784,7 @@ function initPayPanel(){
   const canvas=document.getElementById('qr-canvas');
   if(canvas) drawQR(canvas,link,180);
   loadTransientRates();
-  loadTransientSessions();
+  loadTransientSessions();loadPromos();
 }
 
 // Draws a real, scannable QR code (with the LotHQ pin in the middle) onto a canvas
@@ -3963,6 +4058,88 @@ async function saveRates(){
   toast('✅ Rates saved!');
 }
 
+// ── Pay to Park promo codes (owners and managers) ──
+let _promos=[],_pmEdit=null,_pmKind='pct';
+const promoWhat=p=>p.kind==='free'?'Free':p.kind==='pct'?(+Number(p.value).toFixed(2))+'% off':'$'+Number(p.value).toFixed(2)+' off';
+function promoRateNames(p){
+  if(!Array.isArray(p.rate_ids)||!p.rate_ids.length) return '';
+  const rates=(allProperties.find(x=>x.id===currentPropertyId)||{}).transient_rates||transientRates||[];
+  return ' · '+p.rate_ids.map(id=>{const r=rates.find(r=>(r.id||r.name)===id);return r?r.name:id;}).join(', ')+' only';
+}
+async function loadPromos(){
+  const body=document.getElementById('promo-body');if(!body) return;
+  const card=document.getElementById('promo-card');
+  if(!canPrice()){card.style.display='none';return;}
+  card.style.display='';
+  body.innerHTML='<tr><td colspan="6" class="loading">Loading...</td></tr>';
+  const r=await pricingApi({action:'promoList',propertyId:currentPropertyId});
+  if(r.error){body.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3);">${escHtml(r.error)}</td></tr>`;document.getElementById('promo-new-btn').disabled=true;return;}
+  document.getElementById('promo-new-btn').disabled=false;
+  _promos=r.promos||[];
+  if(!_promos.length){body.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3);">No codes yet.</td></tr>';return;}
+  const now=new Date();
+  body.innerHTML=_promos.map(p=>{
+    const ended=p.ends_at&&new Date(p.ends_at)<=now,used=p.max_uses!=null&&p.uses>=p.max_uses;
+    const st=!p.active?'<span class="pill pill-revoked">off</span>':ended?'<span class="pill pill-revoked">ended</span>':used?'<span class="pill pill-revoked">used up</span>':'<span class="pill pill-active">on</span>';
+    return `<tr>
+      <td><strong style="font-family:'JetBrains Mono',monospace;font-size:12px;">${escHtml(p.code)}</strong></td>
+      <td style="font-size:12px;">${escHtml(promoWhat(p)+promoRateNames(p))}${p.once_per_day?'<div style="font-size:10.5px;color:var(--text3);">1 per plate per day</div>':''}</td>
+      <td style="font-size:12px;">${p.uses} / ${p.max_uses??'—'}</td>
+      <td style="font-size:12px;color:var(--text3);">${p.ends_at?new Date(p.ends_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—'}</td>
+      <td>${st}</td>
+      <td style="white-space:nowrap;"><button class="btn btn-ghost btn-sm" onclick="openPromo('${p.id}')">Edit</button> <button class="btn btn-ghost btn-sm" onclick="togglePromo('${p.id}',${!p.active})">${p.active?'Turn off':'Turn on'}</button></td>
+    </tr>`;}).join('');
+}
+function pmKind(k){
+  _pmKind=k;
+  document.querySelectorAll('#pm-kind span').forEach(x=>x.classList.toggle('on',x.dataset.v===k));
+  document.getElementById('pm-val-wrap').style.display=k==='free'?'none':'';
+  document.getElementById('pm-pre').style.display=k==='amount'?'':'none';
+  document.getElementById('pm-post').style.display=k==='pct'?'':'none';
+}
+function openPromo(id){
+  const p=id?_promos.find(x=>x.id===id):null;
+  _pmEdit=p;
+  document.getElementById('pm-title').textContent=p?'Edit code '+p.code:'New promo code';
+  document.getElementById('pm-btn').textContent=p?'Save':'Create code';
+  document.getElementById('pm-code').value=p?p.code:'';
+  document.getElementById('pm-value').value=p&&p.value!=null?Number(p.value):'';
+  pmKind(p?p.kind:'pct');
+  const rates=(allProperties.find(x=>x.id===currentPropertyId)||{}).transient_rates||transientRates||[];
+  const sel=new Set(p&&p.rate_ids||[]);
+  document.getElementById('pm-rates').innerHTML=rates.map(r=>{const k=r.id||r.name;return `<label class="rf-opt" style="margin:0;padding:6px 10px;"><input type="checkbox" class="pm-rate" value="${escHtml(k)}" ${sel.has(k)?'checked':''}> ${escHtml(r.name)}</label>`;}).join('')||'<span style="font-size:12px;color:var(--text3);">Every rate</span>';
+  document.getElementById('pm-max').value=p&&p.max_uses?p.max_uses:'';
+  document.getElementById('pm-ends').value=p&&p.ends_at?new Date(new Date(p.ends_at).getTime()-864e5).toISOString().slice(0,10):'';
+  document.getElementById('pm-once').checked=!!(p&&p.once_per_day);
+  document.getElementById('pm-err').classList.remove('show');
+  openModal('modal-promo');
+}
+async function savePromo(){
+  const err=document.getElementById('pm-err'),btn=document.getElementById('pm-btn');
+  err.classList.remove('show');
+  const ends=document.getElementById('pm-ends').value;
+  // A date means "works through the end of that day"
+  const endsAt=ends?new Date(ends+'T23:59:59').getTime()+1000:null;
+  const promo={id:_pmEdit?_pmEdit.id:undefined,code:document.getElementById('pm-code').value.trim(),kind:_pmKind,
+    value:_pmKind==='free'?null:parseFloat(document.getElementById('pm-value').value),
+    rateIds:[...document.querySelectorAll('.pm-rate:checked')].map(x=>x.value),
+    maxUses:parseInt(document.getElementById('pm-max').value)||null,endsAt:endsAt?new Date(endsAt).toISOString():null,
+    oncePerDay:document.getElementById('pm-once').checked};
+  btn.disabled=true;
+  const r=await pricingApi({action:'promoSave',propertyId:currentPropertyId,promo});
+  btn.disabled=false;
+  if(r.error){err.textContent=r.error;err.classList.add('show');return;}
+  closeModal('modal-promo');
+  toast('✅ Code '+r.promo.code+(_pmEdit?' saved':' created'));
+  loadPromos();
+}
+async function togglePromo(id,active){
+  const r=await pricingApi({action:'promoToggle',propertyId:currentPropertyId,id,active});
+  if(r.error){toast('⚠️ '+r.error);return;}
+  toast(active?'Code turned on':'Code turned off');
+  loadPromos();
+}
+
 let _tsRows=[];
 const canRefund=()=>['owner','manager'].includes(myRole());
 async function loadTransientSessions(){
@@ -3992,7 +4169,8 @@ async function loadTransientSessions(){
     const paidCell=ref>=paid&&ref>0
       ?`<span style="color:var(--text3);text-decoration:line-through;">$${(paid/100).toFixed(2)}</span>`
       :ref>0?`<span style="font-weight:600;color:var(--green);">$${(paid/100).toFixed(2)}</span><div style="font-size:10.5px;color:#a16207;">−$${(ref/100).toFixed(2)} refunded</div>`
-      :`<span style="font-weight:600;color:var(--green);">$${(paid/100).toFixed(2)}</span>`;
+      :`<span style="font-weight:600;color:var(--green);">${paid>0?'$'+(paid/100).toFixed(2):'Free'}</span>`;
+    const promoTag=s.promo_code?`<div style="font-size:10.5px;color:var(--text3);">code ${escHtml(s.promo_code)}${s.original_cents?' · was $'+(s.original_cents/100).toFixed(2):''}</div>`:'';
     const by=ref>0?`<div style="font-size:10.5px;color:var(--text3);margin-top:3px;" title="${escHtml(s.refund_reason||'')}">by ${escHtml((s.refunded_by_name||'manager').split(' ')[0])} · ${new Date(s.refunded_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>`:'';
     const canDo=canRefund()&&s.stripe_session_id&&s.status!=='pending'&&ref<paid&&paid>0;
     const action=(canDo?`<button class="btn btn-ghost btn-sm" onclick="openRefund('${s.id}')">↩ Refund</button>`:'')+by;
@@ -4001,7 +4179,7 @@ async function loadTransientSessions(){
       <td style="font-size:12px;font-weight:700;">${escHtml(s.stall||'—')}</td>
       <td style="font-size:12px;color:var(--text2);">${escHtml(s.vehicle_desc||'—')}</td>
       <td style="font-size:12px;">${formatMins(s.duration_minutes)}</td>
-      <td style="font-size:12px;">${paidCell}</td>
+      <td style="font-size:12px;">${paidCell}${promoTag}</td>
       <td style="font-size:12px;color:var(--text3);">${dt(s.started_at)}</td>
       <td style="font-size:12px;color:var(--text3);">${dt(s.expires_at)}</td>
       <td>${statusPill}</td>
@@ -5461,6 +5639,7 @@ function openEditProperty(){
   document.getElementById('pp-zones').value=p.zones||'';
   document.getElementById('pp-rate').value=p.monthly_rate||'';
   document.getElementById('pp-units').value=p.units||'';
+  paLoad(p);
   setPropType(p.property_type||'linked');
   setPpWord(propWord(p));
   // Populate rate fields
@@ -5476,6 +5655,63 @@ function openEditProperty(){
   document.getElementById('pp-err').classList.remove('show');
   _ppEditing=true;
   openModal('modal-add-property');
+}
+
+// ── Pay-ahead options (quarterly / yearly savings) per property ──
+const PA_STD={monthly:{on:true,pct:0},quarterly:{on:true,pct:5},yearly:{on:true,pct:15}};
+let _paHas=false;
+function paLoad(p){
+  _paHas=!!p&&('pay_ahead' in p)&&canPrice();
+  const w=document.getElementById('pa-wrap');if(!w) return;
+  w.style.display=_paHas?'':'none';
+  if(!_paHas) return;
+  const pa=p.pay_ahead||{};
+  ['monthly','quarterly','yearly'].forEach(id=>{
+    const c=pa[id]||{};
+    document.getElementById('pa-on-'+id).checked=c.on!==false;
+    if(id!=='monthly') document.getElementById('pa-pct-'+id).value=c.pct??PA_STD[id].pct;
+  });
+  paPreview();
+}
+function paPreview(){
+  const rate=parseFloat(document.getElementById('pp-rate').value)||0;
+  document.getElementById('pa-at').textContent=rate?'At $'+rate+'/mo':'';
+  [['monthly',1],['quarterly',3],['yearly',12]].forEach(([id,m])=>{
+    const on=document.getElementById('pa-on-'+id).checked;
+    const pct=id==='monthly'?0:Math.min(50,Math.max(0,parseFloat(document.getElementById('pa-pct-'+id).value)||0));
+    const per=id==='monthly'?'/ month':id==='quarterly'?'/ 3 mo':'/ year';
+    document.getElementById('pa-p-'+id).textContent=on&&rate?'$'+(rate*m*(1-pct/100)).toFixed(2)+' '+per:on?'':'hidden';
+  });
+}
+function paRead(){
+  if(!_paHas) return {};
+  const out={};
+  ['monthly','quarterly','yearly'].forEach(id=>{
+    out[id]={on:document.getElementById('pa-on-'+id).checked};
+    if(id!=='monthly') out[id].pct=Math.min(50,Math.max(0,parseFloat(document.getElementById('pa-pct-'+id).value)||0));
+  });
+  if(!out.monthly.on&&!out.quarterly.on&&!out.yearly.on) out.monthly.on=true;
+  return {pay_ahead:out};
+}
+async function askDefaultRate(propId,oldRate,newRate){
+  const info=await pricingApi({action:'defaultRateInfo',propertyId:propId});
+  if(info.error||!info.tenants) return;
+  document.getElementById('pc-title').textContent='Default rate $'+oldRate+' → $'+newRate;
+  document.getElementById('pc-sub').textContent=info.tenants+' tenant'+(info.tenants===1?' is':'s are')+' paying the default rate by card.';
+  document.getElementById('pc-yes-sub').textContent='Update all '+info.tenants+', starting each one\'s next payment. No extra charge today.';
+  document.getElementById('pc-no-title').textContent='New sign-ups only';
+  document.getElementById('pc-no-sub').textContent='Tenants already paying keep their current price. Spots with their own price or a discount aren\'t affected either way.';
+  document.querySelector('input[name="pc-apply"][value="yes"]').checked=true;
+  document.getElementById('pc-email').checked=true;
+  document.getElementById('pc-btn').textContent='Save';
+  _pcPending=async(apply,email)=>{
+    if(!apply) return;
+    toast('⏳ Updating tenants\' billing…');
+    const r=await pricingApi({action:'applyDefaultRate',propertyId:propId,email});
+    if(r.error) toast('⚠️ '+r.error);
+    else toast('✅ Updated '+r.changed+' tenant'+(r.changed===1?'':'s')+(r.failed?' · '+r.failed+' couldn\'t be changed (see Activity)':'')+(r.emailed?' · '+r.emailed+' emailed':''));
+  };
+  openModal('modal-price-change');
 }
 
 async function saveEditProperty(id){
@@ -5499,15 +5735,19 @@ async function saveEditProperty(id){
     monthly_rate:parseFloat(document.getElementById('pp-rate').value)||0,
     units:parseInt(document.getElementById('pp-units').value)||0,
     property_type:document.getElementById('pp-type').value||'linked',
-    parking_rates
+    parking_rates,
+    ...paRead(id)
   },id);
   btn.disabled=false;btn.textContent='Save Changes';
   btn.onclick=addProperty;
   if(error){err.textContent=error.message;err.classList.add('show');return;}
   closeModal('modal-add-property');
+  const oldRate=Number((allProperties.find(x=>x.id===id)||{}).monthly_rate)||0;
+  const newRate=parseFloat(document.getElementById('pp-rate').value)||0;
   await loadProperties();
   renderPropertyDetail(id);
   toast('✅ Property updated!');
+  if(newRate!==oldRate&&newRate>0&&canPrice()) askDefaultRate(id,oldRate,newRate);
 }
 
 function exportPropertyPermits(){
@@ -5563,6 +5803,7 @@ function setIT(name){
 // than Edit Property starts a fresh, empty Add Property form.
 let _ppEditing=false;
 function resetAddPropertyForm(){
+  {const pw=document.getElementById('pa-wrap');if(pw) pw.style.display='none';_paHas=false;}
   ['pp-name','pp-addr','pp-spots','pp-zones','pp-rate','pp-units'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['standard','reserved','handicap','ev','guest','moto','carport','garage','yard','storage','loading'].forEach(id=>{const el=document.getElementById('rate-'+id);if(el)el.value='';});
   if(typeof setPropType==='function') setPropType('linked');
@@ -5702,6 +5943,7 @@ function renderUnitSlotCard(s){
     :`<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(26,111,255,0.10);color:var(--blue);font-family:'JetBrains Mono',monospace;">$${Number(s.monthly_amount||0).toFixed(Number(s.monthly_amount)%1?2:0)}/mo</span>`
       +(s.spot_paid===true?` <span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(0,200,122,0.12);color:#007a4a;font-family:'JetBrains Mono',monospace;">${s.paid_via==='manual'?'PAID · OUTSIDE':s.paid_via==='card'?'PAID · CARD':'PAID'}</span>`
         :s.spot_paid===false?` <span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(148,163,184,0.15);color:var(--text3);font-family:'JetBrains Mono',monospace;">NOT PAID</span>`:'');
+  const discBadge=!isFree&&dsActive(s)?` <span title="${escHtml(s.discount_note||'')}" style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(0,200,122,0.12);color:#007a4a;font-family:'JetBrains Mono',monospace;">🏷 ${escHtml(dsLabel(s).toUpperCase())}</span>`:'';
   const sJson=JSON.stringify(s).replace(/"/g,'&quot;');
   return `<div style="display:flex;align-items:center;gap:12px;background:${managed?'rgba(255,170,0,0.05)':'rgba(26,111,255,0.04)'};border:1px solid ${managed?'rgba(255,170,0,0.25)':'var(--border)'};border-radius:10px;padding:12px 14px;">
     <div style="flex-shrink:0;width:28px;height:28px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text2);">${typeIcon}</div>
@@ -5709,7 +5951,7 @@ function renderUnitSlotCard(s){
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
         <span style="font-size:13px;font-weight:700;">${s.slot_label||'Slot'}</span>
         <span style="font-size:11px;color:var(--text3);font-weight:400;font-family:'JetBrains Mono',monospace;">${typeLabel}</span>
-        ${billingBadge}
+        ${billingBadge}${typeof discBadge!=='undefined'?discBadge:''}
       </div>
       ${permit
         ?`<div style="font-size:12px;color:var(--text);margin-top:2px;"><strong style="font-family:'JetBrains Mono',monospace">${permit.plate}</strong>${permit.vehicle_desc?' · '+permit.vehicle_desc:''}</div>
@@ -6294,6 +6536,7 @@ let _editingSlot=null;
 function toggleBillingAmount(){
   const billing=document.getElementById('us-billing-type').value;
   document.getElementById('us-billing-amount-wrap').style.display=billing==='monthly'?'':'none';
+  if(document.getElementById('ds-wrap')) dsShow();
 }
 function openAddUnitSlot(unitNumber=''){
   _editingSlot=null;
@@ -6306,6 +6549,7 @@ function openAddUnitSlot(unitNumber=''){
   document.getElementById('us-billing-type').value='free';
   document.getElementById('us-monthly-amount').value='';
   document.getElementById('us-notes').value='';
+  dsLoad(null);
   toggleBillingAmount();
   openModal('modal-unit-slot');
 }
@@ -6321,9 +6565,140 @@ function openEditUnitSlot(s){
   document.getElementById('us-monthly-amount').value=s.monthly_amount||'';
   document.getElementById('us-notes').value=s.notes||'';
   toggleBillingAmount();
+  dsLoad(s);
   openModal('modal-unit-slot');
 }
+
+// ── Spot discounts + price changes (owners and managers) ──
+const dsActive=s=>!!(s&&(s.discount_type==='pct'||s.discount_type==='amount')&&Number(s.discount_value)>0&&(!s.discount_ends_at||new Date(s.discount_ends_at)>new Date()));
+function dsLabel(s){
+  if(!dsActive(s)) return '';
+  const v=Number(s.discount_value),what=s.discount_type==='pct'?(+v.toFixed(2))+'% off':'$'+(v%1?v.toFixed(2):v)+' off';
+  if(s.discount_duration==='once') return what+' next payment';
+  if(s.discount_duration==='months'){
+    if(s.discount_ends_at){const left=Math.max(1,Math.ceil((new Date(s.discount_ends_at)-new Date())/(30.44*864e5)));return what+' · '+left+' mo left';}
+    return what+' · '+s.discount_months+' mo';
+  }
+  return what;
+}
+const unitDisplay=v=>{const t=String(v??'').trim();return /[a-z]/i.test(t)?t:'Unit '+t;};
+const canPrice=()=>['owner','manager'].includes(myRole());
+const liveCard=s=>s&&s.spot_paid&&(s.paid_via||'card')==='card'&&s.spot_subscription_id;
+let _dsType='';
+function dsType(t){
+  _dsType=t;
+  document.querySelectorAll('#ds-type span').forEach(x=>x.classList.toggle('on',x.dataset.v===t));
+  document.getElementById('ds-body').style.display=t?'':'none';
+  document.getElementById('ds-pre').style.display=t==='amount'?'':'none';
+  document.getElementById('ds-post').textContent=t==='pct'?'%':'a month';
+  dsPreview();
+}
+function dsLoad(s){
+  const wrap=document.getElementById('ds-wrap');
+  const show=!!s&&canPrice()&&'discount_type' in s;
+  wrap.dataset.on=show?'1':'';
+  dsShow();
+  if(!show) return;
+  const act=dsActive(s);
+  document.getElementById('ds-value').value=act?Number(s.discount_value):'';
+  document.querySelector(`input[name="ds-dur"][value="${act&&s.discount_duration?s.discount_duration:'forever'}"]`).checked=true;
+  document.getElementById('ds-months').value=act&&s.discount_months?s.discount_months:3;
+  document.getElementById('ds-note').value=act?(s.discount_note||''):'';
+  document.getElementById('ds-email').checked=true;
+  document.getElementById('ds-email-wrap').style.display=liveCard(s)?'flex':'none';
+  dsType(act?s.discount_type:'');
+}
+function dsShow(){
+  const wrap=document.getElementById('ds-wrap');
+  wrap.style.display=wrap.dataset.on&&document.getElementById('us-billing-type').value==='monthly'?'':'none';
+}
+function dsRead(){
+  if(!_dsType) return null;
+  const dur=document.querySelector('input[name="ds-dur"]:checked').value;
+  return {type:_dsType,value:parseFloat(document.getElementById('ds-value').value),duration:dur,
+    months:dur==='months'?parseInt(document.getElementById('ds-months').value):null,note:document.getElementById('ds-note').value.trim()};
+}
+function dsPreview(){
+  const box=document.getElementById('ds-preview');if(!box) return;
+  const d=dsRead();
+  const prop=allProperties.find(p=>p.id===currentPropertyId)||{};
+  const price=parseFloat(document.getElementById('us-monthly-amount').value)||Number(prop.monthly_rate)||0;
+  if(!d||!(d.value>0)||!(price>0)){box.style.display='none';return;}
+  const off=d.type==='pct'?Math.min(price,price*Math.min(100,d.value)/100):Math.min(price,d.value);
+  const after='$'+(price-off).toFixed(2),full='$'+price.toFixed(2);
+  let t=`<b>${full} → ${after}/mo</b>`;
+  if(d.duration==='months'&&d.months>0) t+=` for ${d.months} month${d.months==1?'':'s'}, then back to ${full}.`;
+  else if(d.duration==='once') t+=` for the next payment only, then ${full}.`;
+  else t+=' until you remove it.';
+  if(_editingSlot&&!liveCard(_editingSlot)) t+='<br>Starts when the tenant signs up and pays by card.';
+  else t+='<br>Quarterly and yearly payers get the same discount on each month they pay for.';
+  box.innerHTML=t;box.style.display='';
+}
+function dsChanged(s){
+  const d=dsRead();
+  if(!d) return dsActive(s);
+  return !dsActive(s)||s.discount_type!==d.type||Number(s.discount_value)!==d.value||(s.discount_duration||'forever')!==d.duration
+    ||(d.duration==='months'&&Number(s.discount_months)!==d.months)||(s.discount_note||'')!==d.note;
+}
+async function pricingApi(payload){
+  const {data:{session}}=await sb.auth.getSession();
+  try{
+    const res=await fetch('/.netlify/functions/pricing',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},body:JSON.stringify(payload)});
+    const b=await res.json().catch(()=>({}));
+    return res.ok?b:{error:b.error||'Something went wrong. Please try again.'};
+  }catch(e){return {error:'Could not reach the server. Check your connection.'};}
+}
+let _pcPending=null;
+function pcConfirm(){
+  const apply=document.querySelector('input[name="pc-apply"]:checked').value==='yes';
+  const email=document.getElementById('pc-email').checked;
+  const p=_pcPending;_pcPending=null;
+  closeModal('modal-price-change');
+  if(p) p(apply,email);
+}
 async function saveUnitSlot(){
+  const s=_editingSlot;
+  const billingType=document.getElementById('us-billing-type').value;
+  const newAmt=parseFloat(document.getElementById('us-monthly-amount').value)||null;
+  const priceChanged=s&&billingType==='monthly'&&(Number(s.monthly_amount)||null)!==newAmt;
+  if(s&&liveCard(s)&&priceChanged&&canPrice()){
+    const prop=allProperties.find(p=>p.id===currentPropertyId)||{};
+    const from=Number(s.monthly_amount)||Number(prop.monthly_rate)||0,to=newAmt||Number(prop.monthly_rate)||0;
+    document.getElementById('pc-title').textContent="Change this tenant's price?";
+    document.getElementById('pc-sub').textContent=`${unitDisplay(s.unit_number)} · ${s.slot_label||'Spot'} is paying $${from.toFixed(2)}/mo by card.`;
+    document.getElementById('pc-yes-sub').textContent=`$${to.toFixed(2)}/mo starting their next payment. No extra charge today.`;
+    document.getElementById('pc-no-title').textContent='Keep their current price';
+    document.getElementById('pc-no-sub').textContent=`$${to.toFixed(2)} only applies to the next tenant who signs up.`;
+    document.querySelector('input[name="pc-apply"][value="yes"]').checked=true;
+    document.getElementById('pc-email').checked=document.getElementById('ds-email').checked;
+    document.getElementById('pc-btn').textContent='Save price';
+    _pcPending=(apply,email)=>saveUnitSlotNow({applyPrice:apply,email});
+    openModal('modal-price-change');
+    return;
+  }
+  return saveUnitSlotNow({applyPrice:false,email:document.getElementById('ds-email').checked});
+}
+async function saveUnitSlotNow(opt={}){
+  const _s=_editingSlot;
+  const discChange=_s&&document.getElementById('ds-wrap').dataset.on&&document.getElementById('us-billing-type').value==='monthly'&&dsChanged(_s);
+  if(discChange){const d=dsRead();if(d&&!(d.value>0)){toast('⚠️ Enter how much the discount is');return;}}
+  const ok=await saveUnitSlotRow();
+  if(!ok||!_s) return;
+  if(discChange||opt.applyPrice){
+    const r=await pricingApi({action:'spot',spotId:_s.id,...(discChange?{discount:dsRead()}:{}),applyPrice:!!opt.applyPrice,email:!!opt.email});
+    if(r.error){toast('⚠️ Saved the spot, but: '+r.error);}
+    else{
+      const bits=[];
+      if(r.priceTo!=null) bits.push('billing now $'+(r.priceTo/100).toFixed(2)+' from next payment');
+      if(discChange) bits.push(r.label?'discount: '+r.label:'discount removed');
+      if(r.emailed) bits.push('tenant emailed');
+      toast('✅ '+(bits.join(' · ')||'Saved'));
+    }
+    loadUnitsTab(currentPropertyId);
+  }
+}
+async function saveUnitSlotRow(){
   const btn=document.getElementById('us-save-btn');
   btn.disabled=true;btn.textContent='Saving…';
   const billingType=document.getElementById('us-billing-type').value;
@@ -6339,7 +6714,7 @@ async function saveUnitSlot(){
     notes:document.getElementById('us-notes').value.trim()||null,
     property_id:currentPropertyId,
   };
-  if(!data.unit_number){toast('Unit number is required');btn.disabled=false;btn.textContent='Save Slot';return;}
+  if(!data.unit_number){toast('Unit number is required');btn.disabled=false;btn.textContent='Save Slot';return false;}
   const existing=_unitSlots.find(s=>s.unit_number===data.unit_number&&s.property_id===currentPropertyId);
   // Only the first slot for a unit holds the invite_code (unique constraint on non-null values).
   // Additional slots explicitly set null so the unique constraint isn't triggered.
@@ -6357,7 +6732,7 @@ async function saveUnitSlot(){
     dbError=error;
   }
   btn.disabled=false;btn.textContent='Save Slot';
-  if(dbError){toast('❌ Error: '+dbError.message);console.error('saveUnitSlot error',dbError);return;}
+  if(dbError){toast('❌ Error: '+dbError.message);console.error('saveUnitSlot error',dbError);return false;}
   closeModal('modal-unit-slot');
   const isNewUnit=!existing&&!_editingSlot;
   toast(_editingSlot?'Slot updated':'Slot added');
@@ -6377,6 +6752,7 @@ async function saveUnitSlot(){
     window._flyerData={unitNumber:data.unit_number,inviteCode:data.invite_code,propertyId:currentPropertyId};
     openModal('modal-send-flyer');
   }
+  return true;
 }
 async function sendFlyerEmail(){
   const email=document.getElementById('flyer-email').value.trim();
