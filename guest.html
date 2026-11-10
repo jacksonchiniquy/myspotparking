@@ -47,6 +47,7 @@ h1{font-family:'Sora',sans-serif;font-size:24px;font-weight:800;letter-spacing:-
 .v{font-size:14px;font-weight:700;margin-top:2px;}
 .emailbox{border:1px solid var(--border);border-radius:14px;padding:14px;margin-top:4px;}
 </style>
+<script src="/lang.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -91,9 +92,9 @@ h1{font-family:'Sora',sans-serif;font-size:24px;font-weight:800;letter-spacing:-
     <h1 style="text-align:center;">You're all set</h1>
     <p class="sub" style="text-align:center;margin-bottom:0;" id="d-sub">Your guest pass is active. Keep this page or take a screenshot.</p>
     <div class="pass">
-      <div class="pass-plate"><span id="d-plate"></span><span class="pill" id="d-pill">Active</span></div>
+      <div class="pass-plate"><span id="d-plate" translate="no"></span><span class="pill" id="d-pill">Active</span></div>
       <div class="grid">
-        <div><div class="k">Property</div><div class="v" id="d-prop"></div></div>
+        <div><div class="k">Property</div><div class="v" id="d-prop" translate="no"></div></div>
         <div><div class="k">Guest of</div><div class="v" id="d-unit"></div></div>
         <div><div class="k">Pass</div><div class="v" id="d-type"></div></div>
         <div><div class="k">Valid until</div><div class="v" id="d-ends"></div></div>
@@ -118,7 +119,7 @@ function showErr(m){$('err').textContent=m||'';$('err').classList.toggle('show',
 function clean(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
 function fmt(v){const c=clean(v).replace(/^G/,'');return c?('G-'+c.slice(0,4)+(c.length>4?'-'+c.slice(4,6):'')):'';}
 async function api(body){
-  const r=await fetch('/.netlify/functions/guest-pass',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const r=await fetch('/.netlify/functions/guest-pass',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({lang:window.LotHQLang?LotHQLang.code:'en'},body))});
   const d=await r.json().catch(()=>({error:'Something went wrong. Please try again.'}));
   return r.ok?d:{error:d.error||'Something went wrong. Please try again.'};
 }

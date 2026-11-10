@@ -233,6 +233,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <button class="sb-item" id="sb-managers" onclick="showPanel('managers',this)">🏢 Managers<span class="sb-count" id="cnt-managers">0</span><span class="sb-count" id="cnt-pending" title="Pending access requests" style="display:none;background:#d97706;color:#fff;margin-left:4px;">0</span></button>
       <button class="sb-item" id="sb-properties" onclick="showPanel('properties',this)">🗺 Properties<span class="sb-count" id="cnt-properties">0</span></button>
       <button class="sb-item" id="sb-terms" onclick="showPanel('terms',this);loadTermsAdmin()">📜 Parking Terms</button>
+      <button class="sb-item" id="sb-languages" onclick="showPanel('languages',this);loadLanguages()">🌐 Languages</button>
       <button class="sb-item" id="sb-permits" onclick="showPanel('permits',this)">🎫 Permits<span class="sb-count" id="cnt-permits">0</span></button>
       <button class="sb-item" id="sb-residents" onclick="showPanel('residents',this)">👥 Residents<span class="sb-count" id="cnt-residents">0</span></button>
       <button class="sb-item" id="sb-violations" onclick="showPanel('violations',this)">🚨 Violations<span class="sb-count" id="cnt-violations">0</span></button>
@@ -333,6 +334,15 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       </div>
 
       <!-- PARKING TERMS -->
+      <div id="panel-languages" class="panel">
+        <div class="section-head"><div><div class="section-title">Languages</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px;max-width:760px;">Languages residents, guests and drivers can pick on Pay to Park and guest passes (more pages are coming). Their phone's language is picked automatically, and their emails come in it. Parking Terms always stay in English. Switch a language on only after a native speaker has checked it: open its preview link, read the pages, then turn it on.</div></div></div>
+        <div id="lg-missing" style="display:none;background:rgba(210,153,34,.1);border:1px solid rgba(210,153,34,.35);color:#e3b341;border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:14px;">The languages database step hasn't been run yet. Run <b>supabase-languages.sql</b> in Supabase, then refresh this page. Until then, English and Spanish are on.</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;max-width:820px;">
+          <table class="tbl" style="width:100%;"><thead><tr><th>Language</th><th>Shown as</th><th>Preview (for reviewers)</th><th style="text-align:right;">On</th></tr></thead><tbody id="lg-body"><tr><td colspan="4" class="loading">Loading…</td></tr></tbody></table>
+        </div>
+      </div>
+
       <div id="panel-terms" class="panel">
         <div class="section-head"><div><div class="section-title">Parking Terms</div>
           <div style="font-size:12px;color:var(--text2);margin-top:2px;max-width:760px;">The wording people agree to (a required checkbox) when they add or change a plate. Write it once; the blanks in curly brackets fill in for each property. Every save becomes a new version, and people are asked to agree again the next time they add a plate.</div></div>
@@ -1788,7 +1798,7 @@ function propMgrId(propId){
 }
 
 const PANELS=['activity','dashboard','managers','properties','terms','permits','residents','violations','plans','staff'];
-const PANEL_TITLES={activity:'Activity',dashboard:'Dashboard',managers:'Managers',properties:'Properties',terms:'Parking Terms',permits:'Permits',residents:'Residents / Holders',violations:'Violations',plans:'Plans & Features',staff:'Staff Access'};
+const PANEL_TITLES={languages:'Languages',activity:'Activity',dashboard:'Dashboard',managers:'Managers',properties:'Properties',terms:'Parking Terms',permits:'Permits',residents:'Residents / Holders',violations:'Violations',plans:'Plans & Features',staff:'Staff Access'};
 function showPanel(name,el){
   PANELS.forEach(p=>document.getElementById('panel-'+p)?.classList.remove('active'));
   document.getElementById('panel-'+name)?.classList.add('active');
@@ -1805,6 +1815,31 @@ function restoreFromHash(){
   if(sbEl) showPanel(hash,sbEl);
   if(hash==='activity') setTimeout(loadActivity,300);
   if(hash==='terms') setTimeout(loadTermsAdmin,300);
+  if(hash==='languages') setTimeout(loadLanguages,300);
+}
+
+// ── LANGUAGES (which ones residents, guests and drivers can pick) ──
+const LANG_LIST=[['es','Spanish','Español'],['zh','Chinese (Simplified)','中文 (简体)'],['vi','Vietnamese','Tiếng Việt'],['tl','Tagalog','Tagalog'],['pt','Portuguese','Português'],['fr','French','Français'],['ko','Korean','한국어']];
+let _langsOn=null;
+async function loadLanguages(){
+  const body=document.getElementById('lg-body');
+  const {data,error}=await sb.from('site_settings').select('value').eq('key','languages').maybeSingle();
+  document.getElementById('lg-missing').style.display=error?'block':'none';
+  _langsOn=error?['es']:(Array.isArray(data&&data.value)?data.value:[]);
+  const row=(code,en,native,on,fixed)=>`<tr><td style="font-weight:600;">${en}</td><td>${native}</td>
+    <td>${code==='en'?'<span style="color:var(--text3);font-size:12px;">Always on</span>':`<a href="/park?lang=${code}" target="_blank" rel="noopener" style="font-size:12px;">Pay to Park ↗</a> · <a href="/guest.html?lang=${code}" target="_blank" rel="noopener" style="font-size:12px;">Guest pass ↗</a>`}</td>
+    <td style="text-align:right;"><input type="checkbox" ${on?'checked':''} ${fixed||error?'disabled':''} onchange="toggleLanguage('${code}',this.checked,this)" style="width:18px;height:18px;"></td></tr>`;
+  body.innerHTML=row('en','English','English',true,true)+LANG_LIST.map(([c,en,n])=>row(c,en,n,_langsOn.includes(c),false)).join('');
+}
+async function toggleLanguage(code,on,el){
+  const next=LANG_LIST.map(l=>l[0]).filter(c=>c===code?on:_langsOn.includes(c));
+  el.disabled=true;
+  const {error}=await sb.from('site_settings').upsert({key:'languages',value:next,updated_at:new Date().toISOString()});
+  el.disabled=false;
+  if(error){el.checked=!on;toast('❌ '+error.message);return;}
+  _langsOn=next;
+  const name=(LANG_LIST.find(l=>l[0]===code)||[])[1]||code;
+  toast(on?'✅ '+name+' is on (shows within about 5 minutes)':name+' is off');
 }
 
 // ── PARKING TERMS ──

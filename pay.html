@@ -10,6 +10,7 @@
 <meta name="description" content="Pay for parking quickly and securely. No app required.">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://js.stripe.com/v3/"></script>
+<script src="/lang.js"></script>
 <script src="terms-box.js"></script>
 <style>
 :root{
@@ -58,7 +59,7 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
 .rate-desc{font-size:12px;color:var(--slate2);}
 .rate-price{font-family:'Sora',sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.04em;color:var(--blue);}
 .rate-price s{font-size:14px;font-weight:500;color:var(--slate2);margin-right:6px;}
-.promo-btn{border:1.5px solid var(--border);background:#fff;border-radius:10px;padding:0 16px;font-weight:700;font-size:14px;color:var(--ink);cursor:pointer;font-family:'Inter',sans-serif;}
+.promo-btn{white-space:nowrap;border:1.5px solid var(--border);background:#fff;border-radius:10px;padding:0 16px;font-weight:700;font-size:14px;color:var(--ink);cursor:pointer;font-family:'Inter',sans-serif;}
 .rate-price span{font-size:12px;font-weight:500;color:var(--slate2);margin-left:2px;}
 
 /* VEHICLE FORM */
@@ -146,8 +147,8 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
     <!-- PAYMENT FORM -->
     <div id="screen-form" style="display:none;">
       <div class="prop-header">
-        <div class="prop-name" id="prop-name">—</div>
-        <div class="prop-address" id="prop-address"></div>
+        <div class="prop-name" id="prop-name" translate="no">—</div>
+        <div class="prop-address" id="prop-address" translate="no"></div>
         <div class="prop-chips" id="prop-chips"></div>
       </div>
 
@@ -203,7 +204,7 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
           </div>
           <div class="summary-row">
             <span class="summary-label">Plate</span>
-            <span class="summary-val" id="sum-plate">—</span>
+            <span class="summary-val" id="sum-plate" translate="no">—</span>
           </div>
           <div class="summary-row total">
             <span class="summary-label">Total</span>
@@ -233,12 +234,12 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
       <p class="success-sub">Your parking session is confirmed. Show this screen if an enforcement officer checks your vehicle.</p>
       <div class="session-card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-          <div class="sc-plate" id="ss-plate">—</div>
+          <div class="sc-plate" id="ss-plate" translate="no">—</div>
           <div class="sc-badge">Active</div>
         </div>
-        <div style="font-size:13px;color:var(--slate2);" id="ss-vehicle"></div>
+        <div style="font-size:13px;color:var(--slate2);" id="ss-vehicle" translate="no"></div>
         <div class="sc-fields">
-          <div><div class="sc-field-label">Location</div><div class="sc-field-val" id="ss-prop">—</div></div>
+          <div><div class="sc-field-label">Location</div><div class="sc-field-val" id="ss-prop" translate="no">—</div></div>
           <div id="ss-stall-wrap" style="display:none;"><div class="sc-field-label">Stall</div><div class="sc-field-val" id="ss-stall">—</div></div>
           <div><div class="sc-field-label">Duration</div><div class="sc-field-val" id="ss-duration">—</div></div>
           <div><div class="sc-field-label">Started</div><div class="sc-field-val" id="ss-start">—</div></div>
@@ -423,6 +424,7 @@ async function startPayment(){
         rateId:selectedRate.id||null,
         rateIndex:selectedRateIndex,
         promo:promo?promo.code:null,
+        lang:window.LotHQLang?LotHQLang.code:'en',
         termsVersion:payTerms?payTerms.version:null
       })
     });
@@ -487,7 +489,7 @@ function formatMinutes(min){
 }
 
 function formatTime(iso){
-  return new Date(iso).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+  return new Date(iso).toLocaleTimeString(window.LotHQLang?LotHQLang.locale:'en-US',{hour:'numeric',minute:'2-digit',hour12:true});
 }
 
 init();

@@ -81,7 +81,7 @@ function describeType(type) {
   return `Up to ${type.max_days} days`;
 }
 function fmtClock(t) { const [h, m] = hm(t); return `${(h % 12) || 12}${m ? ':' + String(m).padStart(2, '0') : ''} ${h < 12 ? 'AM' : 'PM'}`; }
-const fmtWhen = d => new Date(d).toLocaleString('en-US', { timeZone: TZ, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const fmtWhen = (d, locale = 'en-US') => new Date(d).toLocaleString(locale, { timeZone: TZ, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const fmtDay = d => new Date(d).toLocaleDateString('en-US', { timeZone: TZ, month: 'short', day: 'numeric', year: 'numeric' });
 
 function newCode() {
@@ -106,22 +106,24 @@ function countsAgainstAllowance(g, now = new Date()) {
 }
 
 // The guest's "here's your pass" email
-function passEmail(g, { propertyName, unitLabel, typeName, logoHeader }) {
+function passEmail(g, { propertyName, unitLabel, typeName, logoHeader, lang }) {
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const rows = [['Plate', `${g.guest_state ? g.guest_state + ' · ' : ''}${g.guest_plate}`], ['Vehicle', g.guest_vehicle || '—'],
-    ['Property', propertyName], ['Guest of', unitLabel], ['Pass', typeName], ['Starts', fmtWhen(g.starts_at)], ['Valid until', fmtWhen(g.ends_at)]];
+  const I = require('./i18n'), t = (en, v) => I.t(lang, en, v), loc = I.locale(lang);
+  const unit = String(unitLabel).replace(/^Unit (.+)$/, (m, n) => t('Unit {n}', { n }));
+  const rows = [[t('Plate'), `${g.guest_state ? g.guest_state + ' · ' : ''}${g.guest_plate}`], [t('Vehicle'), g.guest_vehicle || '—'],
+    [t('Property'), propertyName], [t('Guest of'), unit], [t('Pass'), typeName], [t('Starts'), fmtWhen(g.starts_at, loc)], [t('Valid until'), fmtWhen(g.ends_at, loc)]];
   const table = rows.map(([k, v]) => `<tr><td style="padding:6px 0;color:#64748b;font-size:13px;">${k}</td><td style="padding:6px 0;text-align:right;font-weight:700;font-size:14px;">${esc(v)}</td></tr>`).join('');
   return {
-    subject: `Your guest parking pass — ${propertyName}`,
+    subject: t('Your guest parking pass — {property}', { property: propertyName }),
     html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
   ${logoHeader('#15803d')}
-  <h2 style="margin:0 0 8px;">Your guest pass is active</h2>
-  <p style="color:#475569;margin:0 0 20px;">Show this email if an enforcement officer checks your vehicle. We'll remind you about an hour before it ends.</p>
+  <h2 style="margin:0 0 8px;">${esc(t('Your guest pass is active'))}</h2>
+  <p style="color:#475569;margin:0 0 20px;">${esc(t("Show this email if an enforcement officer checks your vehicle. We'll remind you about an hour before it ends."))}</p>
   <div style="background:#f0fdf4;border-radius:10px;padding:16px 20px;margin-bottom:20px;"><table width="100%" cellpadding="0" cellspacing="0">${table}</table></div>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
   <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ · Provo, UT</p>
 </body></html>`,
-    text: 'Your guest pass is active\n\n' + rows.map(([k, v]) => `${k}: ${v}`).join('\n') + '\n\nShow this email if an enforcement officer checks your vehicle.',
+    text: t('Your guest pass is active') + '\n\n' + rows.map(([k, v]) => `${k}: ${v}`).join('\n') + '\n\n' + t('Show this email if an enforcement officer checks your vehicle.'),
   };
 }
 

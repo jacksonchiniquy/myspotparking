@@ -24,6 +24,7 @@
       '.tb-text h5{margin:12px 0 4px;font-size:12.5px;color:#0f172a;white-space:normal;}' +
       '.tb-err{display:none;font-size:12px;color:#c0262d;margin-top:8px;font-weight:600;}' +
       '.tb-err.show{display:block;}' +
+      '.tb-note{font-size:12px;color:#7a5200;background:#fff8e6;border-radius:8px;padding:7px 10px;margin:0 0 10px;line-height:1.45;}' +
       '.tb-box.need{border-color:#e5484d;background:#fff5f5;}';
     document.head.appendChild(s);
   }
@@ -36,18 +37,31 @@
     if (!terms || !terms.required) return api;
     styles();
     var box = document.createElement('div'); box.className = 'tb-box';
+    // The checkbox line follows the page's language; the terms themselves stay in English
+    var L = window.LotHQLang;
+    var T = function (en, v) { return L ? L.t(en, v) : en.replace(/\{(\w+)\}/g, function (m, k) { return v && v[k] != null ? v[k] : m; }); };
     box.innerHTML =
-      '<label class="tb-row"><input type="checkbox"><span>I agree to the <button type="button" class="tb-link">Parking Terms</button> for <b>' +
-      esc(terms.propertyName || 'this property') + '</b>.</span></label>' +
-      '<div class="tb-text"><h4>' + esc(terms.title || 'Parking Terms') + '</h4>' + esc(terms.body) +
+      '<div class="tb-note" style="display:none"></div><label class="tb-row"><input type="checkbox"><span class="tb-line"></span></label>' +
+      '<div class="tb-text" translate="no" lang="en"><h4>' + esc(terms.title || 'Parking Terms') + '</h4>' + esc(terms.body) +
       (terms.rules ? '<h5>Property rules</h5>' + esc(terms.rules) : '') + '</div>' +
-      '<div class="tb-err">Please check the box to agree to the Parking Terms.</div>';
+      '<div class="tb-err"></div>';
+    function paint() {
+      var prop = '<b translate="no">' + esc(terms.propertyName || T('this property')) + '</b>';
+      box.querySelector('.tb-line').innerHTML = esc(T('I agree to the [Parking Terms] for {property}.')).replace('{property}', prop)
+        .replace(/\[([^\]]*)\]/, '<button type="button" class="tb-link" translate="no">$1</button>');
+      var note = box.querySelector('.tb-note'), other = L && L.code !== 'en';
+      note.style.display = other ? '' : 'none';
+      note.textContent = other ? T('These Parking Terms are in English. The English version is what you agree to.') : '';
+      box.querySelector('.tb-err').textContent = T('Please check the box to agree to the Parking Terms.');
+      box.querySelector('.tb-link').addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        box.querySelector('.tb-text').classList.toggle('show');
+      });
+    }
+    paint();
+    if (L && L.onChange) L.onChange(paint);
     container.appendChild(box);
     var cb = box.querySelector('input'), text = box.querySelector('.tb-text'), err = box.querySelector('.tb-err');
-    box.querySelector('.tb-link').addEventListener('click', function (e) {
-      e.preventDefault(); e.stopPropagation();
-      text.classList.toggle('show');
-    });
     cb.addEventListener('change', function () { if (cb.checked) { err.classList.remove('show'); box.classList.remove('need'); } });
     api.required = true;
     api.version = terms.version;

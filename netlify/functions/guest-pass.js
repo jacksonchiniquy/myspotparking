@@ -24,12 +24,12 @@ async function load(code) {
 }
 
 function view(ctx, extra = {}) {
-  const { g, property, type, unitLabel } = ctx;
+  const { g, property, type, unitLabel, loc } = ctx;
   return {
     propertyName: property.name || '', propertyAddress: property.address || '', unitLabel, typeName: type.name,
     describe: GP.describeType(type), status: g.status,
     plate: g.guest_plate || null, state: g.guest_state || null, vehicle: g.guest_vehicle || null,
-    starts: g.starts_at ? GP.fmtWhen(g.starts_at) : null, ends: g.ends_at ? GP.fmtWhen(g.ends_at) : null,
+    starts: g.starts_at ? GP.fmtWhen(g.starts_at, loc) : null, ends: g.ends_at ? GP.fmtWhen(g.ends_at, loc) : null,
     startsLater: g.starts_at ? new Date(g.starts_at) > new Date() : false,
     emailed: !!g.guest_email, ...extra,
   };
@@ -46,15 +46,19 @@ exports.handler = async (event) => {
     if (!ctx) return reply(404, { error: "We couldn't find that guest code. Check it with the person who sent it." });
     const { g, property, type } = ctx;
     const now = new Date();
+    const I = require('./lib/i18n'), lang = I.pick(body.lang);
+    ctx.loc = I.locale(lang);
 
     // ── Email the pass ──
     if (body.email !== undefined) {
       const email = String(body.email || '').trim().toLowerCase();
       if (!EMAIL_RE.test(email)) return reply(400, { error: 'Enter a valid email address.' });
       if (g.status !== 'active') return reply(400, { error: 'Activate the pass first.' });
-      const msg = GP.passEmail(g, { propertyName: property.name || '', unitLabel: ctx.unitLabel, typeName: type.name, logoHeader });
+      const msg = GP.passEmail(g, { propertyName: property.name || '', unitLabel: ctx.unitLabel, typeName: type.name, logoHeader, lang });
       await sendRaw({ to: email, ...msg });
       await sb('PATCH', `guest_passes?id=eq.${g.id}`, { guest_email: email });
+      // Remember their language for the reminder (after the languages database step)
+      try { await sb('PATCH', `guest_passes?id=eq.${g.id}`, { guest_lang: lang }); } catch { /* not yet */ }
       return reply(200, { ok: true });
     }
 
@@ -67,7 +71,7 @@ exports.handler = async (event) => {
       if (!property.guest_passes_enabled) return reply(410, { error: 'Guest passes are no longer offered at this property.' });
       const w = GP.passWindow(type, now);
       const terms = await require('./lib/terms').termsFor(g.property_id, 'guest');
-      return reply(200, view(ctx, { terms, preview: w ? { starts: GP.fmtWhen(w.starts), ends: GP.fmtWhen(w.ends), startsLater: w.starts > now } : null }));
+      return reply(200, view(ctx, { terms, preview: w ? { starts: GP.fmtWhen(w.starts, ctx.loc), ends: GP.fmtWhen(w.ends, ctx.loc), startsLater: w.starts > now } : null }));
     }
 
     // ── Activate ──

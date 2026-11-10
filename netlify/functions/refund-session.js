@@ -26,8 +26,6 @@ function reply(statusCode, body) {
 class UserError extends Error { constructor(m, code = 400) { super(m); this.code = code; } }
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const fmtDay = iso => new Date(iso).toLocaleString('en-US', { timeZone: TZ, month: 'short', day: 'numeric' });
-const fmtDuration = m => m >= 480 ? 'Full Day' : m >= 60 ? `${m / 60} Hour${m > 60 ? 's' : ''}` : `${m} Min`;
 
 async function signedInUser(event) {
   const jwt = String(event.headers?.authorization || event.headers?.Authorization || '').replace(/^Bearer\s+/i, '');
@@ -39,23 +37,27 @@ async function signedInUser(event) {
 
 async function emailDriver(row, property, cents, ended) {
   const { sendRaw, logoHeader } = require('./send-email');
-  const name = property?.name || 'the property';
+  const I = require('./lib/i18n');
+  const lang = I.pick(row.lang), t = (en, v) => I.t(lang, en, v);
+  const name = property?.name || t('the property');
   const amt = money(cents);
-  const what = `plate ${row.plate} (${fmtDay(row.started_at)}, ${fmtDuration(Number(row.duration_minutes) || 0)})`;
+  const day = new Date(row.started_at).toLocaleString(I.locale(lang), { timeZone: TZ, month: 'short', day: 'numeric' });
+  const said = t('{property} refunded {amt} for plate {plate} ({date}, {duration}).', { property: name, amt, plate: row.plate, date: day,
+    duration: require('./lib/parking').fmtDuration(Number(row.duration_minutes) || 0, lang) });
   await sendRaw({
     to: row.email,
-    subject: `Refund of ${amt} — ${row.plate} at ${name}`,
+    subject: t('Refund of {amt} — {plate} at {property}', { amt, plate: row.plate, property: name }),
     html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
   ${logoHeader('#059669')}
-  <h2 style="margin:0 0 8px;">Your refund is on its way</h2>
-  <p style="color:#475569;margin:0 0 12px;line-height:1.6;">${esc(name)} refunded <b>${amt}</b> for ${esc(what)}.</p>
-  <p style="color:#475569;margin:0 0 12px;line-height:1.6;">It should appear on your card in 5–10 business days.</p>
-  ${ended ? '<p style="color:#475569;margin:0 0 12px;line-height:1.6;">This parking session has ended. If you\'re still parked, please start a new payment.</p>' : ''}
+  <h2 style="margin:0 0 8px;">${esc(t('Your refund is on its way'))}</h2>
+  <p style="color:#475569;margin:0 0 12px;line-height:1.6;">${esc(said)}</p>
+  <p style="color:#475569;margin:0 0 12px;line-height:1.6;">${esc(t('It should appear on your card in 5–10 business days.'))}</p>
+  ${ended ? `<p style="color:#475569;margin:0 0 12px;line-height:1.6;">${esc(t("This parking session has ended. If you're still parked, please start a new payment."))}</p>` : ''}
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
   <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ · Provo, UT</p>
 </body></html>`,
-    text: `Your refund is on its way\n\n${name} refunded ${amt} for ${what}.\nIt should appear on your card in 5-10 business days.` +
-      (ended ? `\n\nThis parking session has ended. If you're still parked, please start a new payment.` : ''),
+    text: `${t('Your refund is on its way')}\n\n${said}\n${t('It should appear on your card in 5–10 business days.')}` +
+      (ended ? `\n\n${t("This parking session has ended. If you're still parked, please start a new payment.")}` : ''),
   });
 }
 

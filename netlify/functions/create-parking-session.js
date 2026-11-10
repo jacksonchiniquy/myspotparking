@@ -4,7 +4,8 @@
 // The session is saved as 'pending' and becomes 'active' when Stripe confirms payment.
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { ratesFor, sb } = require('./lib/parking');
+const { ratesFor, sb, insertSession } = require('./lib/parking');
+const I = require('./lib/i18n');
 const connect = require('./lib/connect');
 
 const SITE = process.env.SITE_URL || 'https://lothq.com';
@@ -21,6 +22,7 @@ exports.handler = async (event) => {
   try { body = JSON.parse(event.body || '{}'); } catch { return reply(400, { error: 'Invalid request' }); }
 
   const propertyId = String(body.propertyId || '');
+  const lang = I.pick(body.lang);
   const plate = String(body.plate || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 10);
   const vehicleDesc = typeof body.vehicleDesc === 'string' ? body.vehicleDesc.trim().slice(0, 80) : '';
   const email = typeof body.email === 'string' && EMAIL_RE.test(body.email.trim()) ? body.email.trim().toLowerCase() : null;
@@ -65,7 +67,8 @@ exports.handler = async (event) => {
       const P = require('./lib/promo');
       if (!(await P.useIt(promo.id))) return reply(400, { error: 'That code has been used up.', promo: true });
       const start = new Date();
-      const [row] = await sb('POST', 'parking_sessions', {
+      const [row] = await insertSession({
+        ...(lang !== 'en' ? { lang } : {}),
         property_id: property.id, plate, vehicle_desc: vehicleDesc || null, email,
         ...(stall ? { stall } : {}),
         rate_name: rate.name || null, amount_paid: 0, original_cents: amount, promo_code: promo.code, duration_minutes: minutes,
@@ -87,6 +90,7 @@ exports.handler = async (event) => {
 
     const checkout = await stripe.checkout.sessions.create({
       mode: 'payment',
+      locale: I.stripeLocale(lang),
       ...connect.paymentFeeParams(property, account, price),
       payment_method_types: ['card'],
       customer_email: email || undefined,
@@ -106,7 +110,8 @@ exports.handler = async (event) => {
       cancel_url: `${SITE}/pay.html?lot=${property.id}${stall ? '&s=' + encodeURIComponent(stall) : ''}`,
     }, connect.opts(account));
 
-    await sb('POST', 'parking_sessions', {
+    await insertSession({
+      ...(lang !== 'en' ? { lang } : {}),
       property_id: property.id, plate, vehicle_desc: vehicleDesc || null, email,
       ...(stall ? { stall } : {}),
       rate_name: rate.name || null, amount_paid: price /* cents */, duration_minutes: minutes,

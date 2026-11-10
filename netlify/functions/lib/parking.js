@@ -71,35 +71,52 @@ async function activateSession(checkout) {
 }
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const fmtTime = iso => new Date(iso).toLocaleString('en-US', { timeZone: TZ, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
-const fmtDuration = m => m >= 480 ? 'Full Day' : m >= 60 ? `${m / 60} Hour${m > 60 ? 's' : ''}` : `${m} Min`;
+const I = require('./i18n');
+const fmtTime = (iso, lang) => new Date(iso).toLocaleString(I.locale(lang), { timeZone: TZ, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+// "Full Day", "2 Hours", "30 Min" in the person's language
+function fmtDuration(m, lang) {
+  if (m >= 480) return I.t(lang, 'Full Day');
+  if (m === 60) return I.t(lang, '1 Hour');
+  if (m >= 60) return I.t(lang, m > 60 ? '{n} Hours' : '{n} Hour', { n: m / 60 });
+  return I.t(lang, '{n} Min', { n: m });
+}
+// Save a new session; before the languages database step, without its language
+async function insertSession(row) {
+  try { return await sb('POST', 'parking_sessions', row); }
+  catch (e) {
+    if (row.lang !== undefined && /lang/.test(e.message)) { const { lang, ...rest } = row; return sb('POST', 'parking_sessions', rest); }
+    throw e;
+  }
+}
 
 async function sendReceipt(row, to) {
+  const lang = I.pick(row.lang);
+  const t = (en, v) => I.t(lang, en, v);
   const [property] = await sb('GET', `properties?id=eq.${row.property_id}&select=name,address`);
   const name = property?.name || 'Parking';
   const amount = `$${(Number(row.amount_paid || 0) / 100).toFixed(2)}`;
   const rows = [
-    ['Plate', row.plate], ['Vehicle', row.vehicle_desc || '—'], ['Location', name + (property?.address ? ` — ${property.address}` : '')],
-    ['Duration', fmtDuration(Number(row.duration_minutes) || 0)], ['Started', fmtTime(row.started_at)],
-    ['Expires', fmtTime(row.expires_at)],
-    ...(row.promo_code ? [['Promo code', row.promo_code + (row.original_cents ? ` (was $${(Number(row.original_cents) / 100).toFixed(2)})` : '')]] : []),
-    ['Amount Paid', Number(row.amount_paid) > 0 ? amount : 'Free'],
+    [t('Plate'), row.plate], [t('Vehicle'), row.vehicle_desc || '—'], [t('Location'), name + (property?.address ? ` — ${property.address}` : '')],
+    [t('Duration'), fmtDuration(Number(row.duration_minutes) || 0, lang)], [t('Started'), fmtTime(row.started_at, lang)],
+    [t('Expires'), fmtTime(row.expires_at, lang)],
+    ...(row.promo_code ? [[t('Promo code'), row.original_cents ? t('{code} (was {amt})', { code: row.promo_code, amt: `$${(Number(row.original_cents) / 100).toFixed(2)}` }) : row.promo_code]] : []),
+    [t('Amount Paid'), Number(row.amount_paid) > 0 ? amount : t('Free')],
   ];
   const table = rows.map(([k, v]) => `<tr><td style="padding:6px 0;color:#64748b;font-size:13px;">${k}</td><td style="padding:6px 0;text-align:right;font-weight:700;font-size:14px;">${esc(v)}</td></tr>`).join('');
   await sendRaw({
     to,
-    subject: `Parking receipt — ${row.plate} at ${name}`,
+    subject: t('Parking receipt — {plate} at {property}', { plate: row.plate, property: name }),
     html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
   ${logoHeader('#059669')}
-  <h2 style="margin:0 0 8px;">You're all set!</h2>
-  <p style="color:#475569;margin:0 0 20px;">Your parking session is active. Show this email if an enforcement officer checks your vehicle.</p>
+  <h2 style="margin:0 0 8px;">${esc(t("You're all set!"))}</h2>
+  <p style="color:#475569;margin:0 0 20px;">${esc(t('Your parking session is active. Show this email if an enforcement officer checks your vehicle.'))}</p>
   <div style="background:#f4f7ff;border-radius:10px;padding:16px 20px;margin-bottom:20px;"><table width="100%" cellpadding="0" cellspacing="0">${table}</table></div>
-  <p style="color:#94a3b8;font-size:12px;">Keep this email as your receipt.</p>
+  <p style="color:#94a3b8;font-size:12px;">${esc(t('Keep this email as your receipt.'))}</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
   <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ · Provo, UT</p>
 </body></html>`,
-    text: `Parking receipt\n\n` + rows.map(([k, v]) => `${k}: ${v}`).join('\n') + `\n\nShow this email if an enforcement officer checks your vehicle.`,
+    text: t('Parking receipt — {plate} at {property}', { plate: row.plate, property: name }) + `\n\n` + rows.map(([k, v]) => `${k}: ${v}`).join('\n') + `\n\n` + t('Show this email if an enforcement officer checks your vehicle.'),
   });
 }
 
-module.exports = { DEFAULT_RATES, ratesFor, sb, activateSession, sendReceipt };
+module.exports = { DEFAULT_RATES, ratesFor, sb, activateSession, sendReceipt, insertSession, fmtDuration };
