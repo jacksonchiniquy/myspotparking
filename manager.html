@@ -104,6 +104,13 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 .pill-active::before{background:var(--green);}
 .pill-expired{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2);}
 .pill-expired::before{background:var(--red);}
+.pill-refunded{background:rgba(245,158,11,.12);color:#a16207;border:1px solid rgba(245,158,11,.25);}
+.pill-refunded::before{background:var(--amber);}
+.rf-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:7px 0;border-bottom:1px solid var(--border);}
+.rf-row span{color:var(--text3);}
+.rf-opt{display:flex;align-items:center;gap:9px;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;margin-top:7px;font-size:13px;cursor:pointer;}
+.rf-opt:has(input:checked){border-color:var(--blue);background:var(--bluelight);}
+.rf-lbl{font-size:12px;font-weight:600;color:var(--text2);margin:14px 0 2px;}
 .pill-revoked{background:rgba(148,163,184,.1);color:#64748b;border:1px solid rgba(148,163,184,.2);}
 .pill-revoked::before{background:#94a3b8;}
 .tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);}
@@ -783,7 +790,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
               <div style="font-size:16px;font-weight:700;">Recent Pay-to-Park Sessions</div>
               <button class="btn btn-ghost btn-sm" onclick="loadTransientSessions()">↻ Refresh</button>
             </div>
-            <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Stall</th><th>Vehicle</th><th>Duration</th><th>Paid</th><th>Started</th><th>Expires</th><th>Status</th></tr></thead><tbody id="transient-sessions-body"><tr><td colspan="8" class="loading">Loading...</td></tr></tbody></table></div>
+            <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Stall</th><th>Vehicle</th><th>Duration</th><th>Paid</th><th>Started</th><th>Expires</th><th>Status</th><th></th></tr></thead><tbody id="transient-sessions-body"><tr><td colspan="9" class="loading">Loading...</td></tr></tbody></table></div>
           </div>
         </div>
       </div>
@@ -978,6 +985,32 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
 </div>
 
 <!-- MODAL: Move Out Tenant -->
+<!-- MODAL: Refund a Pay to Park payment -->
+<div class="modal-overlay" id="modal-refund">
+  <div class="modal" style="width:460px;max-width:calc(100vw - 32px);max-height:calc(100vh - 40px);overflow-y:auto;">
+    <button class="modal-close" onclick="closeModal('modal-refund')">✕</button>
+    <div class="modal-title">Refund this payment?</div>
+    <div class="modal-sub">The money goes back to the driver's card in 5–10 business days.</div>
+    <div id="rf-info"></div>
+    <div class="rf-lbl">How much?</div>
+    <label class="rf-opt"><input type="radio" name="rf-amt" value="full" onchange="rfUpdate()" checked> <span id="rf-full-lbl">Full refund</span></label>
+    <label class="rf-opt"><input type="radio" name="rf-amt" value="part" onchange="rfUpdate()"> Part of it — $<input id="rf-part" type="number" min="0.01" step="0.01" placeholder="0.00" style="width:90px;padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:13px;" oninput="document.querySelector('input[name=rf-amt][value=part]').checked=true;rfUpdate()"></label>
+    <div id="rf-end-wrap">
+      <div class="rf-lbl">Also end their parking time?</div>
+      <label class="rf-opt"><input type="radio" name="rf-end" value="yes" checked> Yes, end it now (enforcement sees the car as not paid)</label>
+      <label class="rf-opt"><input type="radio" name="rf-end" value="no"> No, let it run out</label>
+    </div>
+    <div class="rf-lbl">Reason <span style="font-weight:400;color:var(--text3);">(optional, only managers see it)</span></div>
+    <input id="rf-reason" maxlength="200" placeholder="e.g. Paid twice by mistake" style="width:100%;margin-top:6px;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;">
+    <div id="rf-note" style="font-size:11.5px;color:var(--text2);background:#fff8e6;border-radius:8px;padding:9px 11px;margin-top:14px;line-height:1.5;"></div>
+    <div class="err-msg" id="rf-err"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-danger" id="rf-btn" style="flex:1;" onclick="doRefund()">Refund</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-refund')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-move-out">
   <div class="modal" style="width:480px;">
     <button class="modal-close" onclick="closeModal('modal-move-out')">✕</button>
@@ -2212,7 +2245,7 @@ async function loadRevenue(){
     const since=new Date(now.getFullYear(),now.getMonth()-11,1).toISOString();
     const [u,ss]=await Promise.all([
       sb.from('property_units').select('property_id,monthly_amount,spot_paid,paid_via,billing_type').in('property_id',propIds).eq('spot_paid',true),
-      sb.from('parking_sessions').select('property_id,amount_paid,started_at,status').in('property_id',propIds).gte('started_at',since),
+      sb.from('parking_sessions').select('*').in('property_id',propIds).gte('started_at',since),
     ]);
     (u.data||[]).forEach(x=>{
       const amt=Number(x.monthly_amount)||0;
@@ -2225,7 +2258,7 @@ async function loadRevenue(){
       if(!x.started_at||['pending','canceled','cancelled','failed'].includes(x.status)) return;
       const d=new Date(x.started_at),i=keys.indexOf(d.getFullYear()+'-'+d.getMonth());
       if(i<0) return;
-      revInfo.monthTotals[i]+=(Number(x.amount_paid)||0)/100;
+      revInfo.monthTotals[i]+=Math.max(0,(Number(x.amount_paid)||0)-(Number(x.refunded_cents)||0))/100;
     });
     revInfo.p2pMonth=revInfo.monthTotals[11];
   }
@@ -3930,38 +3963,107 @@ async function saveRates(){
   toast('✅ Rates saved!');
 }
 
+let _tsRows=[];
+const canRefund=()=>['owner','manager'].includes(myRole());
 async function loadTransientSessions(){
   const body=document.getElementById('transient-sessions-body');
   if(!body) return;
-  body.innerHTML='<tr><td colspan="8" class="loading">Loading sessions...</td></tr>';
+  body.innerHTML='<tr><td colspan="9" class="loading">Loading sessions...</td></tr>';
   const {data,error}=await sb.from('parking_sessions')
     .select('*')
     .eq('property_id',currentPropertyId)
     .order('created_at',{ascending:false})
     .limit(50);
+  _tsRows=data||[];
   if(error||!data||!data.length){
-    body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3);">No pay-to-park sessions yet.</td></tr>';
+    body.innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3);">No pay-to-park sessions yet.</td></tr>';
     return;
   }
   const now=new Date();
+  const dt=v=>new Date(v).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
   body.innerHTML=data.map(s=>{
     const expires=new Date(s.expires_at);
+    const paid=Number(s.amount_paid)||0,ref=Number(s.refunded_cents)||0;
     const isActive=s.status==='active'&&expires>now;
-    const statusPill=isActive
-      ?'<span class="pill pill-active">active</span>'
+    const statusPill=s.status==='refunded'?'<span class="pill pill-refunded">refunded</span>'
+      :isActive?'<span class="pill pill-active">active</span>'
       :s.status==='pending'?'<span class="pill pill-expired">pending</span>'
       :'<span class="pill pill-expired">expired</span>';
+    const paidCell=ref>=paid&&ref>0
+      ?`<span style="color:var(--text3);text-decoration:line-through;">$${(paid/100).toFixed(2)}</span>`
+      :ref>0?`<span style="font-weight:600;color:var(--green);">$${(paid/100).toFixed(2)}</span><div style="font-size:10.5px;color:#a16207;">−$${(ref/100).toFixed(2)} refunded</div>`
+      :`<span style="font-weight:600;color:var(--green);">$${(paid/100).toFixed(2)}</span>`;
+    const by=ref>0?`<div style="font-size:10.5px;color:var(--text3);margin-top:3px;" title="${escHtml(s.refund_reason||'')}">by ${escHtml((s.refunded_by_name||'manager').split(' ')[0])} · ${new Date(s.refunded_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>`:'';
+    const canDo=canRefund()&&s.stripe_session_id&&s.status!=='pending'&&ref<paid&&paid>0;
+    const action=(canDo?`<button class="btn btn-ghost btn-sm" onclick="openRefund('${s.id}')">↩ Refund</button>`:'')+by;
     return`<tr>
       <td><strong style="font-family:'JetBrains Mono',monospace;font-size:12px;">${escHtml(s.plate)}</strong></td>
       <td style="font-size:12px;font-weight:700;">${escHtml(s.stall||'—')}</td>
       <td style="font-size:12px;color:var(--text2);">${escHtml(s.vehicle_desc||'—')}</td>
       <td style="font-size:12px;">${formatMins(s.duration_minutes)}</td>
-      <td style="font-size:12px;font-weight:600;color:var(--green);">$${(s.amount_paid/100).toFixed(2)}</td>
-      <td style="font-size:12px;color:var(--text3);">${new Date(s.started_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</td>
-      <td style="font-size:12px;color:var(--text3);">${expires.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</td>
+      <td style="font-size:12px;">${paidCell}</td>
+      <td style="font-size:12px;color:var(--text3);">${dt(s.started_at)}</td>
+      <td style="font-size:12px;color:var(--text3);">${dt(s.expires_at)}</td>
       <td>${statusPill}</td>
+      <td style="white-space:nowrap;">${action}</td>
     </tr>`;
   }).join('');
+}
+
+// ── Refund a Pay to Park payment (owners and managers) ──
+let _rf=null,_rfBusy=false;
+function openRefund(id){
+  const s=_tsRows.find(x=>x.id===id);if(!s) return;
+  _rf=s;
+  const paid=Number(s.amount_paid)||0,ref=Number(s.refunded_cents)||0,left=paid-ref;
+  const active=s.status==='active'&&new Date(s.expires_at)>new Date();
+  const m=c=>'$'+(c/100).toFixed(2);
+  document.getElementById('rf-info').innerHTML=
+    `<div class="rf-row"><span>Plate</span><b style="font-family:'JetBrains Mono',monospace;">${escHtml(s.plate)}</b></div>`+
+    `<div class="rf-row"><span>Paid</span><b>${m(paid)} · ${new Date(s.started_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</b></div>`+
+    (ref?`<div class="rf-row"><span>Already refunded</span><b>${m(ref)}</b></div>`:'')+
+    `<div class="rf-row"><span>Receipt sent to</span><b>${s.email?escHtml(s.email):'no email given'}</b></div>`;
+  document.getElementById('rf-full-lbl').textContent=(ref?'The rest — ':'Full refund — ')+m(left);
+  document.querySelector('input[name="rf-amt"][value="full"]').checked=true;
+  document.getElementById('rf-part').value='';
+  document.getElementById('rf-end-wrap').style.display=active?'':'none';
+  document.querySelector('input[name="rf-end"][value="yes"]').checked=true;
+  document.getElementById('rf-reason').value='';
+  document.getElementById('rf-err').classList.remove('show');
+  rfUpdate();
+  openModal('modal-refund');
+}
+function rfUpdate(){
+  if(!_rf) return;
+  const left=(Number(_rf.amount_paid)||0)-(Number(_rf.refunded_cents)||0);
+  const part=document.querySelector('input[name="rf-amt"]:checked').value==='part';
+  const c=part?Math.round(parseFloat(document.getElementById('rf-part').value)*100):left;
+  const btn=document.getElementById('rf-btn');
+  btn.textContent=c>0?'Refund $'+(c/100).toFixed(2):'Refund';
+  btn.disabled=_rfBusy||!(c>0)||c>left;
+  document.getElementById('rf-note').textContent=_rf.stripe_account_id
+    ?'The refund comes out of this property\'s Stripe balance. Stripe keeps its processing fee; LotHQ gives back its share.'
+    :'This payment went to LotHQ (no payout account was set up), so LotHQ pays the refund. Stripe keeps its processing fee.';
+}
+async function doRefund(){
+  if(!_rf||_rfBusy) return;
+  const err=document.getElementById('rf-err'),btn=document.getElementById('rf-btn');
+  const part=document.querySelector('input[name="rf-amt"]:checked').value==='part';
+  const payload={sessionId:_rf.id,endNow:document.getElementById('rf-end-wrap').style.display!=='none'&&document.querySelector('input[name="rf-end"]:checked').value==='yes',
+    reason:document.getElementById('rf-reason').value};
+  if(part) payload.amountCents=Math.round(parseFloat(document.getElementById('rf-part').value)*100);
+  _rfBusy=true;btn.disabled=true;btn.textContent='Refunding…';err.classList.remove('show');
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    const res=await fetch('/.netlify/functions/refund-session',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},body:JSON.stringify(payload)});
+    const b=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(b.error||'The refund didn\'t go through. Please try again.');
+    closeModal('modal-refund');
+    toast('✅ Refunded $'+(b.refundedCents/100).toFixed(2)+' to '+_rf.plate+(b.emailed?' · email sent to driver':''));
+    loadTransientSessions();loadRevenue&&loadRevenue();
+  }catch(e){err.textContent=e.message;err.classList.add('show');}
+  finally{_rfBusy=false;rfUpdate();}
 }
 
 function formatMins(min){
