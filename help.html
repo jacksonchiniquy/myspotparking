@@ -126,6 +126,7 @@ mark{background:#FFF1B8;color:inherit;border-radius:3px;}
     <a class="nav-link" href="get-started.html">Contact</a>
   </div>
   <div class="nav-right">
+    <div data-lang-menu></div>
     <div class="nav-login">
       <button class="nav-signin nav-login-btn" type="button" aria-haspopup="true" aria-expanded="false">Login <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
       <div class="nav-login-menu" role="menu">
@@ -154,7 +155,7 @@ mark{background:#FFF1B8;color:inherit;border-radius:3px;}
 <p class="h-empty" id="h-empty">No answers match that. Try fewer words, or contact us below.</p>
 <div class="h-contact">
   <div class="h-card"><h4>Residents and visitors</h4><p>Questions about your spot, a permit, a tow or a refund? Contact your property manager. They can see your account and fix it fastest.</p></div>
-  <div class="h-card"><h4>Managers and enforcement</h4><p>Email <a href="mailto:support@myspotparking.com">support@myspotparking.com</a>. We answer on business days.</p></div>
+  <div class="h-card"><h4>Managers and enforcement</h4><p>Email <a href="mailto:support@myspotparking.com" translate="no">support@myspotparking.com</a>. We answer on business days.</p></div>
 </div>
 </main>
 
@@ -210,6 +211,8 @@ const tabs=[...document.querySelectorAll('.h-tab')];
 const qs=[...document.querySelectorAll('.h-main details')];
 qs.forEach(d=>{d.dataset.q=d.querySelector('summary span').textContent;d.dataset.a=d.querySelector('p').textContent;});
 let current='';
+const tx=s=>window.LotHQLang?LotHQLang.t(s):s;
+window.addEventListener('load',()=>{if(window.LotHQLang) LotHQLang.onChange(filter);});
 function pick(k){
   current=(current===k)?'':k;
   tabs.forEach(t=>t.classList.toggle('on',t.dataset.aud===current));
@@ -228,10 +231,11 @@ function filter(){
     a.querySelectorAll('.h-sec').forEach(sec=>{
       let secAny=false;
       sec.querySelectorAll('details').forEach(d=>{
-        const ok=audOk&&(!t||(d.dataset.q+' '+d.dataset.a).toLowerCase().includes(t));
+        const q=tx(d.dataset.q),a=tx(d.dataset.a); // shown in the reader's language
+        const ok=audOk&&(!t||(q+' '+a+' '+d.dataset.q+' '+d.dataset.a).toLowerCase().includes(t));
         d.style.display=ok?'':'none';
-        d.querySelector('summary span').innerHTML=hl(d.dataset.q,term);
-        d.querySelector('p').innerHTML=hl(d.dataset.a,term);
+        d.querySelector('summary span').innerHTML=hl(q,term);
+        d.querySelector('p').innerHTML=hl(a,term);
         if(ok&&t) d.open=true; if(!t&&ok&&!d.dataset.user) d.open=false;
         if(ok){secAny=true;shown++;}
       });
@@ -247,5 +251,6 @@ const start=location.hash.replace('#','');
 if(auds.some(a=>a.id===start)){current=start;tabs.forEach(t=>t.classList.toggle('on',t.dataset.aud===current));filter();}
 </script>
 
+<script src="/lang.js"></script>
 </body>
 </html>
