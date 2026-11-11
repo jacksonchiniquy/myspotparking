@@ -115,6 +115,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 .rf-opt{display:flex;align-items:center;gap:9px;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;margin-top:7px;font-size:13px;cursor:pointer;}
 .rf-opt:has(input:checked){border-color:var(--blue);background:var(--bluelight);}
 .rf-lbl{font-size:12px;font-weight:600;color:var(--text2);margin:14px 0 2px;}
+.renew-pick.on{border-color:var(--blue);color:var(--blue);background:var(--bluelight,#eef4ff);}
 .pill-revoked{background:rgba(148,163,184,.1);color:#64748b;border:1px solid rgba(148,163,184,.2);}
 .pill-revoked::before{background:#94a3b8;}
 .tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);}
@@ -1361,6 +1362,29 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
   </div>
 </div>
 
+<!-- Renew Permit Modal -->
+<div class="modal-overlay" id="modal-renew-permit">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-renew-permit')">✕</button>
+    <div class="modal-title">Renew permit</div>
+    <div class="modal-sub" id="renew-sub"></div>
+    <input type="hidden" id="renew-permit-id">
+    <div style="font-size:13px;color:var(--text2);margin-bottom:14px;" id="renew-now"></div>
+    <div class="form-group"><label class="form-label">New end date</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        <button type="button" class="btn btn-ghost btn-sm renew-pick" onclick="renewPick(this,{days:30})">+30 days</button>
+        <button type="button" class="btn btn-ghost btn-sm renew-pick" onclick="renewPick(this,{months:6})">+6 months</button>
+        <button type="button" class="btn btn-ghost btn-sm renew-pick" onclick="renewPick(this,{months:12})">+1 year</button>
+      </div>
+      <input class="form-input" id="renew-end" type="date" oninput="document.querySelectorAll('#modal-renew-permit .renew-pick').forEach(b=>b.classList.remove('on'))">
+    </div>
+    <div id="renew-card" style="display:none;font-size:12px;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;margin-bottom:12px;">This permit was paid by card. Renewing here doesn't charge them.</div>
+    <div class="err-msg" id="renew-err"></div>
+    <button class="btn btn-primary btn-full" id="renew-btn" onclick="doRenewPermit()">Renew</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="closeModal('modal-renew-permit')">Cancel</button>
+  </div>
+</div>
+
 <!-- Assign Permit Modal -->
 <div class="modal-overlay" id="modal-assign-permit">
   <div class="modal">
@@ -2327,7 +2351,7 @@ async function loadPermits(){
   allPermits=data||[];
   renderPermitTables(allPermits);
   renderRecent();
-  const active=allPermits.filter(p=>p.status==='active').length;
+  const active=allPermits.filter(permitLive).length;
   document.getElementById('s-active').textContent=active;
 }
 
@@ -2414,7 +2438,7 @@ function renderPropGrid(){
   if(!allProperties.length){grid.innerHTML=`<div style="text-align:center;padding:60px;color:var(--text3);">No properties yet. ${canAddProps?'Add your first property.':'Click <b>Request a property</b> and LotHQ will set it up for you.'}</div>`;return;}
   grid.innerHTML=allProperties.map(p=>{
     const propPermits=allPermits.filter(x=>x.property_id===p.id);
-    const activeCount=propPermits.filter(x=>x.status==='active').length;
+    const activeCount=propPermits.filter(permitLive).length;
     const occupancy=p.total_spots?Math.round(activeCount/p.total_spots*100):0;
     return `
     <div class="prop-card">
@@ -2447,6 +2471,19 @@ function renderPropGrid(){
   }).join('');
 }
 
+// ── Permit dates: a permit past its end date is expired, even if nobody changed its status ──
+function localToday(){return new Date().toLocaleDateString('en-CA');}
+function permitPast(p){return p.status==='active'&&!!p.end_date&&String(p.end_date).slice(0,10)<localToday();}
+function permitLive(p){return p.status==='active'&&!permitPast(p);}
+function permitView(p){return (p.status==='expired'||permitPast(p))?'expired':p.status;}
+// Renew for expired (or soon-ending) permits; Reactivate for ones a manager turned off that are still in date
+function permitFixBtn(p,cls){
+  const v=permitView(p);
+  if(v==='revoked'&&!(p.end_date&&String(p.end_date).slice(0,10)<localToday()))
+    return `<button class="btn ${cls||'btn-ghost'} btn-sm" style="${cls?'':'color:var(--green);'}" onclick="reinstatePermit('${p.id}')">Reactivate</button>`;
+  return `<button class="btn ${cls||'btn-ghost'} btn-sm" style="${cls?'':'color:var(--green);'}" onclick="openRenewPermit('${p.id}')">Renew</button>`;
+}
+
 function renderPermitTables(data){
   const holderCell=(p)=>{
     if(p.source==='self-managed'){
@@ -2461,14 +2498,15 @@ function renderPermitTables(data){
   };
   const row=(p,cols)=>{
     const base=`<td><strong style="font-family:'JetBrains Mono',monospace">${p.plate}</strong></td><td>${holderCell(p)}</td><td style="font-size:12px">${propName(p.property_id)}</td>`;
-    if(cols==='all') return `<tr>${base}<td style="font-size:12px">${p.permit_type||'—'}</td><td style="font-size:12px;color:var(--text3)">${p.end_date||'—'}</td><td><span class="pill pill-${p.status}">${p.status}</span></td><td><div class="tbl-actions">${p.status==='active'?`<button class="btn btn-ghost btn-sm" style="color:var(--amber);" onclick="revokePermit('${p.id}')">Deactivate</button>`:`<button class="btn btn-ghost btn-sm" style="color:var(--green);" onclick="reinstatePermit('${p.id}')">Reactivate</button>`}</div></td></tr>`;
-    if(cols==='active') return `<tr>${base}<td style="font-size:12px">${p.permit_type||'—'}</td><td style="font-size:12px;color:var(--text3)">${p.end_date||'—'}</td><td><div class="tbl-actions"><button class="btn btn-ghost btn-sm" onclick="openAssignModal('${p.id}','${p.plate}')">Assign</button><button class="btn btn-ghost btn-sm" style="color:var(--amber);" onclick="revokePermit('${p.id}')">Deactivate</button></div></td></tr>`;
-    if(cols==='expired') return `<tr>${base}<td style="font-size:12px;color:var(--red)">${p.end_date||'—'}</td><td><button class="btn btn-primary btn-sm">Renew</button></td></tr>`;
+    const v=permitView(p);
+    if(cols==='all') return `<tr>${base}<td style="font-size:12px">${p.permit_type||'—'}</td><td style="font-size:12px;color:var(--text3)">${p.end_date||'—'}</td><td><span class="pill pill-${v}">${v}</span></td><td><div class="tbl-actions">${v==='active'?`<button class="btn btn-ghost btn-sm" onclick="openRenewPermit('${p.id}')">Renew</button><button class="btn btn-ghost btn-sm" style="color:var(--amber);" onclick="revokePermit('${p.id}')">Deactivate</button>`:permitFixBtn(p)}</div></td></tr>`;
+    if(cols==='active') return `<tr>${base}<td style="font-size:12px">${p.permit_type||'—'}</td><td style="font-size:12px;color:var(--text3)">${p.end_date||'—'}</td><td><div class="tbl-actions"><button class="btn btn-ghost btn-sm" onclick="openAssignModal('${p.id}','${p.plate}')">Assign</button><button class="btn btn-ghost btn-sm" onclick="openRenewPermit('${p.id}')">Renew</button><button class="btn btn-ghost btn-sm" style="color:var(--amber);" onclick="revokePermit('${p.id}')">Deactivate</button></div></td></tr>`;
+    if(cols==='expired') return `<tr>${base}<td style="font-size:12px;color:var(--red)">${p.end_date||'—'}</td><td>${permitFixBtn(p,'btn-primary')}</td></tr>`;
   };
   const empty=(n,m)=>`<tr><td colspan="${n}" style="text-align:center;padding:40px;color:var(--text3)">${m}</td></tr>`;
   document.getElementById('body-all').innerHTML=data.map(p=>row(p,'all')).join('')||empty(7,'No permits found');
-  document.getElementById('body-active').innerHTML=data.filter(p=>p.status==='active').map(p=>row(p,'active')).join('')||empty(6,'No active permits');
-  document.getElementById('body-expired').innerHTML=data.filter(p=>p.status==='expired'||p.status==='revoked').map(p=>row(p,'expired')).join('')||empty(5,'No expired or revoked permits');
+  document.getElementById('body-active').innerHTML=data.filter(permitLive).map(p=>row(p,'active')).join('')||empty(6,'No active permits');
+  document.getElementById('body-expired').innerHTML=data.filter(p=>permitView(p)==='expired'||p.status==='revoked').map(p=>row(p,'expired')).join('')||empty(5,'No expired or revoked permits');
 }
 
 let residentTab='active';
@@ -3303,6 +3341,45 @@ async function reinstatePermit(id){
   toast('✅ Permit reactivated');
 }
 
+// ── Renew a permit: pick a new end date ──
+function renewAddDate(base,{days=0,months=0}){const d=new Date(base+'T12:00:00');if(months)d.setMonth(d.getMonth()+months);if(days)d.setDate(d.getDate()+days);return d.toLocaleDateString('en-CA');}
+function renewBase(p){const t=localToday();const e=p&&p.end_date?String(p.end_date).slice(0,10):'';return e&&e>t?e:t;}
+function openRenewPermit(id){
+  const p=allPermits.find(x=>x.id===id);if(!p) return;
+  document.getElementById('renew-permit-id').value=id;
+  const who=(()=>{if(p.holder_id){const r=allResidents.find(r=>r.id===p.holder_id);if(r)return r.full_name||r.email;}return p.holder_name||p.holder_email||'';})();
+  document.getElementById('renew-sub').textContent=[p.plate||'No plate',propName(p.property_id),p.unit_number?('Unit '+p.unit_number):'',who].filter(Boolean).join(' · ');
+  const e=p.end_date?String(p.end_date).slice(0,10):'';
+  document.getElementById('renew-now').innerHTML=e?(e<localToday()?`Expired on <b>${e}</b>. The new dates start today.`:`Ends on <b>${e}</b>. The new date adds on from there.`):'This permit has no end date.';
+  document.getElementById('renew-card').style.display=(p.stripe_subscription_id||p.billing_status)?'':'none';
+  document.getElementById('renew-err').classList.remove('show');
+  document.querySelectorAll('#modal-renew-permit .renew-pick').forEach(b=>b.classList.remove('on'));
+  renewPick(document.querySelector('#modal-renew-permit .renew-pick'),{days:30});
+  openModal('modal-renew-permit');
+}
+function renewPick(btn,step){
+  const p=allPermits.find(x=>x.id===document.getElementById('renew-permit-id').value);
+  document.getElementById('renew-end').value=renewAddDate(renewBase(p),step);
+  document.querySelectorAll('#modal-renew-permit .renew-pick').forEach(b=>b.classList.toggle('on',b===btn));
+}
+async function doRenewPermit(){
+  const id=document.getElementById('renew-permit-id').value;
+  const p=allPermits.find(x=>x.id===id);if(!p) return;
+  const end=document.getElementById('renew-end').value;
+  const err=document.getElementById('renew-err');
+  if(!end||end<localToday()){err.textContent='Pick an end date in the future.';err.classList.add('show');return;}
+  const btn=document.getElementById('renew-btn');btn.disabled=true;btn.textContent='Renewing…';
+  const upd={status:'active',end_date:end};
+  if(permitView(p)!=='active') upd.start_date=localToday();
+  const {error}=await sb.from('permits').update(upd).eq('id',id);
+  btn.disabled=false;btn.textContent='Renew';
+  if(error){err.textContent='Could not renew: '+error.message;err.classList.add('show');return;}
+  closeModal('modal-renew-permit');
+  await loadPermits();
+  if(currentPropertyId) renderPropertyDetail(currentPropertyId);
+  toast(`✅ Permit renewed through ${end}`);
+}
+
 function openAssignModal(permitId,plate){
   document.getElementById('assign-permit-id').value=permitId;
   document.getElementById('assign-modal-sub').textContent=`Assign permit for plate ${plate} to a resident's account`;
@@ -3423,8 +3500,8 @@ function initCharts(){
   const grad=rCtx.createLinearGradient(0,0,0,220);
   grad.addColorStop(0,'rgba(26,111,255,0.18)');grad.addColorStop(1,'rgba(26,111,255,0.01)');
   new Chart(rCtx,{type:'line',data:{labels:months,datasets:[{label:'Revenue',data:revData,borderColor:'#1a6fff',backgroundColor:grad,borderWidth:2.5,pointBackgroundColor:'#1a6fff',pointRadius:3,fill:true,tension:0.45}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},border:{display:false}},y:{grid:{color:'rgba(15,23,42,0.05)'},border:{display:false},ticks:{callback:v=>'$'+v}}}}});
-  const active=allPermits.filter(p=>p.status==='active').length;
-  const expired=allPermits.filter(p=>p.status==='expired').length;
+  const active=allPermits.filter(permitLive).length;
+  const expired=allPermits.filter(p=>permitView(p)==='expired').length;
   const revoked=allPermits.filter(p=>p.status==='revoked').length;
   const dCtx=document.getElementById('chart-donut').getContext('2d');
   const donutTotal=active+expired+revoked;
@@ -3534,8 +3611,8 @@ function renderPropertyDetail(propId){
   if(!p) return;
   const propPermits=allPermits.filter(x=>x.property_id===propId);
   const propViolations=allViolations.filter(x=>x.property_id===propId);
-  const active=propPermits.filter(x=>x.status==='active');
-  const expired=propPermits.filter(x=>x.status==='expired'||x.status==='revoked');
+  const active=propPermits.filter(permitLive);
+  const expired=propPermits.filter(x=>permitView(x)==='expired'||x.status==='revoked');
   // Stats
   const occupancy=p.total_spots?Math.round(active.length/p.total_spots*100):0;
   const revenue=revInfo.byProp[propId]||0;
@@ -3557,11 +3634,11 @@ function renderPropertyDetail(propId){
     <td style="font-size:12px">${x.permit_type||'—'}</td>
     <td style="font-size:12px">${x.zone||'—'}</td>
     <td style="font-size:12px;color:var(--text3)">${x.end_date||'—'}</td>
-    <td><span class="pill pill-${x.status}">${x.status}</span></td>
+    <td><span class="pill pill-${permitView(x)}">${permitView(x)}</span></td>
     <td><div class="tbl-actions">
-      ${x.status==='active'
-        ?`<button class="btn btn-ghost btn-sm" onclick="openAssignModal('${x.id}','${x.plate}')">Assign</button><button class="btn btn-ghost btn-sm" style="color:var(--amber);" onclick="revokePermit('${x.id}')">Deactivate</button>`
-        :`<button class="btn btn-ghost btn-sm" style="color:var(--green);" onclick="reinstatePermit('${x.id}')">Reactivate</button>`}
+      ${permitLive(x)
+        ?`<button class="btn btn-ghost btn-sm" onclick="openAssignModal('${x.id}','${x.plate}')">Assign</button><button class="btn btn-ghost btn-sm" onclick="openRenewPermit('${x.id}')">Renew</button><button class="btn btn-ghost btn-sm" style="color:var(--amber);" onclick="revokePermit('${x.id}')">Deactivate</button>`
+        :permitFixBtn(x)}
     </div></td>
   </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">No permits for this property yet.</td></tr>';
 
@@ -3582,9 +3659,9 @@ function renderPropertyDetail(propId){
     <td><strong style="font-family:'JetBrains Mono',monospace">${x.plate}</strong></td>
     <td>${holderName(x)}</td>
     <td style="font-size:12px">${x.vehicle||'—'}</td>
-    <td><span class="pill pill-${x.status}">${x.status}</span></td>
+    <td><span class="pill pill-${permitView(x)}">${permitView(x)}</span></td>
     <td style="font-size:12px;color:var(--text3)">${x.end_date||'—'}</td>
-    <td><button class="btn btn-primary btn-sm" onclick="reinstatePermit('${x.id}')">Reinstate</button></td>
+    <td>${permitFixBtn(x,'btn-primary')}</td>
   </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text3)">No expired or revoked permits.</td></tr>';
 
   document.getElementById('pd-body-all').innerHTML=allRow;
