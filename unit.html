@@ -200,6 +200,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 .modal .form-input{font-size:13px;padding:9px 12px;}
 
 @media(max-width:600px){.app-wrap{padding:20px 14px 60px;}.unit-header{padding:18px;}.slot-card{padding:16px;}.form-row{grid-template-columns:1fr;}}
+@media(max-width:600px){.topnav{padding:0 14px;}.tn-right{gap:6px;}.tn-right>*{white-space:nowrap;}.tn-logo-text>span>span,.tn-logo-text>span:last-child{display:none;}}
 </style>
 <script src="/lang.js"></script>
 </head>
@@ -212,6 +213,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <span class="tn-logo-text"><span style="color:#374269;font-weight:800;">Lot<b style="color:#2859a8;font-weight:inherit;">HQ</b></span> <span style="color:#2859a8;font-weight:600;font-size:.75em;letter-spacing:.1em;text-transform:uppercase;">Parking</span></span>
   </a>
   <div class="tn-right">
+    <div data-lang-menu></div>
     <span class="tn-badge" id="unit-badge" style="display:none;">Unit —</span>
     <button class="acct-btn" id="acct-btn" onclick="openModal('modal-account')">⚙ Account</button>
     <button class="btn-signout" id="signout-btn" onclick="signOut()">Sign Out</button>
