@@ -185,6 +185,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
       <div class="sidebar-item" onclick="setTab('violations',this)"><span class="sidebar-icon">🚨</span>Violations Log</div>
       <div class="sidebar-label">Reports</div>
       <div class="sidebar-item" onclick="setTab('summary',this)"><span class="sidebar-icon">📊</span>Patrol Summary</div>
+      <div class="sidebar-label">Help</div>
+      <div class="sidebar-item" onclick="setTab('training',this)"><span class="sidebar-icon">🎓</span>Training Videos</div>
       <div class="sidebar-label">Account</div>
       <div class="sidebar-item" onclick="setTab('account',this)"><span class="sidebar-icon">⚙️</span>Account</div>
     </aside>
@@ -193,6 +195,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
       <button class="mtab active" data-tab="console" onclick="setTab('console')"><span>🔍</span>Lookup</button>
       <button class="mtab" data-tab="violations" onclick="setTab('violations')"><span>🚨</span>Violations</button>
       <button class="mtab" data-tab="summary" onclick="setTab('summary')"><span>📊</span>Summary</button>
+      <button class="mtab" data-tab="training" onclick="setTab('training')"><span>🎓</span>Training</button>
       <button class="mtab" data-tab="account" onclick="setTab('account')"><span>⚙️</span>Account</button>
     </nav>
 
@@ -245,6 +248,13 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
           <div style="font-size:14px;font-weight:700;margin-bottom:16px;">Patrol History</div>
           <table class="tbl"><thead><tr><th>Plate</th><th>Result</th><th>Time</th></tr></thead><tbody id="summary-body"></tbody></table>
         </div>
+      </div>
+
+      <!-- TRAINING (videos are private: links come from LotHQ's server and expire) -->
+      <div id="tab-training" class="tab-panel">
+        <h2 style="font-size:20px;font-weight:800;letter-spacing:-.03em;margin-bottom:4px;">Training Videos</h2>
+        <p style="font-size:13px;color:var(--slate);margin-bottom:20px;">Short walkthroughs of the enforcement portal, with narration. Turn your sound on, or read the captions.</p>
+        <div id="training-list"><div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:30px;text-align:center;color:var(--slate);">Loading videos…</div></div>
       </div>
 
       <!-- ACCOUNT -->
@@ -627,7 +637,29 @@ function exportViolations(){
   toast('📁 Violations exported');
 }
 
-const tabNames=['console','violations','summary','account'];
+const tabNames=['console','violations','summary','training','account'];
+let trainingLoaded=0;
+async function loadTraining(force){
+  // Links last 2 hours; fetch fresh ones after 90 minutes
+  if(!force&&trainingLoaded&&Date.now()-trainingLoaded<90*60e3) return;
+  const box=document.getElementById('training-list');
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    const res=await fetch('/.netlify/functions/training-video',{method:'POST',headers:{Authorization:'Bearer '+(session&&session.access_token||'')}});
+    const d=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(d.error||'Could not load the videos.');
+    trainingLoaded=Date.now();
+    box.innerHTML=(d.videos||[]).map((v,i)=>`<div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
+        <div style="font-size:15px;font-weight:700;">${i+1}. ${esc(v.title)}</div><div style="font-size:12px;color:var(--slate);">About ${esc(v.mins)} min</div></div>
+      <div style="font-size:13px;color:var(--slate2);margin-bottom:12px;">${esc(v.about)}</div>
+      ${v.url?`<video controls preload="metadata" playsinline controlslist="nodownload" oncontextmenu="return false" src="${esc(v.url)}" style="width:100%;max-width:880px;border-radius:10px;background:#0b1220;aspect-ratio:16/9;display:block;"></video>`
+        :`<div style="font-size:13px;color:var(--slate);">This video isn't available yet.</div>`}
+    </div>`).join('')||'<div style="color:var(--slate);">No videos yet.</div>';
+  }catch(e){
+    box.innerHTML=`<div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:30px;text-align:center;color:var(--slate);">${esc(e.message)} <button class="btn btn-ghost btn-sm" onclick="loadTraining(true)">Try again</button></div>`;
+  }
+}
 function setTab(name,el){
   tabNames.forEach(t=>document.getElementById('tab-'+t)?.classList.remove('active'));
   document.getElementById('tab-'+name)?.classList.add('active');
@@ -637,6 +669,7 @@ function setTab(name,el){
   document.querySelectorAll('.mtab').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
   window.scrollTo(0,0);
   history.replaceState(null,'','#'+name);
+  if(name==='training') loadTraining();
 }
 
 function restoreFromHash(){
