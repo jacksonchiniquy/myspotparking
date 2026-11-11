@@ -38,6 +38,10 @@ status = 200
 [functions."guest-reminders"]
 schedule = "*/15 * * * *"
 
+# Monthly list of permits ending next month, emailed to managers (20th, 8am Mountain)
+[functions."renewal-report"]
+schedule = "0 15 20 * *"
+
 # Guest uses a guest pass code
 [[redirects]]
 from = "/guest"
