@@ -309,7 +309,7 @@ async function propertyContact(propertyId) {
       const users = await sbSelect('users', `id=eq.${prop.manager_id}&select=email`);
       managerEmail = Array.isArray(users) ? users[0]?.email || null : null;
     }
-    return { name: prop?.name || null, manager_email: managerEmail };
+    return { name: prop?.name || null, manager_email: managerEmail, timezone: prop?.timezone || null };
   } catch (e) {
     console.error('propertyContact failed:', e.message);
     return { name: null, manager_email: null };
@@ -348,7 +348,7 @@ async function spotAddedEmails(meta, session) {
   const propertyName = property?.name || 'your property';
   const residentEmail = session.customer_details?.email || unitRow?.tenant_email;
   const residentName = session.customer_details?.name || unitRow?.tenant_name || 'Resident';
-  const date = new Date().toLocaleDateString('en-US', { timeZone: 'America/Denver', month: 'short', day: 'numeric', year: 'numeric' });
+  const date = new Date().toLocaleDateString('en-US', { timeZone: (property && property.timezone) || 'America/Denver', month: 'short', day: 'numeric', year: 'numeric' });
   const rows = [['Property', propertyName], ['Unit', meta.unit_number], ['Spot', spot], ['Price', price], ['Started', date]];
 
   if (residentEmail) {

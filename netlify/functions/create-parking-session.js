@@ -57,7 +57,7 @@ exports.handler = async (event) => {
     if (body.promo) {
       const P = require('./lib/promo');
       promo = await P.findPromo(property.id, body.promo);
-      const problem = await P.promoProblem(promo, rate, plate);
+      const problem = await P.promoProblem(promo, rate, plate, property.timezone || undefined);
       if (problem) return reply(400, { error: problem, promo: true });
       price = P.priceWith(promo, amount);
     }

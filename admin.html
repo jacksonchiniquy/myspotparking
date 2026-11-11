@@ -538,6 +538,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div><div class="form-label">Default monthly rate $</div><input class="form-input" id="pe-rate" type="number" min="0" step="0.01"></div>
       <div><div class="form-label">Type</div><select class="form-input" id="pe-type"><option value="linked">Linked portal (residents get accounts)</option><option value="self">Self-managed (no resident accounts)</option></select></div>
       <div><div class="form-label">Space word</div><input class="form-input" id="pe-word" maxlength="30" placeholder="Unit, Apartment, Lot…"></div>
+      <div><div class="form-label">Time zone</div><select class="form-input" id="pe-tz"><option value="America/New_York">Eastern</option><option value="America/Chicago">Central</option><option value="America/Denver">Mountain</option><option value="America/Phoenix">Arizona (no daylight saving)</option><option value="America/Los_Angeles">Pacific</option><option value="America/Anchorage">Alaska</option><option value="Pacific/Honolulu">Hawaii</option><option value="America/Puerto_Rico">Puerto Rico</option></select></div>
       <div style="grid-column:1/-1;" id="pe-feat-wrap"><div class="form-label">Features</div>
         <div id="pe-feats" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;"></div>
         <div style="font-size:11.5px;color:var(--text3);margin-top:5px;">Permits are always on. Turning a feature off hides it from the property's managers and turns it off for residents and drivers too. Nothing is deleted.</div></div>
@@ -2051,7 +2052,7 @@ function openPropEdit(id,prefill){
   document.getElementById('pe-sub').textContent=id?'Changes show up for the property\'s managers right away.':'The main manager can set rates, the lot map and units from their portal afterward.';
   document.getElementById('pe-err').style.display='none';
   const v=(f,x)=>document.getElementById(f).value=x??'';
-  v('pe-name',p.name);v('pe-addr',p.address);v('pe-spots',p.total_spots);v('pe-units',p.units);v('pe-zones',p.zones);v('pe-rate',p.monthly_rate);v('pe-word',p.space_word);
+  v('pe-name',p.name);v('pe-addr',p.address);v('pe-spots',p.total_spots);v('pe-units',p.units);v('pe-zones',p.zones);v('pe-rate',p.monthly_rate);v('pe-word',p.space_word);document.getElementById('pe-tz').value=p.timezone||'America/Denver';
   document.getElementById('pe-type').value=p.property_type==='self'?'self':'linked';
   const mgrs=[...allManagers].sort((a,b)=>String(a.full_name||a.email).localeCompare(String(b.full_name||b.email)));
   document.getElementById('pe-mgr').innerHTML=(id?'':'<option value="">Choose a manager…</option>')+mgrs.map(m=>`<option value="${m.id}" ${m.id===p.manager_id?'selected':''}>${escA(m.full_name||m.email)} · ${escA(m.email||'')}</option>`).join('');
@@ -2072,7 +2073,7 @@ async function savePropEdit(){
   const p=_peId?allProperties.find(x=>x.id===_peId):null;
   if(p&&mgr!==p.manager_id&&!confirm(`Make ${mgrName(mgr)} the main manager of ${p.name}? ${mgrName(p.manager_id)} stays on its team as Manager.`)) return;
   const b=document.getElementById('pe-btn');b.disabled=true;b.textContent='Saving…';
-  const fields={name:v('pe-name'),address:v('pe-addr'),totalSpots:v('pe-spots'),units:v('pe-units'),zones:v('pe-zones'),monthlyRate:v('pe-rate'),propertyType:document.getElementById('pe-type').value,spaceWord:v('pe-word')};
+  const fields={name:v('pe-name'),address:v('pe-addr'),totalSpots:v('pe-spots'),units:v('pe-units'),zones:v('pe-zones'),monthlyRate:v('pe-rate'),propertyType:document.getElementById('pe-type').value,spaceWord:v('pe-word'),timezone:document.getElementById('pe-tz').value};
   if(document.getElementById('pe-feat-wrap').style.display!=='none'){fields.features={};document.querySelectorAll('#pe-feats input[data-feat]').forEach(c=>fields.features[c.dataset.feat]=c.checked);}
   _acId=_peId;
   const r=await teamCall(_peId?{action:'updateProperty',propertyId:_peId,managerId:mgr,...fields}:{action:'createProperty',userId:mgr,...fields});

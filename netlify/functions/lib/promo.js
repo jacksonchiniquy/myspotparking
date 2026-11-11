@@ -27,24 +27,24 @@ function priceWith(promo, amount) {
   return p < 50 ? 0 : p;
 }
 
-// Start of today in Denver, as an ISO time
-function todayStart() {
+// Start of today in the property's time zone, as an ISO time
+function todayStart(tz = TZ) {
   const now = new Date();
-  const local = new Date(now.toLocaleString('en-US', { timeZone: TZ }));
+  const local = new Date(now.toLocaleString('en-US', { timeZone: tz }));
   const offset = now - local;
   local.setHours(0, 0, 0, 0);
   return new Date(local.getTime() + offset).toISOString();
 }
 
 // '' if the code can be used for this rate and plate, otherwise why not
-async function promoProblem(promo, rate, plate) {
+async function promoProblem(promo, rate, plate, tz = TZ) {
   if (!promo || !promo.active) return 'That code isn\'t valid here.';
   if (promo.ends_at && new Date(promo.ends_at) <= new Date()) return 'That code has ended.';
   if (promo.max_uses != null && promo.uses >= promo.max_uses) return 'That code has been used up.';
   if (rate && Array.isArray(promo.rate_ids) && promo.rate_ids.length && !promo.rate_ids.includes(String(rate.id || rate.name)))
     return `That code doesn't work on ${rate.name || 'this option'}.`;
   if (promo.once_per_day && plate) {
-    const used = await sb('GET', `parking_sessions?property_id=eq.${promo.property_id}&promo_code=eq.${encodeURIComponent(promo.code)}&plate=eq.${encodeURIComponent(plate)}&status=in.(active,expired,refunded)&started_at=gte.${encodeURIComponent(todayStart())}&select=id&limit=1`);
+    const used = await sb('GET', `parking_sessions?property_id=eq.${promo.property_id}&promo_code=eq.${encodeURIComponent(promo.code)}&plate=eq.${encodeURIComponent(plate)}&status=in.(active,expired,refunded)&started_at=gte.${encodeURIComponent(todayStart(tz))}&select=id&limit=1`);
     if (used.length) return 'That code was already used for this plate today.';
   }
   return '';

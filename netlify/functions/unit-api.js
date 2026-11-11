@@ -612,7 +612,7 @@ const actions = {
     if (!g.enabled) return { enabled: false };
     return {
       enabled: true, word: g.word, propertyName: g.property.name, extrasEnabled: !!g.rules.extras_enabled,
-      types: g.types.map(t => typeSummary(t, g.passes)),
+      types: g.types.map(t => typeSummary(t, g.passes, g.tz)),
       recent: g.passes.slice(0, 15).map(p => passView(p, g)),
     };
   },
@@ -623,7 +623,7 @@ const actions = {
     const type = g.types.find(t => t.id === typeId);
     if (!type) throw new UserError('That pass type is no longer offered. Refresh and try again.');
     if (type.needs_approval || type.length_kind === 'dates') throw new UserError('This pass needs manager approval. Use "Request an extended stay".');
-    const sum = typeSummary(type, g.passes);
+    const sum = typeSummary(type, g.passes, g.tz);
     if (sum.left !== null && sum.left <= 0) throw new UserError(`No ${type.name} left right now. Yours refill ${sum.refills}.`);
     const now = new Date();
     const tenant = (u.slots || []).find(x => x.tenant_name || x.tenant_email) || {};
@@ -635,7 +635,7 @@ const actions = {
     const p = GP.normPlate(plate);
     if (p) {
       await checkPlateLimit(g, p, now);
-      const w = GP.passWindow(type, now);
+      const w = GP.passWindow(type, now, g.tz);
       Object.assign(row, { status: 'active', guest_plate: p, guest_state: cleanState(state), guest_vehicle: cleanText(vehicle, 60),
         starts_at: w.starts.toISOString(), ends_at: w.ends.toISOString(), activated_at: now.toISOString() });
     } else {
@@ -678,22 +678,22 @@ const cleanState = s => (typeof s === 'string' ? s.toUpperCase().replace(/[^A-Z]
 const cleanText = (s, n) => (typeof s === 'string' && s.trim() ? s.trim().slice(0, n) : null);
 async function guestContext(u) {
   let property;
-  try { [property] = await sb('GET', `properties?id=eq.${q(u.propertyId)}&select=name,space_word,guest_passes_enabled,guest_rules`); }
+  try { [property] = await sb('GET', `properties?id=eq.${q(u.propertyId)}&select=*`); }
   catch (e) { return { enabled: false }; }  // database not updated for guest passes yet
   if (!property || !property.guest_passes_enabled) return { enabled: false };
   const types = await sb('GET', `guest_pass_types?property_id=eq.${q(u.propertyId)}&active=eq.true&select=*&order=sort`);
   const since = new Date(Date.now() - 400 * 864e5).toISOString();
   const passes = await sb('GET', `guest_passes?property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}&created_at=gte.${since}&select=*&order=created_at.desc&limit=500`);
-  return { enabled: true, property, types, passes, rules: property.guest_rules || {}, word: (property.space_word || 'Unit').trim() || 'Unit', propertyId: u.propertyId };
+  return { enabled: true, property, types, passes, rules: property.guest_rules || {}, word: (property.space_word || 'Unit').trim() || 'Unit', propertyId: u.propertyId, tz: GP.tzOf(property) };
 }
-function typeSummary(t, passes) {
+function typeSummary(t, passes, tz) {
   const now = new Date();
   const base = { id: t.id, name: t.name, kind: t.length_kind, describe: GP.describeType(t), needsApproval: !!t.needs_approval,
     extraPrice: t.extra_price_cents ?? null };
   if (t.allowance === null || t.allowance === undefined) return { ...base, allowance: null, used: null, left: null, refills: null };
-  const period = GP.allowancePeriod(t.reset_period, now);
+  const period = GP.allowancePeriod(t.reset_period, now, tz);
   const used = passes.filter(p => p.pass_type_id === t.id && new Date(p.created_at) >= period.start && GP.countsAgainstAllowance(p, now)).length;
-  return { ...base, allowance: t.allowance, used, left: Math.max(0, t.allowance - used), refills: GP.fmtDay(period.next, LOC), reset: t.reset_period };
+  return { ...base, allowance: t.allowance, used, left: Math.max(0, t.allowance - used), refills: GP.fmtDay(period.next, LOC, tz), reset: t.reset_period };
 }
 function passView(p, g) {
   const now = new Date();
@@ -703,16 +703,16 @@ function passView(p, g) {
   if (p.status === 'active' && p.ends_at && new Date(p.ends_at) <= now) state = 'done';
   if (p.status === 'active' && p.starts_at && new Date(p.starts_at) > now) state = 'upcoming';
   return { id: p.id, type: type ? type.name : 'Guest pass', state, code: state === 'issued' ? p.code : null,
-    codeExpires: p.code_expires_at ? GP.fmtWhen(p.code_expires_at, LOC) : null,
+    codeExpires: p.code_expires_at ? GP.fmtWhen(p.code_expires_at, LOC, g.tz) : null,
     plate: p.guest_plate || null, guestName: p.guest_name || null,
-    starts: p.starts_at ? GP.fmtWhen(p.starts_at, LOC) : null, ends: p.ends_at ? GP.fmtWhen(p.ends_at, LOC) : null,
-    created: GP.fmtWhen(p.created_at, LOC) };
+    starts: p.starts_at ? GP.fmtWhen(p.starts_at, LOC, g.tz) : null, ends: p.ends_at ? GP.fmtWhen(p.ends_at, LOC, g.tz) : null,
+    created: GP.fmtWhen(p.created_at, LOC, g.tz) };
 }
 // Same plate can only get so many guest passes per month at a property
 async function checkPlateLimit(g, plate, now) {
   const limit = g.rules.plate_month_limit;
   if (limit === null || limit === undefined || limit === '') return;
-  const since = GP.monthStart(now).toISOString();
+  const since = GP.monthStart(now, g.tz).toISOString();
   const rows = await sb('GET', `guest_passes?property_id=eq.${q(g.propertyId)}&guest_plate=eq.${q(plate)}&activated_at=gte.${since}&status=in.(active,ended)&select=id`);
   if (rows.length >= Number(limit)) {
     await logActivity({ actorRole: 'system', portal: 'unit', action: 'guest.plate_limit', propertyId: g.propertyId, target: plate,

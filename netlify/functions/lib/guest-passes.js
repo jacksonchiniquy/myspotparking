@@ -4,23 +4,25 @@
 
 const crypto = require('crypto');
 
-const TZ = 'America/Denver';
+const TZ = 'America/Denver';   // used when a property has no time zone set
+// A property's time zone (properties.timezone), e.g. 'America/New_York'
+const tzOf = p => (p && typeof p.timezone === 'string' && p.timezone) || TZ;
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // no 0/O, 1/I
 const CODE_RE = /^G-?([A-Z2-9]{4})-?([A-Z2-9]{2})$/;
 
-// ── Time in Mountain Time ───────────────────────────────────
-function localParts(date) {
+// ── Time in the property's time zone ────────────────────────
+function localParts(date, tz = TZ) {
   const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
-    timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
   }).formatToParts(date).filter(x => x.type !== 'literal').map(x => [x.type, Number(x.value)]));
   if (p.hour === 24) p.hour = 0;
   return p;
 }
-// The moment that is y-m-d hh:mm in Mountain Time (handles daylight saving)
-function zoned(y, m, d, hh = 0, mm = 0) {
+// The moment that is y-m-d hh:mm in that time zone (handles daylight saving)
+function zoned(y, m, d, hh = 0, mm = 0, tz = TZ) {
   let guess = Date.UTC(y, m - 1, d, hh, mm);
   for (let i = 0; i < 3; i++) {
-    const p = localParts(new Date(guess));
+    const p = localParts(new Date(guess), tz);
     const asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
     const want = Date.UTC(y, m - 1, d, hh, mm);
     if (asUtc === want) break;
@@ -32,7 +34,7 @@ function addDays(y, m, d, n) { const t = new Date(Date.UTC(y, m - 1, d + n)); re
 const hm = t => { const [h, m] = String(t || '0:0').split(':').map(Number); return [h || 0, m || 0]; };
 
 // When a pass of this type is valid if it starts being used at `now`
-function passWindow(type, now = new Date()) {
+function passWindow(type, now = new Date(), tz = TZ) {
   if (type.length_kind === 'hours') {
     const hours = Math.max(1, Number(type.hours) || 12);
     return { starts: now, ends: new Date(now.getTime() + hours * 3600e3) };
@@ -40,11 +42,11 @@ function passWindow(type, now = new Date()) {
   if (type.length_kind === 'window') {
     const [sh, sm] = hm(type.window_start), [eh, em] = hm(type.window_end);
     const wraps = eh * 60 + em <= sh * 60 + sm;                 // e.g. 6 PM → 10 AM next day
-    const t = localParts(now);
+    const t = localParts(now, tz);
     const windowFor = (y, m, d) => {
-      const starts = zoned(y, m, d, sh, sm);
+      const starts = zoned(y, m, d, sh, sm, tz);
       const [ey, emo, ed] = wraps ? addDays(y, m, d, 1) : [y, m, d];
-      return { starts, ends: zoned(ey, emo, ed, eh, em) };
+      return { starts, ends: zoned(ey, emo, ed, eh, em, tz) };
     };
     const [py, pm, pd] = addDays(t.year, t.month, t.day, -1);
     const yesterday = windowFor(py, pm, pd), today = windowFor(t.year, t.month, t.day);
@@ -63,17 +65,17 @@ function passWindow(type, now = new Date()) {
 }
 
 // Start of the current allowance period and when it refills
-function allowancePeriod(reset, now = new Date()) {
-  const t = localParts(now);
+function allowancePeriod(reset, now = new Date(), tz = TZ) {
+  const t = localParts(now, tz);
   const months = { monthly: 1, quarterly: 3, semiannual: 6, yearly: 12 }[reset] || 12;
   const startMonth = Math.floor((t.month - 1) / months) * months + 1;
-  const start = zoned(t.year, startMonth, 1);
+  const start = zoned(t.year, startMonth, 1, 0, 0, tz);
   let ny = t.year, nm = startMonth + months;
   if (nm > 12) { nm -= 12; ny += 1; }
-  const next = zoned(ny, nm, 1);
+  const next = zoned(ny, nm, 1, 0, 0, tz);
   return { start, next };
 }
-function monthStart(now = new Date()) { const t = localParts(now); return zoned(t.year, t.month, 1); }
+function monthStart(now = new Date(), tz = TZ) { const t = localParts(now, tz); return zoned(t.year, t.month, 1, 0, 0, tz); }
 
 function describeType(type) {
   if (type.length_kind === 'hours') return `${type.hours} hour${Number(type.hours) === 1 ? '' : 's'}`;
@@ -81,8 +83,8 @@ function describeType(type) {
   return `Up to ${type.max_days} days`;
 }
 function fmtClock(t) { const [h, m] = hm(t); return `${(h % 12) || 12}${m ? ':' + String(m).padStart(2, '0') : ''} ${h < 12 ? 'AM' : 'PM'}`; }
-const fmtWhen = (d, locale = 'en-US') => new Date(d).toLocaleString(locale, { timeZone: TZ, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-const fmtDay = (d, locale = 'en-US') => new Date(d).toLocaleDateString(locale, { timeZone: TZ, month: 'short', day: 'numeric', year: 'numeric' });
+const fmtWhen = (d, locale = 'en-US', tz = TZ) => new Date(d).toLocaleString(locale, { timeZone: tz, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const fmtDay = (d, locale = 'en-US', tz = TZ) => new Date(d).toLocaleDateString(locale, { timeZone: tz, month: 'short', day: 'numeric', year: 'numeric' });
 
 function newCode() {
   const pick = n => Array.from(crypto.randomBytes(n), b => CODE_CHARS[b % CODE_CHARS.length]).join('');
@@ -106,12 +108,12 @@ function countsAgainstAllowance(g, now = new Date()) {
 }
 
 // The guest's "here's your pass" email
-function passEmail(g, { propertyName, unitLabel, typeName, logoHeader, lang }) {
+function passEmail(g, { propertyName, unitLabel, typeName, logoHeader, lang, tz }) {
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const I = require('./i18n'), t = (en, v) => I.t(lang, en, v), loc = I.locale(lang);
   const unit = String(unitLabel).replace(/^Unit (.+)$/, (m, n) => t('Unit {n}', { n }));
   const rows = [[t('Plate'), `${g.guest_state ? g.guest_state + ' · ' : ''}${g.guest_plate}`], [t('Vehicle'), g.guest_vehicle || '—'],
-    [t('Property'), propertyName], [t('Guest of'), unit], [t('Pass'), typeName], [t('Starts'), fmtWhen(g.starts_at, loc)], [t('Valid until'), fmtWhen(g.ends_at, loc)]];
+    [t('Property'), propertyName], [t('Guest of'), unit], [t('Pass'), typeName], [t('Starts'), fmtWhen(g.starts_at, loc, tz)], [t('Valid until'), fmtWhen(g.ends_at, loc, tz)]];
   const table = rows.map(([k, v]) => `<tr><td style="padding:6px 0;color:#64748b;font-size:13px;">${k}</td><td style="padding:6px 0;text-align:right;font-weight:700;font-size:14px;">${esc(v)}</td></tr>`).join('');
   return {
     subject: t('Your guest parking pass — {property}', { property: propertyName }),
@@ -128,6 +130,6 @@ function passEmail(g, { propertyName, unitLabel, typeName, logoHeader, lang }) {
 }
 
 module.exports = {
-  TZ, CODE_RE, passWindow, allowancePeriod, monthStart, describeType, fmtClock, fmtWhen, fmtDay,
+  TZ, tzOf, CODE_RE, passWindow, allowancePeriod, monthStart, describeType, fmtClock, fmtWhen, fmtDay,
   newCode, normalizeCode, normPlate, countsAgainstAllowance, passEmail, localParts, zoned,
 };

@@ -17,7 +17,7 @@ function reply(statusCode, body) {
 async function load(code) {
   const [g] = await sb('GET', `guest_passes?code=eq.${encodeURIComponent(code)}&select=*`);
   if (!g) return null;
-  const [property] = await sb('GET', `properties?id=eq.${g.property_id}&select=name,address,space_word,guest_passes_enabled,guest_rules`);
+  const [property] = await sb('GET', `properties?id=eq.${g.property_id}&select=*`);
   const [type] = g.pass_type_id ? await sb('GET', `guest_pass_types?id=eq.${g.pass_type_id}&select=*`) : [];
   const word = ((property && property.space_word) || 'Unit').trim() || 'Unit';
   return { g, property: property || {}, type: type || { name: 'Guest Pass', length_kind: 'hours', hours: 24 }, unitLabel: `${word} ${g.unit_number}` };
@@ -25,11 +25,12 @@ async function load(code) {
 
 function view(ctx, extra = {}) {
   const { g, property, type, unitLabel, loc } = ctx;
+  const tz = GP.tzOf(property);
   return {
     propertyName: property.name || '', propertyAddress: property.address || '', unitLabel, typeName: type.name,
     describe: GP.describeType(type), status: g.status,
     plate: g.guest_plate || null, state: g.guest_state || null, vehicle: g.guest_vehicle || null,
-    starts: g.starts_at ? GP.fmtWhen(g.starts_at, loc) : null, ends: g.ends_at ? GP.fmtWhen(g.ends_at, loc) : null,
+    starts: g.starts_at ? GP.fmtWhen(g.starts_at, loc, tz) : null, ends: g.ends_at ? GP.fmtWhen(g.ends_at, loc, tz) : null,
     startsLater: g.starts_at ? new Date(g.starts_at) > new Date() : false,
     emailed: !!g.guest_email, ...extra,
   };
@@ -48,13 +49,14 @@ exports.handler = async (event) => {
     const now = new Date();
     const I = require('./lib/i18n'), lang = I.pick(body.lang);
     ctx.loc = I.locale(lang);
+    const tz = GP.tzOf(property);
 
     // ── Email the pass ──
     if (body.email !== undefined) {
       const email = String(body.email || '').trim().toLowerCase();
       if (!EMAIL_RE.test(email)) return reply(400, { error: 'Enter a valid email address.' });
       if (g.status !== 'active') return reply(400, { error: 'Activate the pass first.' });
-      const msg = GP.passEmail(g, { propertyName: property.name || '', unitLabel: ctx.unitLabel, typeName: type.name, logoHeader, lang });
+      const msg = GP.passEmail(g, { propertyName: property.name || '', unitLabel: ctx.unitLabel, typeName: type.name, logoHeader, lang, tz });
       await sendRaw({ to: email, ...msg });
       await sb('PATCH', `guest_passes?id=eq.${g.id}`, { guest_email: email });
       // Remember their language for the reminder (after the languages database step)
@@ -69,9 +71,9 @@ exports.handler = async (event) => {
       if (g.status === 'expired' || (g.code_expires_at && new Date(g.code_expires_at) <= now))
         return reply(410, { error: 'This guest code has expired. Ask the resident for a new one.' });
       if (!property.guest_passes_enabled) return reply(410, { error: 'Guest passes are no longer offered at this property.' });
-      const w = GP.passWindow(type, now);
+      const w = GP.passWindow(type, now, tz);
       const terms = await require('./lib/terms').termsFor(g.property_id, 'guest');
-      return reply(200, view(ctx, { terms, preview: w ? { starts: GP.fmtWhen(w.starts, ctx.loc), ends: GP.fmtWhen(w.ends, ctx.loc), startsLater: w.starts > now } : null }));
+      return reply(200, view(ctx, { terms, preview: w ? { starts: GP.fmtWhen(w.starts, ctx.loc, tz), ends: GP.fmtWhen(w.ends, ctx.loc, tz), startsLater: w.starts > now } : null }));
     }
 
     // ── Activate ──
@@ -86,7 +88,7 @@ exports.handler = async (event) => {
 
     const limit = (property.guest_rules || {}).plate_month_limit;
     if (limit !== null && limit !== undefined && limit !== '') {
-      const since = GP.monthStart(now).toISOString();
+      const since = GP.monthStart(now, tz).toISOString();
       const rows = await sb('GET', `guest_passes?property_id=eq.${g.property_id}&guest_plate=eq.${plate}&activated_at=gte.${since}&status=in.(active,ended)&select=id`);
       if (rows.length >= Number(limit)) {
         await logActivity({ actorRole: 'guest', portal: 'guest', action: 'guest.plate_limit', propertyId: g.property_id, target: plate,
@@ -95,7 +97,7 @@ exports.handler = async (event) => {
       }
     }
 
-    const w = GP.passWindow(type, now) || { starts: now, ends: new Date(now.getTime() + 24 * 3600e3) };
+    const w = GP.passWindow(type, now, tz) || { starts: now, ends: new Date(now.getTime() + 24 * 3600e3) };
     const state = String(body.state || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2) || null;
     const vehicle = typeof body.vehicle === 'string' && body.vehicle.trim() ? body.vehicle.trim().slice(0, 60) : null;
     // Only succeeds if nobody used the code a moment ago

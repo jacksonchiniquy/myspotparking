@@ -250,6 +250,10 @@ function newToken() {
   return { token, token_hash: hash(token), expires_at: new Date(Date.now() + INVITE_DAYS * 864e5).toISOString() };
 }
 
+// US time zones a property can use
+const TZ_LIST = ['America/New_York', 'America/Chicago', 'America/Denver', 'America/Phoenix', 'America/Los_Angeles', 'America/Anchorage', 'Pacific/Honolulu', 'America/Puerto_Rico'];
+const TZ_OK = z => TZ_LIST.includes(z);
+
 const actions = {
   async mine(body, event) {
     const me = await signedIn(event);
@@ -425,7 +429,7 @@ const actions = {
   },
 
   // Admin: edit a property's details and, optionally, hand it to another main manager
-  async updateProperty({ propertyId, name, address, totalSpots, zones, units, monthlyRate, propertyType, spaceWord, managerId, features }, event) {
+  async updateProperty({ propertyId, name, address, totalSpots, zones, units, monthlyRate, propertyType, spaceWord, managerId, features, timezone }, event) {
     const me = await signedIn(event); requireAdmin(me);
     if (!UUID_RE.test(String(propertyId || ''))) throw new UserError('Property not found.', 404);
     const [property] = await sb('GET', `properties?id=eq.${propertyId}&select=*`);
@@ -441,6 +445,7 @@ const actions = {
     const word = String(spaceWord || '').trim().slice(0, 30);
     try { await sb('PATCH', `properties?id=eq.${property.id}`, word ? { ...fields, space_word: word } : fields); }
     catch (e) { if (word && /space_word|42703/.test(e.message)) await sb('PATCH', `properties?id=eq.${property.id}`, fields); else throw e; }
+    if (TZ_OK(timezone)) { try { await sb('PATCH', `properties?id=eq.${property.id}`, { timezone }); } catch { /* before the time zone step */ } }
     if (features) {
       const f = feats.clean(features);
       try {
@@ -461,7 +466,7 @@ const actions = {
   },
 
   // Admin: create a property with this manager as its main manager
-  async createProperty({ userId, name, address, totalSpots, zones, units, monthlyRate, propertyType, spaceWord, features }, event) {
+  async createProperty({ userId, name, address, totalSpots, zones, units, monthlyRate, propertyType, spaceWord, features, timezone }, event) {
     const me = await signedIn(event); requireAdmin(me);
     const u = await personRow(userId);
     if (u.role !== 'manager') throw new UserError('Only a manager login can run a property.');
@@ -480,6 +485,7 @@ const actions = {
     let created;
     try { [created] = await sb('POST', 'properties', { ...row, ...extra, ...(word ? { space_word: word } : {}) }); }
     catch (e) { if (/space_word|features|guest_passes_enabled|42703/.test(e.message)) [created] = await sb('POST', 'properties', row); else throw e; }
+    if (TZ_OK(timezone)) { try { await sb('PATCH', `properties?id=eq.${created.id}`, { timezone }); } catch { /* before the time zone step */ } }
     await logActivity({ ...(await actorOf(me)), action: 'property.created', propertyId: created.id, target: name,
       summary: `Created ${name} for ${nameOf(u)} (${u.email})` });
     try { await addedEmail(u, [created], 'owner', 'LotHQ'); } catch (e) { console.error('Added email failed:', e.message); }

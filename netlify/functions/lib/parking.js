@@ -72,7 +72,7 @@ async function activateSession(checkout) {
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = require('./i18n');
-const fmtTime = (iso, lang) => new Date(iso).toLocaleString(I.locale(lang), { timeZone: TZ, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+const fmtTime = (iso, lang, tz = TZ) => new Date(iso).toLocaleString(I.locale(lang), { timeZone: tz, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
 // "Full Day", "2 Hours", "30 Min" in the person's language
 function fmtDuration(m, lang) {
   if (m >= 480) return I.t(lang, 'Full Day');
@@ -92,13 +92,14 @@ async function insertSession(row) {
 async function sendReceipt(row, to) {
   const lang = I.pick(row.lang);
   const t = (en, v) => I.t(lang, en, v);
-  const [property] = await sb('GET', `properties?id=eq.${row.property_id}&select=name,address`);
+  const [property] = await sb('GET', `properties?id=eq.${row.property_id}&select=*`);
   const name = property?.name || 'Parking';
+  const tz = (property && property.timezone) || TZ;
   const amount = `$${(Number(row.amount_paid || 0) / 100).toFixed(2)}`;
   const rows = [
     [t('Plate'), row.plate], [t('Vehicle'), row.vehicle_desc || '—'], [t('Location'), name + (property?.address ? ` — ${property.address}` : '')],
-    [t('Duration'), fmtDuration(Number(row.duration_minutes) || 0, lang)], [t('Started'), fmtTime(row.started_at, lang)],
-    [t('Expires'), fmtTime(row.expires_at, lang)],
+    [t('Duration'), fmtDuration(Number(row.duration_minutes) || 0, lang)], [t('Started'), fmtTime(row.started_at, lang, tz)],
+    [t('Expires'), fmtTime(row.expires_at, lang, tz)],
     ...(row.promo_code ? [[t('Promo code'), row.original_cents ? t('{code} (was {amt})', { code: row.promo_code, amt: `$${(Number(row.original_cents) / 100).toFixed(2)}` }) : row.promo_code]] : []),
     [t('Amount Paid'), Number(row.amount_paid) > 0 ? amount : t('Free')],
   ];

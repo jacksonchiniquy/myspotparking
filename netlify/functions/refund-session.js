@@ -41,7 +41,7 @@ async function emailDriver(row, property, cents, ended) {
   const lang = I.pick(row.lang), t = (en, v) => I.t(lang, en, v);
   const name = property?.name || t('the property');
   const amt = money(cents);
-  const day = new Date(row.started_at).toLocaleString(I.locale(lang), { timeZone: TZ, month: 'short', day: 'numeric' });
+  const day = new Date(row.started_at).toLocaleString(I.locale(lang), { timeZone: (property && property.timezone) || TZ, month: 'short', day: 'numeric' });
   const said = t('{property} refunded {amt} for plate {plate} ({date}, {duration}).', { property: name, amt, plate: row.plate, date: day,
     duration: require('./lib/parking').fmtDuration(Number(row.duration_minutes) || 0, lang) });
   await sendRaw({

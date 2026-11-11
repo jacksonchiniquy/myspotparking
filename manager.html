@@ -1226,6 +1226,11 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
       <div class="form-group"><label class="form-label">Units / Tenants</label><input class="form-input" id="pp-units" type="number" placeholder="40"></div>
       <div class="form-group"><label class="form-label">Default Monthly Rate ($)</label><input class="form-input" id="pp-rate" type="number" placeholder="0" min="0" oninput="if(document.getElementById('pa-wrap').style.display!=='none')paPreview()"></div>
     </div>
+    <div class="form-group" id="tz-wrap" style="display:none;">
+      <label class="form-label" for="pp-tz">Time zone</label>
+      <select class="form-input" id="pp-tz"><option value="America/New_York">Eastern</option><option value="America/Chicago">Central</option><option value="America/Denver">Mountain</option><option value="America/Phoenix">Arizona (no daylight saving)</option><option value="America/Los_Angeles">Pacific</option><option value="America/Anchorage">Alaska</option><option value="Pacific/Honolulu">Hawaii</option><option value="America/Puerto_Rico">Puerto Rico</option></select>
+      <div style="font-size:11.5px;color:var(--text3);margin-top:4px;">Times on receipts, guest passes and permit dates follow this.</div>
+    </div>
     <div class="form-group" id="pa-wrap" style="display:none;">
       <label class="form-label">Pay-ahead options <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3);">what tenants can choose at sign-up</span></label>
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -3016,7 +3021,8 @@ async function addProperty(){
     monthly_rate:parseFloat(document.getElementById('pp-rate').value)||0,
     units:parseInt(document.getElementById('pp-units').value)||0,
     property_type:propertyType,
-    parking_rates
+    parking_rates,
+    ...tzRead()
   });
   btn.disabled=false;btn.textContent='Add Property';
   if(!error) setPpWord('Unit');
@@ -5640,6 +5646,7 @@ function openEditProperty(){
   document.getElementById('pp-rate').value=p.monthly_rate||'';
   document.getElementById('pp-units').value=p.units||'';
   paLoad(p);
+  tzLoad(p);
   setPropType(p.property_type||'linked');
   setPpWord(propWord(p));
   // Populate rate fields
@@ -5656,6 +5663,15 @@ function openEditProperty(){
   _ppEditing=true;
   openModal('modal-add-property');
 }
+
+// ── Property time zone ──
+const tzHas=()=>allProperties.some(p=>'timezone' in p);
+function tzLoad(p){
+  const w=document.getElementById('tz-wrap');if(!w) return;
+  w.style.display=tzHas()?'':'none';
+  document.getElementById('pp-tz').value=(p&&p.timezone)||'America/Denver';
+}
+function tzRead(){return tzHas()?{timezone:document.getElementById('pp-tz').value||'America/Denver'}:{};}
 
 // ── Pay-ahead options (quarterly / yearly savings) per property ──
 const PA_STD={monthly:{on:true,pct:0},quarterly:{on:true,pct:5},yearly:{on:true,pct:15}};
@@ -5736,7 +5752,8 @@ async function saveEditProperty(id){
     units:parseInt(document.getElementById('pp-units').value)||0,
     property_type:document.getElementById('pp-type').value||'linked',
     parking_rates,
-    ...paRead(id)
+    ...paRead(id),
+    ...tzRead()
   },id);
   btn.disabled=false;btn.textContent='Save Changes';
   btn.onclick=addProperty;
@@ -5804,6 +5821,7 @@ function setIT(name){
 let _ppEditing=false;
 function resetAddPropertyForm(){
   {const pw=document.getElementById('pa-wrap');if(pw) pw.style.display='none';_paHas=false;}
+  tzLoad(null);
   ['pp-name','pp-addr','pp-spots','pp-zones','pp-rate','pp-units'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['standard','reserved','handicap','ev','guest','moto','carport','garage','yard','storage','loading'].forEach(id=>{const el=document.getElementById('rate-'+id);if(el)el.value='';});
   if(typeof setPropType==='function') setPropType('linked');
