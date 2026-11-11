@@ -77,61 +77,71 @@ async function sendViaSES({ to, subject, html, text }) {
 const unitLoginUrl = (propertyId, unitNumber) => `${SITE}/unit.html` +
   (propertyId ? `?property=${encodeURIComponent(propertyId)}${unitNumber ? '&unit=' + encodeURIComponent(unitNumber) : ''}` : '');
 
-function welcomeEmail({ name, email, password, propertyName, unitNumber, plate, propertyId }) {
+// Emails residents read come in their language (lang = 'es', 'zh', … ; default English)
+const I18N = require('./lib/i18n');
+const tx = (lang, en, vars) => I18N.t(lang, en, vars);
+const unitL = (lang, u) => { const s = unitLabel(u); return s.startsWith('Unit ') ? tx(lang, 'Unit {n}', { n: s.slice(5) }) : s; };
+
+function welcomeEmail({ name, email, password, propertyName, unitNumber, plate, propertyId, lang }) {
   const loginUrl = unitLoginUrl(propertyId, unitNumber);
+  const t = (en, v) => tx(lang, en, v);
   return {
-    subject: `Your parking permit is active — ${propertyName}`,
+    subject: t('Your parking permit is active — {property}', { property: propertyName }),
     html: `
 <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
   ${logoHeader('#2859a8')}
-  <h2 style="margin:0 0 8px;font-family:Arial,sans-serif;color:#0f172a;">Welcome, ${name}!</h2>
-  <p style="color:#475569;margin:0 0 24px;">Your parking permit for <strong>${propertyName}</strong> — <strong>${unitLabel(unitNumber)}</strong> is now active.</p>
+  <h2 style="margin:0 0 8px;font-family:Arial,sans-serif;color:#0f172a;">${t('Welcome, {name}!', { name })}</h2>
+  <p style="color:#475569;margin:0 0 24px;">${t('Your parking permit for {property} — {unit} is now active.', { property: `<strong>${propertyName}</strong>`, unit: `<strong>${unitL(lang, unitNumber)}</strong>` })}</p>
   <div style="background:#f4f7ff;border-radius:10px;padding:20px;margin-bottom:24px;">
-    <div style="font-size:12px;color:#64748b;margin-bottom:4px;letter-spacing:0.08em;font-weight:600;">UNIT NUMBER</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:4px;letter-spacing:0.08em;font-weight:600;">${t('UNIT NUMBER')}</div>
     <div style="font-size:16px;font-weight:700;font-family:monospace;color:#0f172a;">${unitNumber}</div>
-    <div style="font-size:12px;color:#64748b;margin:14px 0 4px;letter-spacing:0.08em;font-weight:600;">PASSWORD</div>
+    <div style="font-size:12px;color:#64748b;margin:14px 0 4px;letter-spacing:0.08em;font-weight:600;">${t('PASSWORD')}</div>
     <div style="font-size:22px;font-weight:700;font-family:monospace;letter-spacing:2px;color:#2859a8;">${password}</div>
   </div>
-  ${plate ? `<p style="color:#475569;margin:0 0 24px;">Active vehicle: <strong style="font-family:monospace;">${plate}</strong></p>` : ''}
-  <a href="${loginUrl}" style="display:block;background:#2859a8;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:700;font-size:15px;margin-bottom:24px;font-family:Arial,sans-serif;">Log In to Your Portal →</a>
-  <p style="color:#94a3b8;font-size:12px;">Log in using your unit number and the password above. Keep this email — it contains your login credentials.</p>
+  ${plate ? `<p style="color:#475569;margin:0 0 24px;">${t('Active vehicle: {plate}', { plate: `<strong style="font-family:monospace;">${plate}</strong>` })}</p>` : ''}
+  <a href="${loginUrl}" style="display:block;background:#2859a8;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:700;font-size:15px;margin-bottom:24px;font-family:Arial,sans-serif;">${t('Log In to Your Portal →')}</a>
+  <p style="color:#94a3b8;font-size:12px;">${t('Log in using your unit number and the password above. Keep this email — it contains your login credentials.')}</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
   <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ · Provo, UT</p>
 </body></html>`,
-    text: `Welcome to LotHQ!\n\nProperty: ${propertyName}\nUnit: ${unitNumber}\n\nUnit Number: ${unitNumber}\nPassword: ${password}\n\nLog in at: ${loginUrl}`,
+    text: lang && lang !== 'en'
+      ? `${t('Welcome, {name}!', { name })}\n\n${t('Your parking permit for {property} — {unit} is now active.', { property: propertyName, unit: unitL(lang, unitNumber) })}\n\n${t('UNIT NUMBER')}: ${unitNumber}\n${t('PASSWORD')}: ${password}\n\n${loginUrl}`
+      : `Welcome to LotHQ!\n\nProperty: ${propertyName}\nUnit: ${unitNumber}\n\nUnit Number: ${unitNumber}\nPassword: ${password}\n\nLog in at: ${loginUrl}`,
   };
 }
 
-function paymentFailedEmail({ name, email, propertyName, portalUrl }) {
+function paymentFailedEmail({ name, email, propertyName, portalUrl, lang }) {
+  const t = (en, v) => tx(lang, en, v);
   return {
-    subject: `Action required — parking permit payment failed`,
+    subject: t('Action required — parking permit payment failed'),
     html: `
 <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
   ${logoHeader('#dc2626')}
-  <h2 style="margin:0 0 8px;font-family:Arial,sans-serif;color:#0f172a;">Payment Failed</h2>
-  <p style="color:#475569;margin:0 0 24px;">Hi ${name}, we were unable to process your parking permit payment for <strong>${propertyName}</strong>. Please update your payment method to keep your permit active.</p>
-  <a href="${portalUrl}" style="display:block;background:#dc2626;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:700;font-size:15px;margin-bottom:24px;font-family:Arial,sans-serif;">Update Payment Method →</a>
-  <p style="color:#94a3b8;font-size:12px;">If payment is not received within 7 days your permit may be suspended. Contact your property manager if you have questions.</p>
+  <h2 style="margin:0 0 8px;font-family:Arial,sans-serif;color:#0f172a;">${t('Payment Failed')}</h2>
+  <p style="color:#475569;margin:0 0 24px;">${t('Hi {name}, we were unable to process your parking permit payment for {property}. Please update your payment method to keep your permit active.', { name, property: `<strong>${propertyName}</strong>` })}</p>
+  <a href="${portalUrl}" style="display:block;background:#dc2626;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:700;font-size:15px;margin-bottom:24px;font-family:Arial,sans-serif;">${t('Update Payment Method →')}</a>
+  <p style="color:#94a3b8;font-size:12px;">${t('If payment is not received within 7 days your permit may be suspended. Contact your property manager if you have questions.')}</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
   <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ</p>
 </body></html>`,
-    text: `Hi ${name},\n\nYour parking permit payment for ${propertyName} failed. Update your payment method here: ${portalUrl}`,
+    text: `${t('Hi {name}, we were unable to process your parking permit payment for {property}. Please update your payment method to keep your permit active.', { name, property: propertyName })}\n\n${portalUrl}`,
   };
 }
 
-function permitSuspendedEmail({ name, propertyName, unitNumber }) {
+function permitSuspendedEmail({ name, propertyName, unitNumber, lang }) {
+  const t = (en, v) => tx(lang, en, v);
   return {
-    subject: `Your parking permit has been suspended — ${propertyName}`,
+    subject: t('Your parking permit has been suspended — {property}', { property: propertyName }),
     html: `
 <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
   ${logoHeader('#d97706')}
-  <h2 style="margin:0 0 8px;font-family:Arial,sans-serif;color:#0f172a;">Permit Suspended</h2>
-  <p style="color:#475569;margin:0 0 24px;">Hi ${name}, your parking permit for <strong>${propertyName}</strong> — <strong>${unitLabel(unitNumber)}</strong> has been suspended due to non-payment.</p>
-  <p style="color:#475569;margin:0 0 24px;">Please contact your property manager to reinstate your permit.</p>
+  <h2 style="margin:0 0 8px;font-family:Arial,sans-serif;color:#0f172a;">${t('Permit Suspended')}</h2>
+  <p style="color:#475569;margin:0 0 24px;">${t('Hi {name}, your parking permit for {property} — {unit} has been suspended due to non-payment.', { name, property: `<strong>${propertyName}</strong>`, unit: `<strong>${unitL(lang, unitNumber)}</strong>` })}</p>
+  <p style="color:#475569;margin:0 0 24px;">${t('Please contact your property manager to reinstate your permit.')}</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
   <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ</p>
 </body></html>`,
-    text: `Hi ${name},\n\nYour parking permit for ${propertyName} ${unitLabel(unitNumber)} has been suspended. Contact your property manager to reinstate it.`,
+    text: `${t('Hi {name}, your parking permit for {property} — {unit} has been suspended due to non-payment.', { name, property: propertyName, unit: unitL(lang, unitNumber) })}\n\n${t('Please contact your property manager to reinstate your permit.')}`,
   };
 }
 
@@ -174,23 +184,24 @@ function inviteFlyerEmail({ email, propertyName, unitNumber, inviteCode, inviteL
   };
 }
 
-function passwordResetEmail({ name, password, propertyName, unitNumber, propertyId }) {
+function passwordResetEmail({ name, password, propertyName, unitNumber, propertyId, lang }) {
   const loginUrl = unitLoginUrl(propertyId, unitNumber);
+  const t = (en, v) => tx(lang, en, v);
   return {
-    subject: `Your new temporary password — ${propertyName}`,
+    subject: t('Your new temporary password — {property}', { property: propertyName }),
     html: `
 <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;background:#ffffff;">
   ${logoHeader('#2859a8')}
-  <h2 style="margin:0 0 8px;font-family:Arial,sans-serif;color:#0f172a;">Password Reset</h2>
-  <p style="color:#475569;margin:0 0 24px;">Hi ${name}, here is your new temporary password for <strong>${propertyName}</strong> — <strong>${unitLabel(unitNumber)}</strong>.</p>
+  <h2 style="margin:0 0 8px;font-family:Arial,sans-serif;color:#0f172a;">${t('Password Reset')}</h2>
+  <p style="color:#475569;margin:0 0 24px;">${t('Hi {name}, here is your new temporary password for {property} — {unit}.', { name, property: `<strong>${propertyName}</strong>`, unit: `<strong>${unitL(lang, unitNumber)}</strong>` })}</p>
   <div style="background:#f4f7ff;border-radius:10px;padding:20px;margin-bottom:24px;">
-    <div style="font-size:12px;color:#64748b;margin-bottom:4px;letter-spacing:0.08em;font-weight:600;">UNIT NUMBER</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:4px;letter-spacing:0.08em;font-weight:600;">${t('UNIT NUMBER')}</div>
     <div style="font-size:16px;font-weight:700;font-family:monospace;color:#0f172a;">${unitNumber}</div>
-    <div style="font-size:12px;color:#64748b;margin:14px 0 4px;letter-spacing:0.08em;font-weight:600;">NEW TEMPORARY PASSWORD</div>
+    <div style="font-size:12px;color:#64748b;margin:14px 0 4px;letter-spacing:0.08em;font-weight:600;">${t('NEW TEMPORARY PASSWORD')}</div>
     <div style="font-size:22px;font-weight:700;font-family:monospace;letter-spacing:2px;color:#2859a8;">${password}</div>
   </div>
-  <a href="${loginUrl}" style="display:block;background:#2859a8;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:700;font-size:15px;margin-bottom:24px;font-family:Arial,sans-serif;">Log In to Your Portal →</a>
-  <p style="color:#94a3b8;font-size:12px;">Once logged in, go to Account to set a permanent password. If you didn't request this reset, contact your property manager.</p>
+  <a href="${loginUrl}" style="display:block;background:#2859a8;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:9px;font-weight:700;font-size:15px;margin-bottom:24px;font-family:Arial,sans-serif;">${t('Log In to Your Portal →')}</a>
+  <p style="color:#94a3b8;font-size:12px;">${t("Once logged in, go to Account to set a permanent password. If you didn't request this reset, contact your property manager.")}</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
   <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ · Provo, UT</p>
 </body></html>`,

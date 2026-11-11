@@ -51,7 +51,8 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { inviteCode, propertyId, unitNumber, tenantName, tenantEmail, termsVersion } = JSON.parse(event.body);
+    const { inviteCode, propertyId, unitNumber, tenantName, tenantEmail, termsVersion, lang: wantLang } = JSON.parse(event.body);
+    const lang = require('./lib/i18n').pick(wantLang);
 
     if (!inviteCode || !propertyId || !tenantEmail) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Missing required fields' }) };
@@ -148,11 +149,19 @@ exports.handler = async (event) => {
           propertyName,
           unitNumber,
           propertyId,
+          lang,
         },
       });
     } catch (e) {
       console.warn('Welcome email failed:', e.message);
     }
+    // Remember the unit's language for later emails (after the languages database step)
+    try {
+      await fetch(`${process.env.SUPABASE_URL}/rest/v1/property_units?property_id=eq.${encodeURIComponent(propertyId)}&unit_number=eq.${encodeURIComponent(unitNumber)}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}` },
+        body: JSON.stringify({ tenant_lang: lang }),
+      });
+    } catch { /* not yet */ }
 
     await require('./lib/activity').logActivity({
       actorId: userId || null, actorName: tenantName || tenantEmail, actorRole: 'holder', portal: 'signup',

@@ -278,7 +278,20 @@ async function cancelSpotPlan(u) {
 }
 
 // ── Actions ──────────────────────────────────────────────────
+// The language the person is using (dates and emails follow it)
+const I18N = require('./lib/i18n');
+let LANG = 'en', LOC = 'en-US';
+
 const actions = {
+  // Remember the unit's language for its emails
+  async setLang({ token, lang }, event, ctx = {}) {
+    const u = await authUnit(token);
+    const code = I18N.pick(lang);
+    try { await sb('PATCH', `property_units?property_id=eq.${q(u.propertyId)}&unit_number=eq.${q(u.unitNumber)}`, { tenant_lang: code }); }
+    catch { /* before the languages database step */ }
+    ctx.quiet = true;
+    return { ok: true, lang: code };
+  },
   async login({ propertyId, unitNumber, password }, event, ctx = {}) {
     unitNumber = String(unitNumber || '').trim();
     if (!UUID_RE.test(String(propertyId || '')) || !unitNumber || !password) throw new UserError('Enter your property, unit number and password.');
@@ -393,7 +406,8 @@ const actions = {
     // Email first, so a failed email never leaves the resident locked out
     await send({
       type: 'passwordReset', to: onFile,
-      data: { name: slots.find(s => s.tenant_name)?.tenant_name || 'Resident', password, propertyName: await propertyName(propertyId), unitNumber, propertyId },
+      data: { name: slots.find(s => s.tenant_name)?.tenant_name || 'Resident', password, propertyName: await propertyName(propertyId), unitNumber, propertyId,
+        lang: LANG !== 'en' ? LANG : (slots.find(s => s.tenant_lang)?.tenant_lang || 'en') },
     });
     await sb('PATCH', `property_units?property_id=eq.${q(propertyId)}&unit_number=eq.${q(unitNumber)}`, { unit_password: hashPassword(password) });
     return { ok: true, sentTo: onFile };
@@ -679,7 +693,7 @@ function typeSummary(t, passes) {
   if (t.allowance === null || t.allowance === undefined) return { ...base, allowance: null, used: null, left: null, refills: null };
   const period = GP.allowancePeriod(t.reset_period, now);
   const used = passes.filter(p => p.pass_type_id === t.id && new Date(p.created_at) >= period.start && GP.countsAgainstAllowance(p, now)).length;
-  return { ...base, allowance: t.allowance, used, left: Math.max(0, t.allowance - used), refills: GP.fmtDay(period.next), reset: t.reset_period };
+  return { ...base, allowance: t.allowance, used, left: Math.max(0, t.allowance - used), refills: GP.fmtDay(period.next, LOC), reset: t.reset_period };
 }
 function passView(p, g) {
   const now = new Date();
@@ -689,10 +703,10 @@ function passView(p, g) {
   if (p.status === 'active' && p.ends_at && new Date(p.ends_at) <= now) state = 'done';
   if (p.status === 'active' && p.starts_at && new Date(p.starts_at) > now) state = 'upcoming';
   return { id: p.id, type: type ? type.name : 'Guest pass', state, code: state === 'issued' ? p.code : null,
-    codeExpires: p.code_expires_at ? GP.fmtWhen(p.code_expires_at) : null,
+    codeExpires: p.code_expires_at ? GP.fmtWhen(p.code_expires_at, LOC) : null,
     plate: p.guest_plate || null, guestName: p.guest_name || null,
-    starts: p.starts_at ? GP.fmtWhen(p.starts_at) : null, ends: p.ends_at ? GP.fmtWhen(p.ends_at) : null,
-    created: GP.fmtWhen(p.created_at) };
+    starts: p.starts_at ? GP.fmtWhen(p.starts_at, LOC) : null, ends: p.ends_at ? GP.fmtWhen(p.ends_at, LOC) : null,
+    created: GP.fmtWhen(p.created_at, LOC) };
 }
 // Same plate can only get so many guest passes per month at a property
 async function checkPlateLimit(g, plate, now) {
@@ -754,6 +768,7 @@ exports.handler = async (event) => {
   try { body = JSON.parse(event.body || '{}'); } catch { return reply(400, { error: 'Invalid request' }); }
   const fn = actions[body.action];
   if (!fn) return reply(400, { error: 'Unknown action' });
+  LANG = I18N.pick(body.lang); LOC = I18N.locale(LANG);
   try {
     const ctx = {};
     const result = await fn(body, event, ctx);

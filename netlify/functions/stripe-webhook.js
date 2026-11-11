@@ -50,6 +50,15 @@ async function sbInsert(table, data) {
   return res.json();
 }
 
+// The language a unit's tenant uses ('en' if unknown)
+async function tenantLang(permit) {
+  try {
+    if (!permit?.property_id || !permit.unit_number) return 'en';
+    const rows = await sbSelect('property_units', `property_id=eq.${permit.property_id}&unit_number=eq.${encodeURIComponent(permit.unit_number)}&tenant_lang=not.is.null&select=tenant_lang&limit=1`);
+    return (Array.isArray(rows) && rows[0]?.tenant_lang) || 'en';
+  } catch { return 'en'; }
+}
+
 async function sbUpdate(table, data, filters) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}`, {
     method: 'PATCH',
@@ -251,11 +260,15 @@ async function handleCheckoutCompleted(session, account) {
         propertyName,
         unitNumber: unit_number,
         propertyId: property_id,
+        lang: meta.lang || 'en',
       },
     });
   } catch (emailErr) {
     console.error('Welcome email failed (non-fatal):', emailErr.message);
   }
+  // Remember the unit's language for later emails (sbUpdate never throws; ignored before the database step)
+  if (meta.lang && meta.lang !== 'en') await sbUpdate('property_units', { tenant_lang: meta.lang },
+    `property_id=eq.${property_id}&unit_number=eq.${encodeURIComponent(unit_number)}`);
 
   // 8. Alert manager (non-fatal)
   if (managerEmail) {
@@ -450,6 +463,7 @@ async function handlePaymentFailed(invoice, account) {
           email: permit.holder_email,
           propertyName,
           portalUrl,
+          lang: await tenantLang(permit),
         },
       });
     } catch (emailErr) {
@@ -527,6 +541,7 @@ async function handleSubscriptionDeleted(subscription, account) {
           name: permit.holder_name || 'Resident',
           propertyName,
           unitNumber: permit.unit_number || '—',
+          lang: await tenantLang(permit),
         },
       });
     } catch (emailErr) {

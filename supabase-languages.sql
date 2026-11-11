@@ -19,6 +19,7 @@ on conflict (key) do nothing;
 -- The language someone used, so their emails come in it
 alter table public.parking_sessions add column if not exists lang text;
 alter table public.guest_passes     add column if not exists guest_lang text;
+alter table public.property_units   add column if not exists tenant_lang text;
 
 -- Check: should show 3 rows, all "ok"
 select 'settings table' as item, case when count(*) = 1 then 'ok' else 'missing' end as status
@@ -26,6 +27,7 @@ select 'settings table' as item, case when count(*) = 1 then 'ok' else 'missing'
 union all
 select 'languages setting', case when count(*) = 1 then 'ok' else 'missing' end from public.site_settings where key = 'languages'
 union all
-select 'language columns', case when count(*) = 2 then 'ok' else 'missing' end
+select 'language columns', case when count(*) = 3 then 'ok' else 'missing' end
   from information_schema.columns where table_schema = 'public'
-   and ((table_name = 'parking_sessions' and column_name = 'lang') or (table_name = 'guest_passes' and column_name = 'guest_lang'));
+   and ((table_name = 'parking_sessions' and column_name = 'lang') or (table_name = 'guest_passes' and column_name = 'guest_lang')
+        or (table_name = 'property_units' and column_name = 'tenant_lang'));

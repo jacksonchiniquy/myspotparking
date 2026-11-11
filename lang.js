@@ -43,7 +43,7 @@
   }
   function tr(en) {
     var s = String(en), lead = s.match(/^\s*/)[0], trail = s.match(/\s*$/)[0], core = s.trim();
-    if (!core || L.code === 'en') return s;
+    if (!core || L.code === 'en' || /^(Lot|HQ|LotHQ|PARKING|Parking|— PARKING —)$/.test(core)) return s; // the brand name
     var hit = L.dict[core];
     if (hit == null) {
       for (var i = 0; i < patterns.length; i++) {

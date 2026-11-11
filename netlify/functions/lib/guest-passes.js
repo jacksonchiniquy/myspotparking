@@ -82,7 +82,7 @@ function describeType(type) {
 }
 function fmtClock(t) { const [h, m] = hm(t); return `${(h % 12) || 12}${m ? ':' + String(m).padStart(2, '0') : ''} ${h < 12 ? 'AM' : 'PM'}`; }
 const fmtWhen = (d, locale = 'en-US') => new Date(d).toLocaleString(locale, { timeZone: TZ, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-const fmtDay = d => new Date(d).toLocaleDateString('en-US', { timeZone: TZ, month: 'short', day: 'numeric', year: 'numeric' });
+const fmtDay = (d, locale = 'en-US') => new Date(d).toLocaleDateString(locale, { timeZone: TZ, month: 'short', day: 'numeric', year: 'numeric' });
 
 function newCode() {
   const pick = n => Array.from(crypto.randomBytes(n), b => CODE_CHARS[b % CODE_CHARS.length]).join('');

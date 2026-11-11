@@ -201,6 +201,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
 @media(max-width:600px){.app-wrap{padding:20px 14px 60px;}.unit-header{padding:18px;}.slot-card{padding:16px;}.form-row{grid-template-columns:1fr;}}
 </style>
+<script src="/lang.js"></script>
 </head>
 <body>
 
@@ -505,7 +506,7 @@ async function api(action,payload={}){
   let res,body={};
   try{
     res=await fetch('/.netlify/functions/unit-api',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action,token:session?.token,...payload})});
+      body:JSON.stringify({action,token:session?.token,lang:window.LotHQLang?LotHQLang.code:'en',...payload})});
     body=await res.json().catch(()=>({}));
   }catch(e){return {error:'Could not reach the server. Check your connection and try again.'};}
   if(res.status===401&&session){
@@ -769,7 +770,11 @@ function signOut(){
   document.getElementById('unit-badge').style.display='none';
 }
 
+// Remember the unit's language for its emails (and follow changes)
+function saveUnitLang(){ if(session&&session.token&&window.LotHQLang) api('setLang',{lang:LotHQLang.code}); }
+if(window.LotHQLang) LotHQLang.onChange(()=>{ saveUnitLang(); if(session&&session.token&&typeof loadGuests==='function') try{loadGuests();}catch(e){} });
 async function showApp(){
+  setTimeout(saveUnitLang,1500);
   document.getElementById('gate').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('unit-badge').textContent=(session.word||'Unit')+' '+session.unitNumber;
@@ -1108,7 +1113,7 @@ async function doSwap(slotId){
 // ── UTILS ──
 function fmt(iso){
   if(!iso)return'—';
-  return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  return new Date(iso).toLocaleDateString((window.LotHQLang?LotHQLang.locale:'en-US'),{month:'short',day:'numeric',year:'numeric'});
 }
 function toast(msg){
   const t=document.getElementById('toast');

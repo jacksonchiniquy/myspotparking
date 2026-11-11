@@ -35,6 +35,7 @@ exports.handler = async (event) => {
     const tenantEmail = String(body.tenantEmail || '').trim().toLowerCase();
     const tenantName = String(body.tenantName || '').trim().slice(0, 120);
     const billingInterval = CYCLES[body.billingInterval] ? body.billingInterval : 'monthly';
+    const I18N = require('./lib/i18n'), lang = I18N.pick(body.lang);
 
     if (!/^[A-Z0-9-]{4,20}$/.test(inviteCode) || !EMAIL_RE.test(tenantEmail)) {
       return reply(400, { error: 'Missing required fields' });
@@ -79,6 +80,7 @@ exports.handler = async (event) => {
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
+      locale: I18N.stripeLocale(lang),
       ...(Object.keys(subFee).length ? { subscription_data: subFee } : {}),
       payment_method_types: ['card'],
       ...(disc ? { discounts: [{ coupon: disc.coupon }] } : {}),
@@ -104,6 +106,7 @@ exports.handler = async (event) => {
         billing_interval: billingInterval,
         spot_ids: chosen.map(s => s.id).join(','),
         cycle_pct: String(cyclePct),
+        lang,
         ...(disc ? { discount_coupon: disc.coupon, discount_shares: spotBilling.sharesMeta(disc.shares) } : {}),
       },
       success_url: `${SITE}/signup.html?signup=success`,
