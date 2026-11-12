@@ -886,7 +886,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
             <div style="font-size:15px;font-weight:700;" id="units-tab-title">Unit Parking Spots</div>
             <div style="font-size:12px;color:var(--text3);margin-top:2px;" id="units-tab-sub">Spots assigned to each unit. Each unit has its own invite link tenants use to sign up.</div>
           </div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm" onclick="openBulkDelete()" id="units-bulk-del">Bulk Delete Units</button><button class="btn btn-ghost btn-sm" onclick="openBulkUnits()" id="units-bulk-add">+ Bulk Add Units</button><button class="btn btn-primary btn-sm" onclick="openAddUnitSlot()">+ Add Slot</button></div>
+          <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm" onclick="openBulkDelete()" id="units-bulk-del">Bulk Delete Units</button><button class="btn btn-ghost btn-sm" onclick="sendAllInvites()" id="units-send-all">Send all invites</button><button class="btn btn-ghost btn-sm" onclick="openBulkUnits()" id="units-bulk-add">+ Bulk Add Units</button><button class="btn btn-primary btn-sm" onclick="openAddUnitSlot()">+ Add Slot</button></div>
         </div>
         <div id="units-tools" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-6px 0 16px;">
           <input class="form-input" id="units-q" type="search" placeholder="Search address, tenant, email, plate or code…" oninput="renderUnitsTab()" style="flex:1;min-width:220px;">
@@ -1173,8 +1173,13 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
       <div style="font-size:11px;color:var(--text3);margin:-6px 0 10px;">Leading zeros are kept: 001 to 050 makes 001, 002 … 050.</div>
     </div>
     <div id="bu-list" style="display:none;">
-      <div class="form-group"><label class="form-label">Unit numbers, one per line (or separated by commas)</label>
-        <textarea class="form-input" id="bu-paste" rows="6" placeholder="101&#10;102&#10;103A&#10;Penthouse 1" oninput="updateBulkPreview()"></textarea></div>
+      <div class="form-group"><label class="form-label">One unit per line. Tenant name and email are optional.</label>
+        <textarea class="form-input" id="bu-paste" rows="7" placeholder="101, Maria Lopez, maria@email.com&#10;102, Sam Ortiz, sam@email.com&#10;103A&#10;Penthouse 1" oninput="updateBulkPreview()" style="font-family:'JetBrains Mono',monospace;font-size:12px;"></textarea></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-6px 0 12px;font-size:12px;color:var(--text3);">
+        <span>You can paste rows straight from a spreadsheet (Unit, Name, Email), or</span>
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer;margin:0;">Upload CSV<input type="file" accept=".csv,text/csv,.txt" style="display:none;" onchange="bulkLoadCSV(this)"></label>
+        <a href="#" onclick="bulkTemplate();return false;" style="color:var(--blue);">Download template</a>
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Managed By</label>
@@ -1184,8 +1189,10 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
     <div style="font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:4px 0 8px;">Spots for each unit</div>
     <div id="bu-spots"></div>
     <button class="btn btn-ghost btn-sm" type="button" onclick="addBulkSpot()" style="margin:2px 0 12px;">+ Add another spot</button>
-    <div style="font-size:11px;color:var(--text3);margin:-4px 0 10px;">Units that already exist get any spot they don't have yet (matched by spot name).</div>
+    <div style="font-size:11px;color:var(--text3);margin:-4px 0 6px;">Units that already exist get any spot they don't have yet (matched by spot name).</div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin:0 0 10px;cursor:pointer;"><input type="checkbox" id="bu-noexist" onchange="updateBulkPreview()"> Don't add spots to units that already exist (just fill in tenant emails)</label>
     <div id="bu-preview" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--text2);margin:6px 0 12px;">Enter a range or list to see a preview.</div>
+    <label id="bu-send-wrap" style="display:none;align-items:flex-start;gap:8px;font-size:13px;color:var(--text2);margin:0 0 12px;cursor:pointer;"><input type="checkbox" id="bu-send" style="margin-top:2px;"> <span id="bu-send-text">Email each tenant their invite now</span></label>
     <div class="err-msg" id="bu-err"></div>
     <button class="btn btn-primary btn-full" id="bu-btn" onclick="saveBulkUnits()" disabled>Create Units</button>
   </div>
@@ -6243,7 +6250,7 @@ async function saveBulkDelete(){
 // Each unit can get several spots (e.g. Spot 1 free, Spot 2 $50/mo).
 // New units: all listed spots are created; the first one holds the invite code.
 // Existing units: only spots they don't have yet (same name) are added.
-let _bulkMode='range',_bulkExisting=new Map(),_bulkPlan=[],_bulkRows=[];
+let _bulkEmailFill=[], _bulkMode='range',_bulkExisting=new Map(),_bulkPlan=[],_bulkRows=[];
 const BULK_MAX=2000, BULK_SPOTS_MAX=6;
 const BULK_TYPES=[['stall-standard','Standard Stall'],['stall-reserved','Reserved'],['stall-handicap','Handicap'],['stall-ev','EV'],['stall-guest','Guest'],['stall-moto','Moto'],['zone-carport','Carport'],['zone-garage','Garage'],['zone-yard','Yard'],['zone-storage','Storage'],['zone-loading','Loading']];
 function bulkSpotRowHtml(i,s){
@@ -6274,18 +6281,21 @@ function addBulkSpot(){
 }
 function removeBulkSpot(i){const s=readBulkSpots();s.splice(i,1);renderBulkSpots(s);}
 async function loadBulkExisting(){
-  const {data}=await sb.from('property_units').select('unit_number,slot_label').eq('property_id',currentPropertyId);
-  _bulkExisting=new Map();
+  const {data}=await sb.from('property_units').select('unit_number,slot_label,tenant_email,invite_used,invite_code').eq('property_id',currentPropertyId);
+  _bulkExisting=new Map();_bulkExistingInfo=new Map();
   (data||[]).forEach(u=>{
     const k=String(u.unit_number||'').trim().toLowerCase();
-    if(!_bulkExisting.has(k))_bulkExisting.set(k,new Set());
+    if(!_bulkExisting.has(k)){_bulkExisting.set(k,new Set());_bulkExistingInfo.set(k,{name:u.unit_number,email:null,used:false,code:false});}
     _bulkExisting.get(k).add(String(u.slot_label||'').trim().toLowerCase());
+    const i=_bulkExistingInfo.get(k);
+    if(u.tenant_email)i.email=u.tenant_email; if(u.invite_used)i.used=true; if(u.invite_code)i.code=true;
   });
 }
 async function openBulkUnits(){
   if(!currentPropertyId){toast('Open a property first');return;}
   ['bu-prefix','bu-suffix','bu-from','bu-to','bu-paste'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('bu-err').classList.remove('show');
+  document.getElementById('bu-send').checked=false;document.getElementById('bu-noexist').checked=false;
   renderBulkSpots([{label:'Spot 1',type:'stall-standard',billing:'free',amount:''}]);
   setBulkMode('range');
   openModal('modal-bulk-units');
@@ -6300,9 +6310,33 @@ function setBulkMode(m){
   document.getElementById('bu-tab-list').className='btn btn-sm '+(m==='list'?'btn-primary':'btn-ghost');
   updateBulkPreview();
 }
+// Pasted list: plain unit numbers (one per line or comma-separated), or rows of
+// unit, tenant name, email (comma- or tab-separated, as copied from a spreadsheet)
+let _bulkContacts=new Map(), _bulkBadEmails=[], _bulkExistingInfo=new Map();
+const EMAIL_OK=/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
+function bulkParseList(text){
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const rows=lines.some(l=>l.includes('@')||l.includes('\t'));
+  const units=[], contacts=new Map(), bad=[];
+  if(!rows){ text.split(/[\n,]+/).map(x=>x.trim()).filter(Boolean).forEach(u=>units.push(u)); return {units,contacts,bad}; }
+  lines.forEach((l,i)=>{
+    const parts=l.split(/\t|,|;/).map(x=>x.trim().replace(/^"|"$/g,''));
+    const unit=parts.shift(); if(!unit) return;
+    if(i===0&&/^unit/i.test(unit)) return; // header row
+    let email='', name=[];
+    parts.forEach(p=>{ if(!p) return; if(p.includes('@')&&!email) email=p.toLowerCase(); else name.push(p); });
+    if(email&&!EMAIL_OK.test(email)) bad.push(unit+': '+email);
+    units.push(unit);
+    if(email||name.length) contacts.set(unit.toLowerCase(),{email:EMAIL_OK.test(email)?email:'',name:name.join(' ').trim()});
+  });
+  return {units,contacts,bad};
+}
 function bulkUnitNumbers(){
+  _bulkContacts=new Map();_bulkBadEmails=[];
   if(_bulkMode==='list'){
-    return document.getElementById('bu-paste').value.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
+    const r=bulkParseList(document.getElementById('bu-paste').value);
+    _bulkContacts=r.contacts;_bulkBadEmails=r.bad;
+    return r.units;
   }
   const from=document.getElementById('bu-from').value.trim(), to=document.getElementById('bu-to').value.trim();
   if(!/^\d+$/.test(from)||!/^\d+$/.test(to)) return null;
@@ -6346,7 +6380,9 @@ function updateBulkPreview(){
       let first=!have;
       if(!have)newUnits++;
       let added=0;
+      const keepExisting=document.getElementById('bu-noexist').checked;
       spots.forEach(s=>{
+        if(have&&keepExisting) return;
         if(have&&have.has(s.label.toLowerCase())){skippedSpots++;return;}
         _bulkRows.push({unit_number:n,slot_label:s.label,slot_type:s.type,billing_type:s.billing,
           monthly_amount:s.billing==='monthly'?Math.round(parseFloat(s.amount)*100)/100:null,invite:first});
@@ -6364,21 +6400,98 @@ function updateBulkPreview(){
         +` — ${newUnits} new unit${newUnits===1?'':'s'}${touched?`, ${touched} existing unit${touched===1?' gets':'s get'} new spots`:''}</div>`
         +(skippedSpots?`<div style="color:#b45309;">${skippedSpots} spot${skippedSpots===1?'':'s'} already exist${skippedSpots===1?'s':''} and will be skipped</div>`:''))
     +(dupes?`<div style="color:#b45309;">${dupes} duplicate${dupes===1?'':'s'} in your list ignored</div>`:'');
-  btn.disabled=!!problem||!_bulkRows.length;
+  // Tenant emails: new units, or existing units that don't have one yet and haven't signed up
+  _bulkEmailFill=[];
+  _bulkPlan.forEach(n=>{const c=_bulkContacts.get(n.toLowerCase());if(!c||!(c.email||c.name))return;
+    const ex=_bulkExistingInfo.get(n.toLowerCase());
+    if(ex&&(ex.used||ex.email))return;
+    _bulkEmailFill.push({unit:ex?ex.name:n,email:c.email,name:c.name,existing:!!ex,code:ex?ex.code:true});});
+  const withEmail=_bulkEmailFill.filter(x=>x.email);
+  if(_bulkBadEmails.length) el.innerHTML+=`<div style="margin-top:6px;color:#b91c1c;">${_bulkBadEmails.length} email${_bulkBadEmails.length===1?' looks':'s look'} wrong. Fix ${_bulkBadEmails.length===1?'it':'them'} before creating: ${escHtml(_bulkBadEmails.slice(0,4).join(' · '))}${_bulkBadEmails.length>4?' …':''}</div>`;
+  else if(withEmail.length) el.innerHTML+=`<div style="margin-top:6px;">${withEmail.length} unit${withEmail.length===1?'':'s'} will get a tenant email${_bulkEmailFill.some(x=>x.existing)?' (existing units only if they don\'t have one yet)':''}.</div>`;
+  const sw=document.getElementById('bu-send-wrap');
+  sw.style.display=withEmail.length&&!_bulkBadEmails.length?'flex':'none';
+  document.getElementById('bu-send-text').textContent=`Email each tenant their invite now (${withEmail.length} unit${withEmail.length===1?' has':'s have'} an email). Leave unticked to send later with Send all invites.`;
+  const onlyEmails=!_bulkRows.length&&_bulkEmailFill.length&&!problem;
+  btn.disabled=!!problem||!!_bulkBadEmails.length||(!_bulkRows.length&&!onlyEmails);
   if(!problem&&_bulkRows.length) btn.textContent=`Create ${_bulkRows.length} Spot${_bulkRows.length===1?'':'s'}`;
+  else if(onlyEmails) btn.textContent=`Save ${_bulkEmailFill.length} tenant email${_bulkEmailFill.length===1?'':'s'}`;
 }
 function escHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function bulkTemplate(){
+  const csv='Unit,Tenant name,Email\r\n101,Maria Lopez,maria@example.com\r\n102,Sam Ortiz,sam@example.com\r\n103,,\r\n';
+  saveBlob(new Blob([csv],{type:'text/csv'}),'lothq-units-template.csv');
+}
+function bulkLoadCSV(input){
+  const f=input.files&&input.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    // simple CSV reader (handles quoted fields), turned into tab-separated rows
+    const rows=[];let row=[],cell='',q=false;const t=String(rd.result||'');
+    for(let i=0;i<t.length;i++){const c=t[i];
+      if(q){if(c==='"'){if(t[i+1]==='"'){cell+='"';i++;}else q=false;}else cell+=c;}
+      else if(c==='"')q=true; else if(c===','){row.push(cell);cell='';} else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;row.push(cell);rows.push(row);row=[];cell='';} else cell+=c;}
+    if(cell||row.length){row.push(cell);rows.push(row);}
+    let body=rows.filter(r=>r.some(x=>x.trim()));
+    // use the header to find the columns, if there is one
+    let iu=0,in_=1,ie=2;
+    if(body.length&&body[0].some(h=>/unit/i.test(h))){
+      const h=body.shift().map(x=>x.toLowerCase());
+      iu=h.findIndex(x=>/unit|suite|space/.test(x)); in_=h.findIndex(x=>/name|tenant|resident/.test(x)&&!/email/.test(x)); ie=h.findIndex(x=>/mail/.test(x));
+    }
+    document.getElementById('bu-paste').value=body.map(r=>[r[iu]||'',in_>=0?(r[in_]||''):'',ie>=0?(r[ie]||''):''].map(x=>x.trim().replace(/\t/g,' ')).join('\t')).join('\n');
+    input.value='';
+    setBulkMode('list');
+    toast(body.length+' row'+(body.length===1?'':'s')+' loaded from '+f.name);
+  };
+  rd.readAsText(f);
+}
+// Emails a unit its signup invite (same email as Invite Tenant)
+async function emailUnitInvite(unitNumber,email,token){
+  const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    body:JSON.stringify({type:'invite_flyer',to:email,propertyId:currentPropertyId,unitNumber})}).catch(()=>({ok:false}));
+  return !!res.ok;
+}
+async function sendInvites(list,progress){
+  const {data:{session}}=await sb.auth.getSession();const token=session?.access_token||'';
+  let sent=0,failed=[];
+  for(let i=0;i<list.length;i++){
+    if(progress)progress(i,list.length);
+    (await emailUnitInvite(list[i].unit,list[i].email,token))?sent++:failed.push(list[i].unit);
+    await new Promise(r=>setTimeout(r,120));
+  }
+  return {sent,failed};
+}
+async function sendAllInvites(){
+  if(!currentPropertyId) return;
+  const {data,error}=await sb.from('property_units').select('unit_number,tenant_email,invite_used,invite_code').eq('property_id',currentPropertyId);
+  if(error){toast(error.message);return;}
+  const by=new Map();
+  (data||[]).forEach(u=>{const k=u.unit_number;const i=by.get(k)||{unit:k,email:null,used:false,code:false};if(u.tenant_email)i.email=u.tenant_email;if(u.invite_used)i.used=true;if(u.invite_code)i.code=true;by.set(k,i);});
+  const list=[...by.values()].filter(u=>u.email&&!u.used&&u.code);
+  if(!list.length){toast('No units with an email are waiting to sign up');return;}
+  if(!confirm(`Email the signup invite to ${list.length} unit${list.length===1?'':'s'} that ha${list.length===1?'s':'ve'} an email and ha${list.length===1?'sn\'t':'ven\'t'} signed up yet? Units you've already emailed get it again.`)) return;
+  const btn=document.getElementById('units-send-all');btn.disabled=true;
+  const r=await sendInvites(list,(i,n)=>btn.textContent=`Sending… ${i+1}/${n}`);
+  btn.disabled=false;btn.textContent='Send all invites';
+  toast(`${r.sent} invite${r.sent===1?'':'s'} sent`+(r.failed.length?` · ${r.failed.length} failed (${r.failed.slice(0,5).join(', ')}${r.failed.length>5?'…':''})`:''));
+}
 async function saveBulkUnits(){
   const err=document.getElementById('bu-err'),btn=document.getElementById('bu-btn');
   err.classList.remove('show');
   updateBulkPreview();
-  if(!_bulkRows.length) return;
+  if(_bulkBadEmails.length) return;
+  if(!_bulkRows.length&&!_bulkEmailFill.length) return;
+  const sendNow=document.getElementById('bu-send').checked&&document.getElementById('bu-send-wrap').style.display!=='none';
+  const fill=_bulkEmailFill.slice();
+  const contactOf=n=>{const c=fill.find(x=>!x.existing&&x.unit.toLowerCase()===String(n).toLowerCase());return c||null;};
   const managed=document.getElementById('bu-managed').value;
   const maxV=parseInt(document.getElementById('bu-max').value)||1;
   const rows=_bulkRows.map(r=>({
     property_id:currentPropertyId, unit_number:r.unit_number, slot_label:r.slot_label, slot_type:r.slot_type,
     managed_by:managed, max_vehicles:maxV, billing_type:r.billing_type, monthly_amount:r.monthly_amount,
     invite_code:r.invite?makeInviteCode():null,
+    tenant_email:(contactOf(r.unit_number)||{}).email||null, tenant_name:(contactOf(r.unit_number)||{}).name||null,
   }));
   btn.disabled=true;
   let done=0;
@@ -6397,8 +6510,24 @@ async function saveBulkUnits(){
     }
     done+=batch.length;
   }
+  // Existing units that didn't have a tenant email yet
+  let filled=0;
+  for(const c of fill.filter(x=>x.existing)){
+    btn.textContent=`Saving emails… ${filled}/${fill.filter(x=>x.existing).length}`;
+    const upd={};if(c.email)upd.tenant_email=c.email;if(c.name)upd.tenant_name=c.name;
+    const {error}=await sb.from('property_units').update(upd).eq('property_id',currentPropertyId).eq('unit_number',c.unit).is('tenant_email',null).eq('invite_used',false);
+    if(!error)filled++;
+  }
+  let msg=[];
+  if(done) msg.push(`${done} spot${done===1?'':'s'} created`);
+  if(filled) msg.push(`${filled} existing unit${filled===1?'':'s'} got an email`);
+  if(sendNow){
+    const list=fill.filter(x=>x.email&&x.code).map(x=>({unit:x.unit,email:x.email}));
+    const r=await sendInvites(list,(i,n)=>btn.textContent=`Sending invites… ${i+1}/${n}`);
+    msg.push(`${r.sent} invite${r.sent===1?'':'s'} emailed`+(r.failed.length?` (${r.failed.length} failed: ${r.failed.slice(0,5).join(', ')}${r.failed.length>5?'…':''})`:''));
+  }
   closeModal('modal-bulk-units');
-  toast(`${done} spot${done===1?'':'s'} created`);
+  toast(msg.join(' · ')||'Saved');
   loadUnitsTab(currentPropertyId);
 }
 
