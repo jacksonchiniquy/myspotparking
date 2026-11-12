@@ -12,21 +12,21 @@ const LINK_SECONDS = 2 * 60 * 60;
 // Which videos each kind of account may watch (file names inside the bucket)
 const VIDEOS = {
   manager: [
-    { id: 'M1', file: 'manager/01-add-property-units-spots.mp4', title: 'Add a property, units and spots', about: 'Setting up a property, adding units (one at a time or in bulk) and parking spots.', mins: 3 },
-    { id: 'M2', file: 'manager/02-invite-tenants-move-outs.mp4', title: 'Invite tenants and handle move-outs', about: 'Sending unit invites, resending them, and closing out a unit when tenants leave.', mins: 2 },
-    { id: 'M3', file: 'manager/03-set-up-payouts.mp4', title: 'Set up payouts', about: 'Choosing who gets paid for a property and connecting the bank account through Stripe.', mins: 2 },
-    { id: 'M4', file: 'manager/04-pay-to-park-setup.mp4', title: 'Set up Pay to Park', about: 'Signs, QR stickers, rates and promo codes.', mins: 2 },
-    { id: 'M5', file: 'manager/05-refunds.mp4', title: 'Refund a Pay to Park payment', about: 'Full or partial refunds, and ending the driver’s time.', mins: 1 },
-    { id: 'M6', file: 'manager/06-discounts-price-changes.mp4', title: 'Discounts and price changes', about: 'Giving a tenant a discount, and changing prices for tenants already paying.', mins: 2 },
-    { id: 'M7', file: 'manager/07-guest-pass-settings.mp4', title: 'Guest pass settings', about: 'Pass types, limits and extra passes.', mins: 2 },
-    { id: 'M8', file: 'manager/08-lot-map.mp4', title: 'Build a map of your lot', about: 'Optional: drawing your lot and placing its spots.', mins: 2 },
-    { id: 'M9', file: 'manager/09-residents-and-permits.mp4', title: 'Residents and permits', about: 'For properties where residents have their own login: issuing, finding and deactivating permits.', mins: 2 },
-    { id: 'M10', file: 'manager/10-team-and-roles.mp4', title: 'Your team and roles', about: 'Inviting staff and choosing what each person can do.', mins: 1 },
+    { id: 'M1', file: 'Manager/01-add-property-units-spots.mp4', title: 'Add a property, units and spots', about: 'Setting up a property, adding units (one at a time or in bulk) and parking spots.', mins: 3 },
+    { id: 'M2', file: 'Manager/02-invite-tenants-move-outs.mp4', title: 'Invite tenants and handle move-outs', about: 'Sending unit invites, resending them, and closing out a unit when tenants leave.', mins: 2 },
+    { id: 'M3', file: 'Manager/03-set-up-payouts.mp4', title: 'Set up payouts', about: 'Choosing who gets paid for a property and connecting the bank account through Stripe.', mins: 2 },
+    { id: 'M4', file: 'Manager/04-pay-to-park-setup.mp4', title: 'Set up Pay to Park', about: 'Signs, QR stickers, rates and promo codes.', mins: 2 },
+    { id: 'M5', file: 'Manager/05-refunds.mp4', title: 'Refund a Pay to Park payment', about: 'Full or partial refunds, and ending the driver’s time.', mins: 1 },
+    { id: 'M6', file: 'Manager/06-discounts-price-changes.mp4', title: 'Discounts and price changes', about: 'Giving a tenant a discount, and changing prices for tenants already paying.', mins: 2 },
+    { id: 'M7', file: 'Manager/07-guest-pass-settings.mp4', title: 'Guest pass settings', about: 'Pass types, limits and extra passes.', mins: 2 },
+    { id: 'M8', file: 'Manager/08-lot-map.mp4', title: 'Build a map of your lot', about: 'Optional: drawing your lot and placing its spots.', mins: 2 },
+    { id: 'M9', file: 'Manager/09-residents-and-permits.mp4', title: 'Residents and permits', about: 'For properties where residents have their own login: issuing, finding and deactivating permits.', mins: 2 },
+    { id: 'M10', file: 'Manager/10-team-and-roles.mp4', title: 'Your team and roles', about: 'Inviting staff and choosing what each person can do.', mins: 1 },
   ],
   enforcer: [
-    { id: 'E1', file: 'enforcement/E1-sign-in-and-check-plates.mp4', title: 'Sign in and check a plate', about: 'Signing in, picking your property, and what green results mean.', mins: 2 },
-    { id: 'E2', file: 'enforcement/E2-possible-matches.mp4', title: 'When the plate is close, but not exact', about: 'Amber possible matches, and how to confirm or reject them.', mins: 1 },
-    { id: 'E3', file: 'enforcement/E3-tow-boot-ticket-and-records.mp4', title: 'No valid permit: tow, boot or ticket', about: 'Logging an action, the Violations Log and Patrol Summary.', mins: 2 },
+    { id: 'E1', file: 'Enforcement/E1-sign-in-and-check-plates.mp4', title: 'Sign in and check a plate', about: 'Signing in, picking your property, and what green results mean.', mins: 2 },
+    { id: 'E2', file: 'Enforcement/E2-possible-matches.mp4', title: 'When the plate is close, but not exact', about: 'Amber possible matches, and how to confirm or reject them.', mins: 1 },
+    { id: 'E3', file: 'Enforcement/E3-tow-boot-ticket-and-records.mp4', title: 'No valid permit: tow, boot or ticket', about: 'Logging an action, the Violations Log and Patrol Summary.', mins: 2 },
   ],
 };
 
