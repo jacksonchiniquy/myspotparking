@@ -1156,10 +1156,18 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
   <div class="modal" style="width:640px;max-width:calc(100vw - 32px);max-height:calc(100vh - 40px);overflow-y:auto;">
     <button class="modal-close" onclick="closeModal('modal-bulk-units')">✕</button>
     <div class="modal-title">Bulk Add Units</div>
-    <div class="modal-sub">Create many units at once, with one or more spots each. Each new unit gets its own invite code.</div>
-    <div style="display:flex;gap:6px;margin:6px 0 14px;">
-      <button class="btn btn-primary btn-sm" id="bu-tab-range" onclick="setBulkMode('range')">Number range</button>
+    <div class="modal-sub">Create many units at once, with one or more spots each. Each new unit gets its own invite code. A spreadsheet can also bring in tenant names, emails and vehicles.</div>
+    <div style="display:flex;gap:6px;margin:6px 0 14px;flex-wrap:wrap;">
+      <button class="btn btn-primary btn-sm" id="bu-tab-file" onclick="setBulkMode('file')">Upload a spreadsheet</button>
+      <button class="btn btn-ghost btn-sm" id="bu-tab-range" onclick="setBulkMode('range')">Number range</button>
       <button class="btn btn-ghost btn-sm" id="bu-tab-list" onclick="setBulkMode('list')">Paste a list</button>
+    </div>
+    <div id="bu-file" style="display:none;">
+      <div style="border:1.5px dashed var(--border2,#cbd5e1);border-radius:12px;padding:18px;text-align:center;margin-bottom:10px;">
+        <label class="btn btn-primary btn-sm" style="cursor:pointer;margin:0;">Choose a file<input type="file" accept=".xlsx,.xls,.csv,text/csv" style="display:none;" onchange="bulkLoadFile(this)"></label>
+        <div id="bu-file-name" style="font-size:13px;color:var(--text2);margin-top:8px;">Excel (.xlsx) or CSV. Columns: Unit, Tenant name, Email, Plate, Vehicle.</div>
+        <div style="font-size:12px;margin-top:6px;"><a href="#" onclick="bulkTemplate();return false;" style="color:var(--blue);">Download the template</a> · one row per vehicle; a unit with two cars gets two rows</div>
+      </div>
     </div>
     <div id="bu-range">
       <div class="form-row">
@@ -1176,9 +1184,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
       <div class="form-group"><label class="form-label">One unit per line. Tenant name and email are optional.</label>
         <textarea class="form-input" id="bu-paste" rows="7" placeholder="101, Maria Lopez, maria@email.com&#10;102, Sam Ortiz, sam@email.com&#10;103A&#10;Penthouse 1" oninput="updateBulkPreview()" style="font-family:'JetBrains Mono',monospace;font-size:12px;"></textarea></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-6px 0 12px;font-size:12px;color:var(--text3);">
-        <span>You can paste rows straight from a spreadsheet (Unit, Name, Email), or</span>
-        <label class="btn btn-ghost btn-sm" style="cursor:pointer;margin:0;">Upload CSV<input type="file" accept=".csv,text/csv,.txt" style="display:none;" onchange="bulkLoadCSV(this)"></label>
-        <a href="#" onclick="bulkTemplate();return false;" style="color:var(--blue);">Download template</a>
+        <span>Or paste rows copied from a spreadsheet, including its header row (Unit, Tenant name, Email, Plate, Vehicle).</span>
       </div>
     </div>
     <div class="form-row">
@@ -1190,8 +1196,9 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
     <div id="bu-spots"></div>
     <button class="btn btn-ghost btn-sm" type="button" onclick="addBulkSpot()" style="margin:2px 0 12px;">+ Add another spot</button>
     <div style="font-size:11px;color:var(--text3);margin:-4px 0 6px;">Units that already exist get any spot they don't have yet (matched by spot name).</div>
-    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin:0 0 10px;cursor:pointer;"><input type="checkbox" id="bu-noexist" onchange="updateBulkPreview()"> Don't add spots to units that already exist (just fill in tenant emails)</label>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin:0 0 10px;cursor:pointer;"><input type="checkbox" id="bu-noexist" onchange="updateBulkPreview()"> Don't add spots to units that already exist (just fill in tenant emails and vehicles)</label>
     <div id="bu-preview" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--text2);margin:6px 0 12px;">Enter a range or list to see a preview.</div>
+    <div id="bu-table" style="display:none;max-height:260px;overflow:auto;border:1px solid var(--border);border-radius:10px;margin:0 0 12px;"></div>
     <label id="bu-send-wrap" style="display:none;align-items:flex-start;gap:8px;font-size:13px;color:var(--text2);margin:0 0 12px;cursor:pointer;"><input type="checkbox" id="bu-send" style="margin-top:2px;"> <span id="bu-send-text">Email each tenant their invite now</span></label>
     <div class="err-msg" id="bu-err"></div>
     <button class="btn btn-primary btn-full" id="bu-btn" onclick="saveBulkUnits()" disabled>Create Units</button>
@@ -6281,15 +6288,25 @@ function addBulkSpot(){
 }
 function removeBulkSpot(i){const s=readBulkSpots();s.splice(i,1);renderBulkSpots(s);}
 async function loadBulkExisting(){
-  const {data}=await sb.from('property_units').select('unit_number,slot_label,tenant_email,invite_used,invite_code').eq('property_id',currentPropertyId);
-  _bulkExisting=new Map();_bulkExistingInfo=new Map();
+  const {data}=await sb.from('property_units').select('id,unit_number,slot_label,tenant_email,invite_used,invite_code').eq('property_id',currentPropertyId);
+  _bulkExisting=new Map();_bulkExistingInfo=new Map();_bulkPlateAt=new Map();
   (data||[]).forEach(u=>{
     const k=String(u.unit_number||'').trim().toLowerCase();
-    if(!_bulkExisting.has(k)){_bulkExisting.set(k,new Set());_bulkExistingInfo.set(k,{name:u.unit_number,email:null,used:false,code:false});}
+    if(!_bulkExisting.has(k)){_bulkExisting.set(k,new Set());_bulkExistingInfo.set(k,{name:u.unit_number,email:null,used:false,code:false,slots:[],plates:new Set()});}
     _bulkExisting.get(k).add(String(u.slot_label||'').trim().toLowerCase());
     const i=_bulkExistingInfo.get(k);
     if(u.tenant_email)i.email=u.tenant_email; if(u.invite_used)i.used=true; if(u.invite_code)i.code=true;
+    i.slots.push({id:u.id,label:u.slot_label,busy:false});
   });
+  // Vehicles already on the units, and plates already active anywhere at this property
+  const slotIdx=new Map();_bulkExistingInfo.forEach((i,k)=>i.slots.forEach(sl=>slotIdx.set(sl.id,[k,sl])));
+  const ids=[...slotIdx.keys()];
+  for(let i=0;i<ids.length;i+=150){
+    const {data:ups}=await sb.from('unit_permits').select('unit_slot_id,plate').is('void_at',null).in('unit_slot_id',ids.slice(i,i+150));
+    (ups||[]).forEach(up=>{const x=slotIdx.get(up.unit_slot_id);if(!x)return;x[1].busy=true;const p=normPlate(up.plate);if(p){_bulkExistingInfo.get(x[0]).plates.add(p);_bulkPlateAt.set(p,_bulkExistingInfo.get(x[0]).name);}});
+  }
+  const {data:pm}=await sb.from('permits').select('plate,unit_number,status,end_date').eq('property_id',currentPropertyId).eq('status','active');
+  (pm||[]).forEach(p=>{const k=normPlate(p.plate);if(k&&!_bulkPlateAt.has(k))_bulkPlateAt.set(k,p.unit_number||'another permit');});
 }
 async function openBulkUnits(){
   if(!currentPropertyId){toast('Open a property first');return;}
@@ -6297,45 +6314,71 @@ async function openBulkUnits(){
   document.getElementById('bu-err').classList.remove('show');
   document.getElementById('bu-send').checked=false;document.getElementById('bu-noexist').checked=false;
   renderBulkSpots([{label:'Spot 1',type:'stall-standard',billing:'free',amount:''}]);
-  setBulkMode('range');
+  _bulkFileRows=null;document.getElementById('bu-file-name').textContent='Excel (.xlsx) or CSV. Columns: Unit, Tenant name, Email, Plate, Vehicle.';
+  setBulkMode('file');
   openModal('modal-bulk-units');
   await loadBulkExisting();
   updateBulkPreview();
 }
 function setBulkMode(m){
   _bulkMode=m;
-  document.getElementById('bu-range').style.display=m==='range'?'':'none';
-  document.getElementById('bu-list').style.display=m==='list'?'':'none';
-  document.getElementById('bu-tab-range').className='btn btn-sm '+(m==='range'?'btn-primary':'btn-ghost');
-  document.getElementById('bu-tab-list').className='btn btn-sm '+(m==='list'?'btn-primary':'btn-ghost');
+  ['file','range','list'].forEach(k=>{
+    document.getElementById('bu-'+k).style.display=m===k?'':'none';
+    document.getElementById('bu-tab-'+k).className='btn btn-sm '+(m===k?'btn-primary':'btn-ghost');
+  });
   updateBulkPreview();
 }
-// Pasted list: plain unit numbers (one per line or comma-separated), or rows of
-// unit, tenant name, email (comma- or tab-separated, as copied from a spreadsheet)
-let _bulkContacts=new Map(), _bulkBadEmails=[], _bulkExistingInfo=new Map();
+// Imports: rows of unit, tenant name, email, plate, vehicle from a spreadsheet file,
+// pasted spreadsheet rows, or a plain list of unit numbers
+let _bulkContacts=new Map(), _bulkBadEmails=[], _bulkExistingInfo=new Map(), _bulkVehicles=new Map(), _bulkPlateAt=new Map(), _bulkFileRows=null, _bulkSrcRows=[], _bulkVehPlan=[], _bulkProblems=[];
 const EMAIL_OK=/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
-function bulkParseList(text){
-  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
-  const rows=lines.some(l=>l.includes('@')||l.includes('\t'));
-  const units=[], contacts=new Map(), bad=[];
-  if(!rows){ text.split(/[\n,]+/).map(x=>x.trim()).filter(Boolean).forEach(u=>units.push(u)); return {units,contacts,bad}; }
-  lines.forEach((l,i)=>{
-    const parts=l.split(/\t|,|;/).map(x=>x.trim().replace(/^"|"$/g,''));
-    const unit=parts.shift(); if(!unit) return;
-    if(i===0&&/^unit/i.test(unit)) return; // header row
-    let email='', name=[];
-    parts.forEach(p=>{ if(!p) return; if(p.includes('@')&&!email) email=p.toLowerCase(); else name.push(p); });
-    if(email&&!EMAIL_OK.test(email)) bad.push(unit+': '+email);
-    units.push(unit);
-    if(email||name.length) contacts.set(unit.toLowerCase(),{email:EMAIL_OK.test(email)?email:'',name:name.join(' ').trim()});
+const normPlate=p=>String(p||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10);
+// Works out which column is which from a header row (any order, common names)
+function bulkHeaderMap(h){
+  h=h.map(x=>String(x||'').trim().toLowerCase());
+  const find=re=>h.findIndex(x=>re.test(x));
+  const m={unit:find(/^(unit|apt|apartment|suite|space|lot|bldg|building|door|address)|unit\b|unit ?#|unit number/),
+    email:find(/mail/), plate:find(/plate|license|tag\b|lic\b/),
+    name:h.findIndex(x=>/name|tenant|resident|occupant|lessee/.test(x)&&!/mail|unit|property/.test(x)),
+    veh:h.map((x,i)=>/vehicle|make|model|colou?r|year|car\b|description|desc\b/.test(x)&&!/plate|license/.test(x)?i:-1).filter(i=>i>=0)};
+  return m.unit>=0&&(m.email>=0||m.plate>=0||m.name>=0)?m:null;
+}
+function bulkRowsFrom2D(grid){
+  grid=grid.filter(r=>r&&r.some(c=>String(c??'').trim()));
+  if(!grid.length) return [];
+  let m=bulkHeaderMap(grid[0]),start=0;
+  if(m) start=1; else m={unit:0,name:1,email:2,plate:3,veh:[4]};
+  const cell=(r,i)=>i>=0?String(r[i]??'').trim():'';
+  return grid.slice(start).map((r,i)=>({line:i+start+1,unit:cell(r,m.unit),name:cell(r,m.name),email:cell(r,m.email).toLowerCase(),
+    plate:cell(r,m.plate),vehicle:m.veh.map(j=>cell(r,j)).filter(Boolean).join(' ')})).filter(r=>r.unit);
+}
+function bulkFromRows(rows){
+  const units=[],contacts=new Map(),bad=[],veh=new Map();
+  const seenU=new Set();
+  rows.forEach(r=>{
+    const k=r.unit.toLowerCase();
+    if(!seenU.has(k)){seenU.add(k);units.push(r.unit);} // a unit can have several rows (one per vehicle)
+    if(r.email&&!EMAIL_OK.test(r.email)) bad.push((r.line?'Row '+r.line+' · ':'')+r.unit+': '+r.email);
+    const c=contacts.get(k)||{email:'',name:''};
+    if(!c.email&&EMAIL_OK.test(r.email))c.email=r.email; if(!c.name&&r.name)c.name=r.name;
+    if(c.email||c.name)contacts.set(k,c);
+    if(r.plate){(veh.get(k)||veh.set(k,[]).get(k)).push({plate:normPlate(r.plate),raw:r.plate,desc:r.vehicle.slice(0,120),line:r.line});}
   });
-  return {units,contacts,bad};
+  return {units,contacts,bad,veh};
+}
+function bulkParseList(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  const split=l=>l.includes('\t')?l.split('\t'):l.split(/,|;/);
+  const grid=lines.map(split);
+  const rowsMode=grid.length&&(bulkHeaderMap(grid[0])||lines.some(l=>l.includes('@')||l.includes('\t')));
+  if(!rowsMode) return {units:text.split(/[\n,]+/).map(x=>x.trim()).filter(Boolean),contacts:new Map(),bad:[],veh:new Map()};
+  return bulkFromRows(bulkRowsFrom2D(grid.map(r=>r.map(c=>c.trim().replace(/^"|"$/g,'')))));
 }
 function bulkUnitNumbers(){
-  _bulkContacts=new Map();_bulkBadEmails=[];
-  if(_bulkMode==='list'){
-    const r=bulkParseList(document.getElementById('bu-paste').value);
-    _bulkContacts=r.contacts;_bulkBadEmails=r.bad;
+  _bulkContacts=new Map();_bulkBadEmails=[];_bulkVehicles=new Map();
+  if(_bulkMode==='list'||_bulkMode==='file'){
+    const r=_bulkMode==='file'?bulkFromRows(_bulkFileRows||[]):bulkParseList(document.getElementById('bu-paste').value);
+    _bulkContacts=r.contacts;_bulkBadEmails=r.bad;_bulkVehicles=r.veh;
     return r.units;
   }
   const from=document.getElementById('bu-from').value.trim(), to=document.getElementById('bu-to').value.trim();
@@ -6368,7 +6411,8 @@ function updateBulkPreview(){
   if(nums&&!Array.isArray(nums)){
     el.innerHTML=nums.backwards?'"To" must be the same as or higher than "From".':`That's ${nums.tooMany.toLocaleString()} units — please add at most ${BULK_MAX.toLocaleString()} at a time.`;return;
   }
-  if(!nums||!nums.length){el.textContent='Enter a range or list to see a preview.';return;}
+  document.getElementById('bu-table').style.display='none';document.getElementById('bu-send-wrap').style.display='none';
+  if(!nums||!nums.length){el.textContent=_bulkMode==='file'?'Choose a spreadsheet to see a preview.':'Enter a range or list to see a preview.';return;}
   const seen=new Set(); let dupes=0;
   nums.forEach(n=>{const k=n.toLowerCase();if(seen.has(k)){dupes++;return;}seen.add(k);_bulkPlan.push(n);});
   if(_bulkPlan.length>BULK_MAX){el.textContent=`Please add at most ${BULK_MAX.toLocaleString()} units at a time.`;_bulkPlan=[];return;}
@@ -6410,41 +6454,83 @@ function updateBulkPreview(){
   if(_bulkBadEmails.length) el.innerHTML+=`<div style="margin-top:6px;color:#b91c1c;">${_bulkBadEmails.length} email${_bulkBadEmails.length===1?' looks':'s look'} wrong. Fix ${_bulkBadEmails.length===1?'it':'them'} before creating: ${escHtml(_bulkBadEmails.slice(0,4).join(' · '))}${_bulkBadEmails.length>4?' …':''}</div>`;
   else if(withEmail.length) el.innerHTML+=`<div style="margin-top:6px;">${withEmail.length} unit${withEmail.length===1?'':'s'} will get a tenant email${_bulkEmailFill.some(x=>x.existing)?' (existing units only if they don\'t have one yet)':''}.</div>`;
   const sw=document.getElementById('bu-send-wrap');
-  sw.style.display=withEmail.length&&!_bulkBadEmails.length?'flex':'none';
+  sw.style.display=withEmail.length&&!_bulkBadEmails.length&&!problem?'flex':'none';
   document.getElementById('bu-send-text').textContent=`Email each tenant their invite now (${withEmail.length} unit${withEmail.length===1?' has':'s have'} an email). Leave unticked to send later with Send all invites.`;
-  const onlyEmails=!_bulkRows.length&&_bulkEmailFill.length&&!problem;
-  btn.disabled=!!problem||!!_bulkBadEmails.length||(!_bulkRows.length&&!onlyEmails);
-  if(!problem&&_bulkRows.length) btn.textContent=`Create ${_bulkRows.length} Spot${_bulkRows.length===1?'':'s'}`;
-  else if(onlyEmails) btn.textContent=`Save ${_bulkEmailFill.length} tenant email${_bulkEmailFill.length===1?'':'s'}`;
+  // Vehicles: check plates and room before anything is saved
+  _bulkVehPlan=[];_bulkProblems=[];let vehSkip=0;
+  const badLines=new Set();
+  if(!problem&&_bulkVehicles.size){
+    const seenPlate=new Map();
+    _bulkVehicles.forEach(list=>list.forEach(v=>{if(!v.plate)return;(seenPlate.get(v.plate)||seenPlate.set(v.plate,[]).get(v.plate)).push(v);}));
+    seenPlate.forEach((vs,p)=>{if(vs.length>1){_bulkProblems.push(`${p} is listed ${vs.length} times (rows ${vs.map(v=>v.line).join(', ')})`);vs.forEach(v=>badLines.add(v.line));}});
+    _bulkPlan.forEach(n=>{
+      const k=n.toLowerCase(), list=_bulkVehicles.get(k); if(!list) return;
+      const ex=_bulkExistingInfo.get(k);
+      const add=[];
+      list.forEach(v=>{
+        if(!v.plate){_bulkProblems.push(`Row ${v.line}: "${v.raw}" isn't a plate`);badLines.add(v.line);return;}
+        if(ex&&ex.plates.has(v.plate)){vehSkip++;return;}
+        const at=_bulkPlateAt.get(v.plate);
+        if(at!==undefined){_bulkProblems.push(`Row ${v.line}: ${v.plate} is already parked at this property (${/^[0-9]/.test(String(at))?'unit ':''}${at})`);badLines.add(v.line);return;}
+        add.push(v);
+      });
+      const room=(ex?ex.slots.filter(x=>!x.busy).length:0)+_bulkRows.filter(r=>r.unit_number.toLowerCase()===k).length;
+      if(add.length>room){_bulkProblems.push(`Unit ${n} has ${add.length} vehicle${add.length===1?'':'s'} to add but ${room} open spot${room===1?'':'s'}. Add a spot or remove a car.`);add.forEach(v=>badLines.add(v.line));return;}
+      add.forEach(v=>_bulkVehPlan.push({unit:ex?ex.name:n,plate:v.plate,desc:v.desc}));
+    });
+    if(_bulkProblems.length) el.innerHTML+=`<div style="margin-top:6px;color:#b91c1c;"><strong>Fix ${_bulkProblems.length===1?'this':'these'} first:</strong><br>${_bulkProblems.slice(0,6).map(escHtml).join('<br>')}${_bulkProblems.length>6?'<br>…and '+(_bulkProblems.length-6)+' more':''}</div>`;
+    else el.innerHTML+=`<div style="margin-top:6px;">${_bulkVehPlan.length} vehicle${_bulkVehPlan.length===1?'':'s'} will be added and show as valid to enforcement right away${vehSkip?` (${vehSkip} already on file, skipped)`:''}.</div>`;
+  }
+  // Row-by-row table for spreadsheet imports
+  const src=_bulkMode==='file'?(_bulkFileRows||[]):(_bulkMode==='list'&&(_bulkVehicles.size||_bulkContacts.size)?bulkRowsFrom2D(document.getElementById('bu-paste').value.split(/\r?\n/).filter(l=>l.trim()).map(l=>(l.includes('\t')?l.split('\t'):l.split(/,|;/)).map(c=>c.trim()))):[]);
+  const tb=document.getElementById('bu-table');
+  if(src.length){
+    const badEmail=new Set(src.filter(r=>r.email&&!EMAIL_OK.test(r.email)).map(r=>r.line));
+    const td='padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap;';
+    tb.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px;"><tr style="position:sticky;top:0;background:var(--surface2);">${['Row','Unit','Tenant name','Email','Plate','Vehicle'].map(h=>`<th style="${td}text-align:left;color:var(--text3);font-weight:600;">${h}</th>`).join('')}</tr>`
+      +src.slice(0,300).map(r=>{const bad=badLines.has(r.line)||badEmail.has(r.line);return `<tr style="${bad?'background:rgba(220,38,38,.08);':''}"><td style="${td}color:var(--text3);">${r.line}</td><td style="${td}font-weight:600;">${escHtml(r.unit)}</td><td style="${td}">${escHtml(r.name)}</td><td style="${td}${badEmail.has(r.line)?'color:#b91c1c;':''}">${escHtml(r.email)}</td><td style="${td}font-family:'JetBrains Mono',monospace;${badLines.has(r.line)?'color:#b91c1c;':''}">${escHtml(r.plate?normPlate(r.plate):'')}</td><td style="${td}">${escHtml(r.vehicle)}</td></tr>`;}).join('')
+      +(src.length>300?`<tr><td colspan="6" style="${td}color:var(--text3);">…and ${src.length-300} more rows</td></tr>`:'')+'</table>';
+    tb.style.display='';
+  }
+  const blocked=!!problem||!!_bulkBadEmails.length||!!_bulkProblems.length;
+  const onlyEmails=!_bulkRows.length&&(_bulkEmailFill.length||_bulkVehPlan.length)&&!blocked;
+  btn.disabled=blocked||(!_bulkRows.length&&!onlyEmails);
+  if(!blocked&&_bulkRows.length) btn.textContent=`Create ${_bulkRows.length} Spot${_bulkRows.length===1?'':'s'}`+(_bulkVehPlan.length?` and add ${_bulkVehPlan.length} vehicle${_bulkVehPlan.length===1?'':'s'}`:'');
+  else if(onlyEmails) btn.textContent=[_bulkEmailFill.length?`Save ${_bulkEmailFill.length} tenant email${_bulkEmailFill.length===1?'':'s'}`:'',_bulkVehPlan.length?`Add ${_bulkVehPlan.length} vehicle${_bulkVehPlan.length===1?'':'s'}`:''].filter(Boolean).join(' and ');
 }
 function escHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function bulkTemplate(){
-  const csv='Unit,Tenant name,Email\r\n101,Maria Lopez,maria@example.com\r\n102,Sam Ortiz,sam@example.com\r\n103,,\r\n';
+  const csv='Unit,Tenant name,Email,Plate,Vehicle\r\n101,Maria Lopez,maria@example.com,ABC1234,Silver Toyota Camry\r\n101,,,XYZ9876,Blue Honda Civic\r\n102,Sam Ortiz,sam@example.com,KLM5520,\r\n103,,,,\r\n';
   saveBlob(new Blob([csv],{type:'text/csv'}),'lothq-units-template.csv');
 }
-function bulkLoadCSV(input){
-  const f=input.files&&input.files[0]; if(!f) return;
-  const rd=new FileReader();
-  rd.onload=()=>{
-    // simple CSV reader (handles quoted fields), turned into tab-separated rows
-    const rows=[];let row=[],cell='',q=false;const t=String(rd.result||'');
-    for(let i=0;i<t.length;i++){const c=t[i];
-      if(q){if(c==='"'){if(t[i+1]==='"'){cell+='"';i++;}else q=false;}else cell+=c;}
-      else if(c==='"')q=true; else if(c===','){row.push(cell);cell='';} else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;row.push(cell);rows.push(row);row=[];cell='';} else cell+=c;}
-    if(cell||row.length){row.push(cell);rows.push(row);}
-    let body=rows.filter(r=>r.some(x=>x.trim()));
-    // use the header to find the columns, if there is one
-    let iu=0,in_=1,ie=2;
-    if(body.length&&body[0].some(h=>/unit/i.test(h))){
-      const h=body.shift().map(x=>x.toLowerCase());
-      iu=h.findIndex(x=>/unit|suite|space/.test(x)); in_=h.findIndex(x=>/name|tenant|resident/.test(x)&&!/email/.test(x)); ie=h.findIndex(x=>/mail/.test(x));
-    }
-    document.getElementById('bu-paste').value=body.map(r=>[r[iu]||'',in_>=0?(r[in_]||''):'',ie>=0?(r[ie]||''):''].map(x=>x.trim().replace(/\t/g,' ')).join('\t')).join('\n');
-    input.value='';
-    setBulkMode('list');
-    toast(body.length+' row'+(body.length===1?'':'s')+' loaded from '+f.name);
-  };
-  rd.readAsText(f);
+let _xlsxLoading=null;
+function loadXLSX(){
+  if(window.XLSX) return Promise.resolve();
+  return _xlsxLoading||(_xlsxLoading=new Promise((ok,bad)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';sc.onload=ok;sc.onerror=()=>{_xlsxLoading=null;bad(new Error('Could not load the spreadsheet reader. Check your connection and try again.'));};document.head.appendChild(sc);}));
+}
+function parseCSV(t){
+  const rows=[];let row=[],cell='',q=false;
+  for(let i=0;i<t.length;i++){const c=t[i];
+    if(q){if(c==='"'){if(t[i+1]==='"'){cell+='"';i++;}else q=false;}else cell+=c;}
+    else if(c==='"')q=true; else if(c===','){row.push(cell);cell='';} else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;row.push(cell);rows.push(row);row=[];cell='';} else cell+=c;}
+  if(cell||row.length){row.push(cell);rows.push(row);}
+  return rows;
+}
+async function bulkLoadFile(input){
+  const f=input.files&&input.files[0]; input.value=''; if(!f) return;
+  const label=document.getElementById('bu-file-name');label.textContent='Reading '+f.name+'…';
+  try{
+    let grid;
+    if(/\.(xlsx|xls)$/i.test(f.name)){
+      await loadXLSX();
+      const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
+      grid=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''});
+    }else grid=parseCSV(await f.text());
+    _bulkFileRows=bulkRowsFrom2D(grid);
+    if(_bulkMode!=='file') setBulkMode('file');
+    label.innerHTML=`<strong style="color:var(--text1);">${escHtml(f.name)}</strong> · ${_bulkFileRows.length} row${_bulkFileRows.length===1?'':'s'} read. Check the preview below.`;
+  }catch(e){_bulkFileRows=null;label.textContent=e.message||'Could not read that file.';}
+  updateBulkPreview();
 }
 // Emails a unit its signup invite (same email as Invite Tenant)
 async function emailUnitInvite(unitNumber,email,token){
@@ -6480,8 +6566,9 @@ async function saveBulkUnits(){
   const err=document.getElementById('bu-err'),btn=document.getElementById('bu-btn');
   err.classList.remove('show');
   updateBulkPreview();
-  if(_bulkBadEmails.length) return;
-  if(!_bulkRows.length&&!_bulkEmailFill.length) return;
+  if(_bulkBadEmails.length||_bulkProblems.length) return;
+  if(!_bulkRows.length&&!_bulkEmailFill.length&&!_bulkVehPlan.length) return;
+  const vehPlan=_bulkVehPlan.slice();
   const sendNow=document.getElementById('bu-send').checked&&document.getElementById('bu-send-wrap').style.display!=='none';
   const fill=_bulkEmailFill.slice();
   const contactOf=n=>{const c=fill.find(x=>!x.existing&&x.unit.toLowerCase()===String(n).toLowerCase());return c||null;};
@@ -6518,8 +6605,28 @@ async function saveBulkUnits(){
     const {error}=await sb.from('property_units').update(upd).eq('property_id',currentPropertyId).eq('unit_number',c.unit).is('tenant_email',null).eq('invite_used',false);
     if(!error)filled++;
   }
+  // Vehicles: put each one in an open spot of its unit
+  let vAdded=0,vFailed=[];
+  if(vehPlan.length){
+    const units=[...new Set(vehPlan.map(v=>v.unit))];
+    let slots=[];
+    for(let i=0;i<units.length;i+=100){const {data}=await sb.from('property_units').select('id,unit_number,slot_label').eq('property_id',currentPropertyId).in('unit_number',units.slice(i,i+100));slots=slots.concat(data||[]);}
+    const busy=new Set();
+    for(let i=0;i<slots.length;i+=150){const {data}=await sb.from('unit_permits').select('unit_slot_id').is('void_at',null).in('unit_slot_id',slots.slice(i,i+150).map(x=>x.id));(data||[]).forEach(u=>busy.add(u.unit_slot_id));}
+    const open={};slots.sort((a,b)=>String(a.slot_label).localeCompare(String(b.slot_label),undefined,{numeric:true})).forEach(x=>{if(!busy.has(x.id))(open[x.unit_number]=open[x.unit_number]||[]).push(x.id);});
+    const items=[];
+    vehPlan.forEach(v=>{const id=(open[v.unit]||[]).shift();if(id)items.push({slotId:id,plate:v.plate,desc:v.desc,unit:v.unit});else vFailed.push(v.plate);});
+    for(let i=0;i<items.length;i+=20){
+      btn.textContent=`Adding vehicles… ${i}/${items.length}`;
+      const batch=items.slice(i,i+20);
+      const r=await unitService('managerAssignMany',{items:batch.map(({slotId,plate,desc})=>({slotId,plate,desc}))});
+      if(r.error){batch.forEach(b=>vFailed.push(b.plate));continue;}
+      (r.results||[]).forEach((x,j)=>x.ok?vAdded++:vFailed.push(batch[j].plate));
+    }
+  }
   let msg=[];
   if(done) msg.push(`${done} spot${done===1?'':'s'} created`);
+  if(vAdded||vFailed.length) msg.push(`${vAdded} vehicle${vAdded===1?'':'s'} added`+(vFailed.length?` (${vFailed.length} not added: ${vFailed.slice(0,5).join(', ')}${vFailed.length>5?'…':''})`:''));
   if(filled) msg.push(`${filled} existing unit${filled===1?'':'s'} got an email`);
   if(sendNow){
     const list=fill.filter(x=>x.email&&x.code).map(x=>({unit:x.unit,email:x.email}));

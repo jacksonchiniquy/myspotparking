@@ -16,6 +16,7 @@
 //   forgot   { propertyId, unitNumber, email }
 //   managerAssign { slotId, plate, desc }   (Authorization: Bearer <manager or admin login>)
 //   managerVoid   { slotId }                (Authorization: Bearer <manager or admin login>)
+//   managerAssignMany { items:[{slotId, plate, desc}] }  spreadsheet import, up to 25 per call
 //   addSpotCheckout { token, slotId }        → { url }  resident pays for a paid spot they skipped
 //   billingPortal   { token }                → { url }  resident's Stripe billing page
 //   managerSendSpotLink { slotId, email? }   emails the resident a "Pay & Add Spot" link
@@ -596,6 +597,35 @@ const actions = {
     return { ok: true, spots: plan.spots.map(x => x.label) };
   },
 
+  // Spreadsheet import: put many vehicles in empty spots at once (one property, up to 25 per call)
+  async managerAssignMany({ items }, event, ctx = {}) {
+    if (!Array.isArray(items) || !items.length) throw new UserError('Nothing to add.');
+    if (items.length > 25) throw new UserError('Up to 25 vehicles at a time.');
+    const first = ctx.u = await authManagerForSlot(event, items[0].slotId);
+    const ids = [...new Set(items.map(i => String(i.slotId || '')))];
+    if (!ids.every(id => UUID_RE.test(id))) throw new UserError('Slot not found.');
+    const rows = await sb('GET', `property_units?id=in.(${ids.join(',')})&select=id,property_id,unit_number`);
+    if (rows.length !== ids.length || rows.some(r => r.property_id !== first.propertyId)) throw new UserError('Not allowed.', 403);
+    const unitOf = Object.fromEntries(rows.map(r => [r.id, r.unit_number]));
+    const slotsByUnit = {};
+    const results = [];
+    for (const it of items) {
+      const unitNumber = unitOf[it.slotId];
+      try {
+        const slots = slotsByUnit[unitNumber] = slotsByUnit[unitNumber] || await getSlots(first.propertyId, unitNumber);
+        const busy = await sb('GET', `unit_permits?unit_slot_id=eq.${it.slotId}&void_at=is.null&select=id`);
+        if (busy.length) throw new UserError('That spot already has a vehicle.');
+        const vehicle = { ...vehicleFields({ plate: it.plate }), desc: typeof it.desc === 'string' && it.desc.trim() ? it.desc.trim().slice(0, 120) : null };
+        await assignToSlot({ propertyId: first.propertyId, unitNumber, slots, slotId: it.slotId, vehicle, assignedBy: 'manager' });
+        results.push({ slotId: it.slotId, ok: true });
+      } catch (e) {
+        results.push({ slotId: it.slotId, ok: false, error: e instanceof UserError ? e.message : 'Could not add' });
+      }
+    }
+    ctx.u.imported = { count: results.filter(r => r.ok).length, plates: items.filter((it, i) => results[i].ok).map(it => String(it.plate || '').toUpperCase()) };
+    return { results };
+  },
+
   async managerVoid({ slotId }, event, ctx = {}) {
     const u = ctx.u = await authManagerForSlot(event, slotId);
     const ups = await sb('PATCH', `unit_permits?unit_slot_id=eq.${slotId}&void_at=is.null`, { void_at: new Date().toISOString() });
@@ -734,6 +764,7 @@ const LOG = {
   forgot:         (b, r, u) => ['unit.password_reset', `Password reset emailed to ${r.sentTo}`],
   managerAssign:  (b, r, u) => ['unit.vehicle_assigned', `Put ${String(b.plate || '').toUpperCase()} in ${slotName(u, b.slotId)}`],
   managerVoid:    (b, r, u) => ['unit.vehicle_voided', `Cleared the car from ${slotName(u, b.slotId)}`],
+  managerAssignMany: (b, r, u) => u?.imported?.count ? ['unit.vehicles_imported', `Imported ${u.imported.count} vehicle${u.imported.count === 1 ? '' : 's'} from a spreadsheet`, { plates: u.imported.plates }] : null,
   managerSendSpotLink: (b, r, u) => ['billing.payment_link_sent', `Sent a payment link for ${slotName(u, b.slotId)} to ${r.sentTo}`],
   managerMarkPaid:   (b, r, u) => ['billing.marked_paid', `Marked ${slotName(u, b.slotId)} as paid outside the app`],
   managerMarkUnpaid: (b, r, u) => ['billing.marked_unpaid', `Marked ${slotName(u, b.slotId)} as not paid`],
@@ -749,7 +780,9 @@ async function logUnitAction(body, result, ctx) {
   const make = LOG[body.action];
   const u = ctx.u;
   if (!make || !u) return;
-  const [action, summary, details] = make(body, result || {}, u);
+  const made = make(body, result || {}, u);
+  if (!made) return;
+  const [action, summary, details] = made;
   const isManager = body.action.startsWith('manager');
   const tenant = (u.slots || []).find(x => x.tenant_name || x.tenant_email) || {};
   await logActivity({

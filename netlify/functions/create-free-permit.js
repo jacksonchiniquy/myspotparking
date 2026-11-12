@@ -170,6 +170,8 @@ exports.handler = async (event) => {
     });
     await terms.recordAcceptance({ propertyId: unit.property_id, placement: 'signup', version: termsVersion,
       acceptedBy: `${tenantName ? tenantName + ' · ' : ''}${tenantEmail} · ${unitLabel(unit.unit_number)}`, userId, event });
+    await terms.recordForUnitPlates({ propertyId: unit.property_id, unitNumber: unit.unit_number, version: termsVersion,
+      acceptedBy: `${tenantName ? tenantName + ' · ' : ''}${tenantEmail} · ${unitLabel(unit.unit_number)}`, userId, event });
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },

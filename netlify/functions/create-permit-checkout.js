@@ -115,6 +115,8 @@ exports.handler = async (event) => {
 
     await terms.recordAcceptance({ propertyId: unit.property_id, placement: 'signup', version: body.termsVersion,
       acceptedBy: `${tenantEmail} · ${unitLabel(unit.unit_number)}`, event });
+    await terms.recordForUnitPlates({ propertyId: unit.property_id, unitNumber: unit.unit_number, version: body.termsVersion,
+      acceptedBy: `${tenantEmail} · ${unitLabel(unit.unit_number)}`, event });
     return reply(200, { url: session.url });
   } catch (err) {
     if (err instanceof connect.PaymentsPaused) return reply(400, { error: err.message });

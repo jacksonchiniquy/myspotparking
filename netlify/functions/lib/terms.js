@@ -105,4 +105,20 @@ async function recordAcceptance({ propertyId, placement, version, plate, accepte
   }
 }
 
-module.exports = { PLACEMENTS, termsFor, checkAccepted, recordAcceptance, latestTerms, fillFor, clearCache };
+// At sign-up, the tenant's agreement also covers vehicles the manager already put on the unit
+// (for example from a spreadsheet import): save one record per plate. Never throws.
+async function recordForUnitPlates({ propertyId, unitNumber, version, acceptedBy, userId, event }) {
+  try {
+    if (!UUID_RE.test(String(propertyId || ''))) return;
+    const slots = await get(`property_units?property_id=eq.${propertyId}&unit_number=eq.${encodeURIComponent(unitNumber)}&select=id`);
+    if (!slots.length) return;
+    const ups = await get(`unit_permits?unit_slot_id=in.(${slots.map(x => x.id).join(',')})&void_at=is.null&select=plate`);
+    for (const p of [...new Set(ups.map(u => u.plate).filter(Boolean))]) {
+      await recordAcceptance({ propertyId, placement: 'signup', version, plate: p, acceptedBy, userId, event });
+    }
+  } catch (err) {
+    console.error('terms plate records failed:', err.message);
+  }
+}
+
+module.exports = { PLACEMENTS, termsFor, checkAccepted, recordAcceptance, recordForUnitPlates, latestTerms, fillFor, clearCache };
