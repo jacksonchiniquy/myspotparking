@@ -94,6 +94,7 @@ main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:9
 .err-banner.show{display:block;}
 
 footer{padding:20px;text-align:center;font-size:11px;color:var(--text3);}
+.ico{display:inline-block;vertical-align:middle;flex-shrink:0;}
 </style>
 <script src="/lang.js"></script>
 </head>
@@ -167,7 +168,7 @@ footer{padding:20px;text-align:center;font-size:11px;color:var(--text3);}
         </div>
       </div>
       <div id="free-parking-notice" style="display:none;background:rgba(0,200,122,0.08);border:1px solid rgba(0,200,122,0.25);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:13px;color:#007a4a;">
-        ✅ <strong>Free parking included</strong> — <span id="free-notice-text">no payment required for this spot.</span>
+        <strong>Free parking included</strong> — <span id="free-notice-text">no payment required for this spot.</span>
       </div>
       <div id="su-terms"></div>
       <button class="btn btn-primary" id="btn-to-pay" onclick="goToPayment()">Continue to Payment →</button>
@@ -175,7 +176,7 @@ footer{padding:20px;text-align:center;font-size:11px;color:var(--text3);}
 
     <!-- STEP 3: Success (redirected back from Stripe) -->
     <div class="step" id="step-3">
-      <div class="success-icon">✅</div>
+      <div class="success-icon" style="color:#16a34a;"><svg class="ico" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg></div>
       <div class="success-title">You're all set!</div>
       <div class="success-sub">
         <span id="success-lead">Your payment was successful and your parking permit is now active.</span><br><br>
@@ -320,7 +321,7 @@ function renderSpots() {
       return `<div class="spot-row"><span class="spot-check">✓</span>${label}<span class="spot-price free">${sp.billing_type === 'prepaid' ? 'Paid · included' : 'Free · included'}</span></div>`;
     }
     const on = _chosen.has(sp.id);
-    const disc = sp.discount ? `<div class="spot-disc">🏷 ${escH(sp.discount.label)}</div>` : '';
+    const disc = sp.discount ? `<div class="spot-disc">${escH(sp.discount.label)}</div>` : '';
     return `<label class="spot-row paid${on ? ' on' : ''}"><input type="checkbox" ${on ? 'checked' : ''} onchange="toggleSpot('${sp.id}', this.checked)">${label}<span class="spot-price">${sp.monthly_cents ? money(sp.monthly_cents) + '/mo' : 'Paid'}${disc}</span></label>`;
   }).join('');
 
@@ -362,7 +363,7 @@ function buildBillingOptions(monthly) {
   let note = document.getElementById('disc-note');
   if (!note) { note = document.createElement('div'); note.id = 'disc-note'; note.className = 'disc-note'; grid.after(note); }
   note.style.display = discs.length ? '' : 'none';
-  note.textContent = discs.length ? '🏷 Your discount (' + discs.map(sp => sp.discount.label).join(', ') + ') comes off at checkout.' : '';
+  note.textContent = discs.length ? 'Your discount (' + discs.map(sp => sp.discount.label).join(', ') + ') comes off at checkout.' : '';
   document.getElementById('billing-grid').innerHTML = opts.map(o => {
     const c = price(o.id);
     return `

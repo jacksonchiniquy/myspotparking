@@ -205,7 +205,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div class="gate-logo-mark"><svg width="20" height="20" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="rgba(255,255,255,0.5)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="rgba(255,255,255,0.5)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="rgba(255,255,255,0.2)"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="white"/><circle cx="40" cy="20" r="10" fill="#2859a8"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="white">P</text></svg></div>
       <span class="gate-logo-text"><span style="color:#374269;font-weight:800;">Lot<b style="color:#2859a8;font-weight:inherit;">HQ</b></span> <span style="color:#2859a8;font-weight:600;font-size:.75em;letter-spacing:.1em;text-transform:uppercase;">Parking</span></span>
     </div>
-    <div class="gate-eyebrow">⚡ Admin Access</div>
+    <div class="gate-eyebrow">Admin Access</div>
     <div class="gate-title">Admin Portal</div>
     <div class="gate-sub">Restricted access — authorized personnel only</div>
     <div class="err-msg" id="gate-err"></div>
@@ -227,20 +227,20 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     </div>
     <nav style="padding:10px;flex:1;">
       <div class="sb-section">Overview</div>
-      <button class="sb-item active" id="sb-dashboard" onclick="showPanel('dashboard',this)">📊 Dashboard</button>
-      <button class="sb-item" id="sb-activity" onclick="showPanel('activity',this);loadActivity()">🕘 Activity</button>
+      <button class="sb-item active" id="sb-dashboard" onclick="showPanel('dashboard',this)">Dashboard</button>
+      <button class="sb-item" id="sb-activity" onclick="showPanel('activity',this);loadActivity()">Activity</button>
       <div class="sb-section">Platform</div>
-      <button class="sb-item" id="sb-managers" onclick="showPanel('managers',this)">🏢 Managers<span class="sb-count" id="cnt-managers">0</span><span class="sb-count" id="cnt-pending" title="Pending access requests" style="display:none;background:#d97706;color:#fff;margin-left:4px;">0</span></button>
-      <button class="sb-item" id="sb-properties" onclick="showPanel('properties',this)">🗺 Properties<span class="sb-count" id="cnt-properties">0</span></button>
-      <button class="sb-item" id="sb-terms" onclick="showPanel('terms',this);loadTermsAdmin()">📜 Parking Terms</button>
-      <button class="sb-item" id="sb-languages" onclick="showPanel('languages',this);loadLanguages()">🌐 Languages</button>
-      <button class="sb-item" id="sb-permits" onclick="showPanel('permits',this)">🎫 Permits<span class="sb-count" id="cnt-permits">0</span></button>
-      <button class="sb-item" id="sb-residents" onclick="showPanel('residents',this)">👥 Residents<span class="sb-count" id="cnt-residents">0</span></button>
-      <button class="sb-item" id="sb-violations" onclick="showPanel('violations',this)">🚨 Violations<span class="sb-count" id="cnt-violations">0</span></button>
+      <button class="sb-item" id="sb-managers" onclick="showPanel('managers',this)">Managers<span class="sb-count" id="cnt-managers">0</span><span class="sb-count" id="cnt-pending" title="Pending access requests" style="display:none;background:#d97706;color:#fff;margin-left:4px;">0</span></button>
+      <button class="sb-item" id="sb-properties" onclick="showPanel('properties',this)">Properties<span class="sb-count" id="cnt-properties">0</span></button>
+      <button class="sb-item" id="sb-terms" onclick="showPanel('terms',this);loadTermsAdmin()">Parking Terms</button>
+      <button class="sb-item" id="sb-languages" onclick="showPanel('languages',this);loadLanguages()">Languages</button>
+      <button class="sb-item" id="sb-permits" onclick="showPanel('permits',this)">Permits<span class="sb-count" id="cnt-permits">0</span></button>
+      <button class="sb-item" id="sb-residents" onclick="showPanel('residents',this)">Residents<span class="sb-count" id="cnt-residents">0</span></button>
+      <button class="sb-item" id="sb-violations" onclick="showPanel('violations',this)">Violations<span class="sb-count" id="cnt-violations">0</span></button>
       <div class="sb-section">Billing</div>
-      <button class="sb-item" id="sb-plans" onclick="showPanel('plans',this)">💎 Plans & Features</button>
+      <button class="sb-item" id="sb-plans" onclick="showPanel('plans',this)">Plans & Features</button>
       <div class="sb-section">Admin</div>
-      <button class="sb-item" id="sb-staff" onclick="showPanel('staff',this)">⚡ Staff Access</button>
+      <button class="sb-item" id="sb-staff" onclick="showPanel('staff',this)">Staff Access</button>
     </nav>
     <div class="sb-footer">
       <div class="sb-user" id="sb-user-name">Loading...</div>
@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div class="topbar">
       <div class="topbar-title" id="topbar-title">Dashboard</div>
       <div class="topbar-right">
-        <input class="search-input" type="text" placeholder="🔍 Search everything..." id="global-search" oninput="globalSearch(this.value)">
+        <input class="search-input" type="text" placeholder="Search everything..." id="global-search" oninput="globalSearch(this.value)">
         <button class="btn btn-ghost btn-sm" onclick="loadAll()">↻ Refresh</button>
       </div>
     </div>
@@ -314,7 +314,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <div id="panel-activity" class="panel">
         <div class="section-head"><div><div class="section-title">Activity</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">Every change, sign-in and plate check across all portals. Newest first · kept permanently · read-only.</div></div></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-          <input class="form-input" id="act-q" type="search" placeholder="🔍 Search name, plate, unit, email…" style="flex:1;min-width:220px;padding:8px 12px;" onkeydown="if(event.key==='Enter')loadActivity()">
+          <input class="form-input" id="act-q" type="search" placeholder="Search name, plate, unit, email…" style="flex:1;min-width:220px;padding:8px 12px;" onkeydown="if(event.key==='Enter')loadActivity()">
           <select class="select-input" id="act-days" onchange="loadActivity()" style="width:auto;font-size:12px;padding:6px 10px;">
             <option value="1">Today</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="0">All time</option></select>
           <select class="select-input" id="act-who" onchange="loadActivity()" style="width:auto;font-size:12px;padding:6px 10px;">
@@ -492,7 +492,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
           <div class="section-title">Admin Staff Access</div>
           <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm" onclick="openModal('modal-add-enforcer')">+ Add Enforcement Officer</button><button class="btn btn-primary btn-sm" onclick="openModal('modal-add-staff')">+ Add Staff Admin</button></div>
         </div>
-        <div style="background:rgba(163,113,247,.08);border:1px solid rgba(163,113,247,.2);border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:13px;color:var(--purple);">⚡ Staff admins have full read and write access to the entire platform. Only grant this to trusted team members.</div>
+        <div style="background:rgba(163,113,247,.08);border:1px solid rgba(163,113,247,.2);border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:13px;color:var(--purple);">Staff admins have full read and write access to the entire platform. Only grant this to trusted team members.</div>
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Added</th><th>Actions</th></tr></thead><tbody id="tbl-staff"></tbody></table></div>
 
         <div class="section-head" style="margin-top:32px;">
@@ -513,7 +513,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-terms-prop">
   <div class="modal" style="width:540px;">
     <button class="modal-close" onclick="closeModal('modal-terms-prop')">✕</button>
-    <div class="modal-title">📜 Parking Terms · <span id="tp-name"></span></div>
+    <div class="modal-title">Parking Terms · <span id="tp-name"></span></div>
     <div class="modal-sub">These fill in the blanks in the wording for this property only.</div>
     <div class="err-msg" id="tp-err"></div>
     <div class="form-group"><label class="form-label">Owner / HOA name {owner}</label><input class="form-input" id="tp-owner" maxlength="120" placeholder="e.g. Maple Grove HOA"></div>
@@ -551,7 +551,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-person">
   <div class="modal" style="width:660px;">
     <button class="modal-close" onclick="closeModal('modal-person')">✕</button>
-    <div class="modal-title">🏢 <span id="pr-name"></span></div>
+    <div class="modal-title"><span id="pr-name"></span></div>
     <div class="modal-sub" id="pr-sub"></div>
     <div class="err-msg" id="pr-err"></div>
     <div class="form-label">Details</div>
@@ -570,7 +570,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     </div>
     <div style="font-size:11.5px;color:var(--text3);margin-top:6px;">Adds them right away (no invite to accept) and emails them that they were added.</div>
     <details id="pr-new" style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
-      <summary style="cursor:pointer;font-size:13px;font-weight:600;">➕ Create a new property for them (they become its main manager)</summary>
+      <summary style="cursor:pointer;font-size:13px;font-weight:600;">Create a new property for them (they become its main manager)</summary>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
         <input class="form-input" id="np-name" placeholder="Property name *" maxlength="120" style="grid-column:1/-1;">
         <input class="form-input" id="np-addr" placeholder="Address" maxlength="200" style="grid-column:1/-1;">
@@ -590,13 +590,13 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
       <button class="btn btn-ghost" onclick="personEmail()">Change email</button>
     </div>
     <div id="pr-reset" style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">🔑 Reset password</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Reset password</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <input class="form-input" id="pr-pass" type="text" placeholder="New temporary password" style="flex:1;min-width:180px;">
         <button class="btn btn-ghost" onclick="personPassword()">Set temporary password</button>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:8px;"><span style="font-size:12px;color:var(--text3);">or</span>
-        <button class="btn btn-ghost" onclick="personNotify()">✉ Email them a reset link</button></div>
+        <button class="btn btn-ghost" onclick="personNotify()">Email them a reset link</button></div>
       <div style="font-size:11.5px;color:var(--text3);margin-top:8px;" id="pr-login-note">A temporary password works right away; give it to them and they'll choose their own at the next sign-in. The reset link lets them choose a new password themselves.</div>
     </div>
   </div>
@@ -604,7 +604,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-access">
   <div class="modal" style="width:620px;">
     <button class="modal-close" onclick="closeModal('modal-access')">✕</button>
-    <div class="modal-title">👥 Access · <span id="ac-name"></span></div>
+    <div class="modal-title">Access · <span id="ac-name"></span></div>
     <div class="modal-sub">Everyone who can sign in to this property in the manager portal. Owners can also invite people themselves; you get an email when they do.</div>
     <div class="err-msg" id="ac-err"></div>
     <div id="ac-list"><div class="loading">Loading…</div></div>
@@ -620,7 +620,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-billing">
   <div class="modal" style="width:560px;">
     <button class="modal-close" onclick="closeModal('modal-billing')">✕</button>
-    <div class="modal-title">💵 LotHQ Billing · <span id="bl-name"></span></div>
+    <div class="modal-title">LotHQ Billing · <span id="bl-name"></span></div>
     <div class="modal-sub">How LotHQ earns from this property. Set it to match what you agreed with this client. Only LotHQ admins see this page; prices never show on the public site.</div>
     <div class="err-msg" id="bl-err"></div>
     <div id="bl-payout" style="font-size:13px;border-radius:9px;padding:10px 12px;margin-bottom:14px;"></div>
@@ -648,7 +648,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-add-manager">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-add-manager')">✕</button>
-    <div class="modal-title">🏢 Add Manager Account</div>
+    <div class="modal-title">Add Manager Account</div>
     <div class="modal-sub">Create a new property manager account</div>
     <div class="err-msg" id="am-err"></div>
     <div class="form-row">
@@ -679,7 +679,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-enf-assign">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-enf-assign')">✕</button>
-    <div class="modal-title">🚔 Properties for <span id="ea-company"></span></div>
+    <div class="modal-title">Properties for <span id="ea-company"></span></div>
     <div class="modal-sub">Officers from this company can check plates only at the properties checked below.</div>
     <div style="margin:8px 0 10px;"><input class="form-input" id="ea-filter" type="text" placeholder="Filter properties…" oninput="renderEnfAssignList()"></div>
     <div id="ea-list" style="max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:6px 10px;"></div>
@@ -693,7 +693,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-add-enforcer">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-add-enforcer')">✕</button>
-    <div class="modal-title">🚔 Add Enforcement Officer</div>
+    <div class="modal-title">Add Enforcement Officer</div>
     <div class="modal-sub">Create a login for the enforcement portal. Enforcement accounts can only be created here.</div>
     <div class="err-msg" id="ae-err"></div>
     <div class="form-row">
@@ -715,7 +715,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-add-staff">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-add-staff')">✕</button>
-    <div class="modal-title">⚡ Add Staff Admin</div>
+    <div class="modal-title">Add Staff Admin</div>
     <div class="modal-sub">Grant full admin access to a team member</div>
     <div class="err-msg" id="as-err"></div>
     <div class="form-row">
@@ -733,7 +733,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <div class="modal-overlay" id="modal-features">
   <div class="modal" style="width:520px;">
     <button class="modal-close" onclick="closeModal('modal-features')">✕</button>
-    <div class="modal-title">💎 Manage Plan & Features</div>
+    <div class="modal-title">Manage Plan & Features</div>
     <div class="modal-sub" id="mf-manager-name">Select a manager</div>
 
     <div class="modal-section-label">Plan Tier</div>
@@ -955,7 +955,7 @@ async function decideAccess(userId,decision,btn){
     res=await fetch('/.netlify/functions/manager-access',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},body:JSON.stringify({action:decision,userId})});
     body=await res.json().catch(()=>({}));
   }catch(e){res={ok:false};}
-  if(!res.ok){btn.disabled=false;toast('❌ '+(body.error||'Could not update request'));return;}
+  if(!res.ok){btn.disabled=false;toast((body.error||'Could not update request'));return;}
   if(decision==='approved'){
     const flags={};
     FEATURES.forEach(f=>{flags[f.key]=f.alwaysOn||TIER_DEFAULTS[plan].includes(f.key);});
@@ -965,7 +965,7 @@ async function decideAccess(userId,decision,btn){
   await loadFeatureFlags();
   const who=u.full_name||u.email;
   toast(decision==='approved'
-    ?'✅ '+who+' approved'+(body.emailed===false?' (email failed — let them know)':' and emailed')
+    ?who+' approved'+(body.emailed===false?' (email failed — let them know)':' and emailed')
     :'Declined '+who+(body.emailed===false?' (email failed)':''));
 }
 
@@ -1069,10 +1069,10 @@ function renderManagers(data){
       <td style="font-size:12px;text-align:center">${permits}</td>
       <td style="font-size:12px;color:var(--text3)">${m.created_at?new Date(m.created_at).toLocaleDateString():'—'}</td>
       <td><div class="tbl-actions">
-        <button class="btn btn-ghost btn-sm" onclick="openPerson('${m.id}')">🏢 Properties</button>
-        <button class="btn btn-ghost btn-sm" onclick="openFeatureModal('${m.id}')">💎 Plan</button>
+        <button class="btn btn-ghost btn-sm" onclick="openPerson('${m.id}')">Properties</button>
+        <button class="btn btn-ghost btn-sm" onclick="openFeatureModal('${m.id}')">Plan</button>
         <button class="btn btn-ghost btn-sm" onclick="openPerson('${m.id}')">View</button>
-        <button class="btn btn-ghost btn-sm" title="Reset their password" onclick="openPerson('${m.id}','reset')">🔑 Reset</button>
+        <button class="btn btn-ghost btn-sm" title="Reset their password" onclick="openPerson('${m.id}','reset')">Reset</button>
         <button class="btn btn-danger btn-sm" onclick="confirmDelete('user','${m.id}','${(m.full_name||m.email||'').replace(/'/g,'')}')">Delete</button>
       </div></td>
     </tr>`;
@@ -1196,7 +1196,7 @@ function exportActivity(){
   const strip=h=>String(h).replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");
   const csv=['Date,Time,Who,Role,Action,What happened,Property,Target,Details',...actRows.map(r=>{const d=new Date(r.created_at);return [d.toLocaleDateString(),d.toLocaleTimeString(),r.actor_name,r.actor_role,r.action,strip(actSummary(r)),r.property_id?(allProperties.find(p=>p.id===r.property_id)?.name||r.property_id):'',r.target,JSON.stringify(r.details||{})].map(c).join(',');})].join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='activity-log.csv';a.click();
-  toast('📁 Activity exported');
+  toast('Activity exported');
 }
 
 const ENF_ORDER=['tow','boot','ticket'], ENF_LABEL={tow:'Tow',boot:'Boot',ticket:'Ticket'};
@@ -1218,7 +1218,7 @@ async function toggleEnforcement(id,action){
       body:JSON.stringify({action:'setEnforcementActions',propertyId:id,actions:next})});
     body=await res.json().catch(()=>({}));
   }catch(e){res={ok:false};}
-  if(!res.ok){toast('❌ '+(body.error||'Could not change enforcement options.'));return;}
+  if(!res.ok){toast((body.error||'Could not change enforcement options.'));return;}
   p.enforcement_actions=body.actions||next;
   toast(`${p.name}: ${p.enforcement_actions.map(a=>ENF_LABEL[a]).join(', ')}`);
   loadProperties();
@@ -1244,7 +1244,7 @@ async function parkSettings(id,patch){
       body:JSON.stringify(Object.assign({action:'setParkSettings',propertyId:id},patch))});
     body=await res.json().catch(()=>({}));
   }catch(e){res={ok:false};}
-  if(!res.ok){toast('❌ '+(body.error||'Could not save.'));return false;}
+  if(!res.ok){toast((body.error||'Could not save.'));return false;}
   return true;
 }
 async function toggleGuestPasses(id,on){
@@ -1258,7 +1258,7 @@ async function toggleGuestPasses(id,on){
       body:JSON.stringify({action:'setGuestPasses',propertyId:id,on})});
     body=await res.json().catch(()=>({}));
   }catch(e){res={ok:false};}
-  if(!res.ok){toast('❌ '+(body.error||'Could not change guest passes.'));return;}
+  if(!res.ok){toast((body.error||'Could not change guest passes.'));return;}
   toast(on?'Guest passes turned on'+(body.seeded?' — starter pass types added':''):'Guest passes turned off');
   loadProperties();
 }
@@ -1348,7 +1348,7 @@ async function saveBilling(quiet){
   if(r.failed){err.textContent=r.error;err.classList.add('show');return false;}
   const {data}=await sb.from('properties').select('*').eq('id',_bl.id).maybeSingle();
   if(data){const i=allProperties.findIndex(x=>x.id===data.id);if(i>=0) allProperties[i]=data;renderProperties(allProperties);}
-  if(!quiet){toast('✅ Billing saved');closeModal('modal-billing');}
+  if(!quiet){toast('Billing saved');closeModal('modal-billing');}
   return true;
 }
 async function planLink(send){
@@ -1356,8 +1356,8 @@ async function planLink(send){
   if(!(await saveBilling(true))) return;
   const r=await adminApi({action:'planLink',propertyId:_bl.id,send});
   if(r.failed){const err=document.getElementById('bl-err');err.textContent=r.error;err.classList.add('show');return;}
-  if(send){toast('✅ Link sent to '+r.sentTo);closeModal('modal-billing');return;}
-  try{await navigator.clipboard.writeText(r.url);toast('📋 Link copied (works for 30 days)');}
+  if(send){toast('Link sent to '+r.sentTo);closeModal('modal-billing');return;}
+  try{await navigator.clipboard.writeText(r.url);toast('Link copied (works for 30 days)');}
   catch(e){prompt('Copy this link:',r.url);}
 }
 
@@ -1375,7 +1375,7 @@ async function toggleOutsideBilling(id,on){
       body:JSON.stringify({action:'setOutsideBilling',propertyId:id,on})});
     body=await res.json().catch(()=>({}));
   }catch(e){res={ok:false};}
-  if(!res.ok){toast('❌ '+(body.error||'Could not change outside billing.'));return;}
+  if(!res.ok){toast((body.error||'Could not change outside billing.'));return;}
   toast(on?'Outside billing turned on':'Outside billing turned off');
   loadProperties();
 }
@@ -1477,7 +1477,7 @@ async function addManager(){
   await loadManagers();
   await loadFeatureFlags();
   if(r.notifyError) toast(r.notifyError);
-  else toast('✅ Manager account created for '+fname+' ('+(plan.charAt(0).toUpperCase()+plan.slice(1))+' plan)');
+  else toast('Manager account created for '+fname+' ('+(plan.charAt(0).toUpperCase()+plan.slice(1))+' plan)');
 }
 
 // ── ENFORCEMENT COMPANIES ───────────────────────────────────────
@@ -1528,10 +1528,10 @@ async function saveEnfAssignments(){
   if(toRemove.length){const {error}=await sb.from('enforcement_assignments').delete().in('id',toRemove);err=err||error;}
   if(toAdd.length){const {error}=await sb.from('enforcement_assignments').insert(toAdd);err=err||error;}
   btn.disabled=false;btn.textContent='Save Assignments';
-  if(err){toast('❌ '+err.message);return;}
+  if(err){toast(err.message);return;}
   closeModal('modal-enf-assign');
   await loadEnforcement();
-  toast('✅ '+_eaCompany+': '+_eaChecked.size+' propert'+(_eaChecked.size===1?'y':'ies')+' assigned');
+  toast(_eaCompany+': '+_eaChecked.size+' propert'+(_eaChecked.size===1?'y':'ies')+' assigned');
 }
 
 async function addEnforcer(){
@@ -1551,7 +1551,7 @@ async function addEnforcer(){
   btn.disabled=false;btn.textContent='Create Enforcement Account →';
   closeModal('modal-add-enforcer');
   await loadEnforcement();
-  toast('✅ Enforcement account created for '+fname+' ('+company+')');
+  toast('Enforcement account created for '+fname+' ('+company+')');
 }
 
 async function addStaffAdmin(){
@@ -1568,25 +1568,25 @@ async function addStaffAdmin(){
   btn.disabled=false;btn.textContent='Grant Admin Access →';
   closeModal('modal-add-staff');
   await loadStaff();
-  toast('✅ Admin access granted to '+fname);
+  toast('Admin access granted to '+fname);
 }
 
 async function revokePermit(id){
   await sb.from('permits').update({status:'revoked'}).eq('id',id);
   await loadPermits();
-  toast('🚫 Permit revoked');
+  toast('Permit revoked');
 }
 
 async function reinstatePermit(id){
   await sb.from('permits').update({status:'active'}).eq('id',id);
   await loadPermits();
-  toast('✅ Permit reinstated');
+  toast('Permit reinstated');
 }
 
 async function resolveViolation(id){
   await sb.from('violations').update({status:'Resolved'}).eq('id',id);
   await loadViolations();
-  toast('✅ Violation resolved');
+  toast('Violation resolved');
 }
 
 function confirmDelete(type,id,name){
@@ -1609,11 +1609,11 @@ async function doDelete(type,id){
   else if(type==='permit') await sb.from('permits').delete().eq('id',id);
   else if(type==='violation') await sb.from('violations').delete().eq('id',id);
   await loadAll();
-  toast('🗑 Deleted successfully');
+  toast('Deleted successfully');
 }
 
 function impersonate(managerId,role){
-  toast('👀 Viewing manager: '+mgrName(managerId));
+  toast('Viewing manager: '+mgrName(managerId));
 }
 
 // ── PLANS & FEATURES ─────────────────────────────────────────────
@@ -1743,7 +1743,7 @@ async function saveFeatures(){
   btn.disabled=false;btn.textContent='Save Changes';
 
   if(error){
-    toast('❌ Error saving: '+error.message);
+    toast('Error saving: '+error.message);
     return;
   }
 
@@ -1753,7 +1753,7 @@ async function saveFeatures(){
   renderManagers(allManagers);
   renderPlanPanel();
   const mgr=allManagers.find(m=>m.id===mfCurrentManagerId);
-  toast('✅ Plan saved for '+(mgr?.full_name||'manager'));
+  toast('Plan saved for '+(mgr?.full_name||'manager'));
 }
 
 // ── SEARCH ──────────────────────────────────────────────────────
@@ -1785,7 +1785,7 @@ function exportCSV(type){
     })].join('\n');filename='violations.csv';
   }
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=filename;a.click();
-  toast('📁 Exported '+filename);
+  toast('Exported '+filename);
 }
 
 // ── HELPERS ──────────────────────────────────────────────────────
@@ -1837,10 +1837,10 @@ async function toggleLanguage(code,on,el){
   el.disabled=true;
   const {error}=await sb.from('site_settings').upsert({key:'languages',value:next,updated_at:new Date().toISOString()});
   el.disabled=false;
-  if(error){el.checked=!on;toast('❌ '+error.message);return;}
+  if(error){el.checked=!on;toast(error.message);return;}
   _langsOn=next;
   const name=(LANG_LIST.find(l=>l[0]===code)||[])[1]||code;
-  toast(on?'✅ '+name+' is on (shows within about 5 minutes)':name+' is off');
+  toast(on?name+' is on (shows within about 5 minutes)':name+' is off');
 }
 
 // ── PARKING TERMS ──
@@ -1884,7 +1884,7 @@ async function loadInvites(){
     <td style="font-size:12px;">${g.items.map(x=>escA(x.name)+' · '+AC[x.role]).join('<br>')}</td>
     <td style="font-size:12px;color:var(--text3);">${escA(g.invitedBy)} · ${new Date(g.invitedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'})}${g.expired?' <span class="pill" style="background:rgba(248,81,73,.15);color:#ff7b72;">Expired</span>':''}</td>
     <td><div class="tbl-actions" style="flex-wrap:wrap;">
-      <button class="btn btn-ghost btn-sm" onclick="inviteCopy(${i},this)">🔗 Copy invite link</button>
+      <button class="btn btn-ghost btn-sm" onclick="inviteCopy(${i},this)">Copy invite link</button>
       <button class="btn btn-ghost btn-sm" onclick="inviteResend(${i},this)">Resend</button>
       <button class="btn btn-danger btn-sm" onclick="inviteCancel(${i})">Cancel</button></div></td></tr>`).join('');
 }
@@ -1893,7 +1893,7 @@ async function inviteCopy(i,btn){
   const r=await teamCall({action:'inviteLink',propertyId:x.propertyId,memberId:x.memberId});
   btn.disabled=false;
   if(r.error){toast(r.error);return;}
-  if(await copyText(r.url)) toast('🔗 Invite link copied. Paste it in a text or email to '+g.email);
+  if(await copyText(r.url)) toast('Invite link copied. Paste it in a text or email to '+g.email);
   loadInvites();
 }
 async function inviteResend(i,btn){
@@ -1901,7 +1901,7 @@ async function inviteResend(i,btn){
   const r=await teamCall({action:'resend',propertyId:x.propertyId,memberId:x.memberId});
   btn.disabled=false;
   if(r.error){toast(r.error);return;}
-  toast('✅ Invite sent again to '+g.email);loadInvites();
+  toast('Invite sent again to '+g.email);loadInvites();
 }
 async function inviteCancel(i){
   const g=_invites[i];
@@ -1946,7 +1946,7 @@ function renderPerson(){
   document.getElementById('pr-list').innerHTML=r.properties.length?r.properties.map(x=>x.main
     ?row(`<b>${escA(x.name)}</b>`,'<span style="font-size:12.5px;">Owner / Admin <span style="color:var(--text3);">· main</span></span>','<span style="font-size:11px;color:var(--text3);">Main manager</span>')
     :row(`<b>${escA(x.name)}</b>${x.status==='invited'?` <span class="pill" style="background:rgba(227,179,65,.15);color:#e3b341;">${x.expired?'Expired':'Invited'}</span>`:''}`,
-      `<select class="form-input" style="padding:6px 8px;font-size:12px;" onchange="personDo({action:'setRole',propertyId:'${x.propertyId}',memberId:'${x.memberId}',role:this.value},'✅ Role updated')">${opts(x.role)}</select>`,
+      `<select class="form-input" style="padding:6px 8px;font-size:12px;" onchange="personDo({action:'setRole',propertyId:'${x.propertyId}',memberId:'${x.memberId}',role:this.value},'Role updated')">${opts(x.role)}</select>`,
       (x.status==='active'?`<button class="btn btn-ghost btn-sm" title="Make them this property's main manager" onclick="personMakeMain('${x.propertyId}')">Make main</button>`:'')+`<button class="btn btn-danger btn-sm" onclick="personRemove('${x.propertyId}','${x.memberId}')">✕</button>`)
   ).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0;">Not on any property yet.</div>';
   const on=r.properties.map(x=>x.propertyId);
@@ -1964,7 +1964,7 @@ async function personDo(payload,msg){
 async function personAdd(){
   const pid=document.getElementById('pr-prop').value,role=document.getElementById('pr-role').value;
   if(!pid) return personErr('Pick a property.');
-  const r=await personDo({action:'addDirect',userId:_prId,propertyId:pid,role},'✅ Added');
+  const r=await personDo({action:'addDirect',userId:_prId,propertyId:pid,role},'Added');
   if(r&&!r.error) loadProperties();
 }
 async function personRemove(pid,memberId){
@@ -1977,7 +1977,7 @@ async function personMakeMain(pid){
   const x=_pr.properties.find(p=>p.propertyId===pid);
   const cur=mgrName((allProperties.find(p=>p.id===pid)||{}).manager_id);
   if(!confirm(`Make ${_pr.name||_pr.email} the main manager of ${x?.name||'this property'}?\n\n${cur&&cur!=='—'?cur+' stays on the property as Manager.':''}`)) return;
-  const r=await personDo({action:'makeMain',propertyId:pid,userId:_prId},'✅ Main manager changed');
+  const r=await personDo({action:'makeMain',propertyId:pid,userId:_prId},'Main manager changed');
   if(r&&!r.error){await loadProperties();renderManagers(allManagers);}
 }
 async function personCreateProperty(){
@@ -1985,7 +1985,7 @@ async function personCreateProperty(){
   if(v('np-name').length<2) return personErr('Enter the property name.');
   const b=document.getElementById('np-btn');b.disabled=true;b.textContent='Creating…';
   const r=await personDo({action:'createProperty',userId:_prId,name:v('np-name'),address:v('np-addr'),totalSpots:v('np-spots'),units:v('np-units'),
-    zones:v('np-zones'),monthlyRate:v('np-rate'),propertyType:document.getElementById('np-type').value,spaceWord:v('np-word')},'✅ Property created');
+    zones:v('np-zones'),monthlyRate:v('np-rate'),propertyType:document.getElementById('np-type').value,spaceWord:v('np-word')},'Property created');
   b.disabled=false;b.textContent='Create property';
   if(r&&!r.error){['np-name','np-addr','np-spots','np-units','np-zones','np-rate','np-word'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('pr-new').open=false;await loadProperties();}
@@ -1993,7 +1993,7 @@ async function personCreateProperty(){
 async function personSaveDetails(){
   const fullName=document.getElementById('pr-fname').value.trim();
   if(fullName.length<2) return personErr('Enter their name.');
-  const r=await personDo({action:'updateProfile',userId:_prId,fullName,phone:document.getElementById('pr-phone').value,company:document.getElementById('pr-company').value},'✅ Details saved');
+  const r=await personDo({action:'updateProfile',userId:_prId,fullName,phone:document.getElementById('pr-phone').value,company:document.getElementById('pr-company').value},'Details saved');
   if(r&&!r.error) loadManagers();
 }
 // ── Add / edit a property (Properties page) ──
@@ -2019,7 +2019,7 @@ async function loadPropertyRequests(){
     <td><div style="font-weight:600;">${escA(q.name)}</div><div style="font-size:11.5px;color:var(--text3);">${escA(q.address||'No address given')}</div></td>
     <td style="font-size:12px;">Spaces ${escA(n(q.spots))} · Units ${escA(n(q.units))}${q.notes?`<div style="color:var(--text3);margin-top:3px;max-width:320px;white-space:pre-wrap;">${escA(q.notes)}</div>`:''}</td>
     <td style="font-size:12px;">${escA(q.managerName||'')}<div style="color:var(--text3);">${escA(q.managerEmail)} · ${new Date(q.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div></td>
-    <td><div class="tbl-actions"><button class="btn btn-primary btn-sm" onclick="approveRequest(${i})">✅ Approve</button><button class="btn btn-danger btn-sm" onclick="declineRequest(${i})">Decline</button></div></td></tr>`).join('');
+    <td><div class="tbl-actions"><button class="btn btn-primary btn-sm" onclick="approveRequest(${i})">Approve</button><button class="btn btn-danger btn-sm" onclick="declineRequest(${i})">Decline</button></div></td></tr>`).join('');
 }
 function approveRequest(i){
   const q=_preqs[i];if(!q) return;
@@ -2080,25 +2080,25 @@ async function savePropEdit(){
   b.disabled=false;b.textContent='Save';
   if(r.error) return fail(r.error);
   if(_peReq&&!_peId){await teamCall({action:'markRequestApproved',requestId:_peReq,propertyId:r.propertyId});_peReq=null;loadPropertyRequests();}
-  closeModal('modal-propedit');toast(_peId?'✅ Property saved':'✅ Property created');
+  closeModal('modal-propedit');toast(_peId?'Property saved':'Property created');
   await loadProperties();renderManagers(allManagers);
 }
 async function personEmail(){
   const em=document.getElementById('pr-email').value.trim();
   if(em.toLowerCase()===String(_pr.email||'').toLowerCase()) return personErr('That\'s already their email.');
   if(!confirm(`Change ${_pr.name||_pr.email}'s login email to ${em}? They'll sign in with the new email from now on.`)) return;
-  const r=await personDo({action:'changeEmail',userId:_prId,email:em},'✅ Email changed');
+  const r=await personDo({action:'changeEmail',userId:_prId,email:em},'Email changed');
   if(r&&!r.error) loadManagers();
 }
 async function personPassword(){
   const pw=document.getElementById('pr-pass').value.trim();
   if(pw.length<8) return personErr('Use at least 8 characters.');
-  const r=await personDo({action:'setTempPassword',userId:_prId,password:pw},'✅ Temporary password set');
+  const r=await personDo({action:'setTempPassword',userId:_prId,password:pw},'Temporary password set');
   if(r&&!r.error) document.getElementById('pr-pass').value='';
 }
 async function personNotify(){
   if(!confirm(`Email ${_pr?.email||'them'} a link to choose their password?`)) return;
-  await personDo({action:'notify',userId:_prId},'✅ Login email sent');
+  await personDo({action:'notify',userId:_prId},'Login email sent');
 }
 
 // ── ACCESS (team per property) ──
@@ -2159,14 +2159,14 @@ async function accessInvite(){
   _acBusy=false;b.disabled=false;b.textContent='Send invite';
   if(r.error) return accessErr(r.error);
   document.getElementById('ac-err').style.display='none';document.getElementById('ac-email').value='';
-  _ac=r;renderAccess();toast('✅ Invite sent to '+email);loadProperties();
+  _ac=r;renderAccess();toast('Invite sent to '+email);loadProperties();
 }
 async function accessDo(action,memberId,role){
   if(_acBusy) return;_acBusy=true;
   const r=await teamCall({action,memberId,role});
   _acBusy=false;
   if(r.error){accessErr(r.error);renderAccess();return;}
-  _ac=r;renderAccess();toast(action==='resend'?'✅ Invite sent again':'✅ Role updated');
+  _ac=r;renderAccess();toast(action==='resend'?'Invite sent again':'Role updated');
 }
 async function accessRemove(memberId){
   const m=_ac.members.find(x=>x.id===memberId);if(!m) return;
@@ -2222,7 +2222,7 @@ async function saveTermsAdmin(){
   const r=await adminApi({action:'saveTerms',title:document.getElementById('tm-title').value,body,placements});
   btn.disabled=false;btn.textContent='Save as new version';
   if(r.failed){err.textContent=r.error;err.classList.add('show');return;}
-  toast('✅ Saved — version '+r.version+' is live');
+  toast('Saved — version '+r.version+' is live');
   loadTermsAdmin();
 }
 async function previewTermsAdmin(){
@@ -2265,7 +2265,7 @@ async function savePropTerms(){
   if(r.failed){err.textContent=r.error;err.classList.add('show');return;}
   const p=allProperties.find(x=>x.id===_tpId);
   if(p) Object.assign(p,{terms_owner:payload.owner||null,terms_manager:payload.manager||null,terms_rules:payload.rules.trim()||null,terms_enabled:payload.enabled});
-  closeModal('modal-terms-prop');renderTermsProps();toast('✅ Saved');
+  closeModal('modal-terms-prop');renderTermsProps();toast('Saved');
 }
 async function loadTermsAcceptances(){
   const tb=document.getElementById('tbl-terms-acc');if(!tb) return;

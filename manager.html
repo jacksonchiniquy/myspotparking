@@ -193,6 +193,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
 .po-tbl td{padding:9px 2px;border-bottom:1px solid var(--border2);}
 .po-tbl td:last-child{text-align:right;font-weight:600;}
 .po-tbl tr.tot td{border-top:2px solid var(--text);border-bottom:none;font-weight:800;}
+.ico{display:inline-block;vertical-align:middle;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -257,13 +258,13 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
         <div class="form-group"><label class="form-label">Anything else we should know?</label><textarea class="form-input" id="su-notes" rows="2" maxlength="1000" placeholder="Property types, current parking challenges, timing…"></textarea></div>
         <button class="btn btn-primary btn-full" style="font-size:15px;padding:13px;" id="su-btn" onclick="handleSignUp()">Request Access →</button>
         <div class="divider">or</div>
-        <button class="btn btn-ghost btn-full" onclick="toast('🔗 Google coming soon')">Continue with Google</button>
+        <button class="btn btn-ghost btn-full" onclick="toast('Google coming soon')">Continue with Google</button>
         <div class="modal-switch" style="margin-top:16px;">Already have an account? <a onclick="switchPanel('signin')">Sign in</a></div>
         <div style="text-align:center;margin-top:10px;"><a href="index.html" style="font-size:12px;color:var(--text3);text-decoration:none;">← Back to Home</a></div>
       </div>
 
       <div id="panel-requested" style="display:none;text-align:center;">
-        <div style="font-size:40px;margin-bottom:8px;">✅</div>
+        <div style="margin-bottom:8px;color:var(--green);"><svg class="ico" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg></div>
         <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:8px;">Request received</div>
         <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px;">First, <strong>confirm your email</strong> using the link we just sent. Our team will then review your request and email you once your access is approved.</div>
         <button class="btn btn-ghost btn-full" onclick="switchPanel('signin')">Back to Sign In</button>
@@ -279,7 +280,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
         <button class="btn btn-primary btn-full" style="font-size:15px;padding:13px;" id="si-btn" onclick="handleSignIn()">Sign In →</button>
         <div style="text-align:center;margin-top:10px;"><a onclick="handleForgotPassword()" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline;">Forgot password?</a></div>
         <div class="divider">or</div>
-        <button class="btn btn-ghost btn-full" onclick="toast('🔗 Google coming soon')">Continue with Google</button>
+        <button class="btn btn-ghost btn-full" onclick="toast('Google coming soon')">Continue with Google</button>
         <div class="modal-switch" style="margin-top:16px;">New property manager? <a onclick="switchPanel('signup')">Request access</a></div>
         <div style="text-align:center;margin-top:10px;"><a href="index.html" style="font-size:12px;color:var(--text3);text-decoration:none;">← Back to Home</a></div>
       </div>
@@ -749,7 +750,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
                     <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--text3);font-family:'JetBrains Mono',monospace;">PROPERTY CODE</div>
                     <div id="pay-code" style="font-size:28px;font-weight:800;letter-spacing:.06em;line-height:1.1;">—</div>
                   </div>
-                  <span id="pay-code-lock" style="font-size:11px;font-weight:600;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:4px 10px;">🔒 Permanent — printed on signs</span>
+                  <span id="pay-code-lock" style="font-size:11px;font-weight:600;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:4px 10px;">Permanent — printed on signs</span>
                 </div>
                 <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;">Put the sticker on a LotHQ Pay to Park sign. Drivers scan it, or enter the code at <strong>lothq.com/park</strong>. No app or account needed.</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -775,7 +776,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
                 <div id="pay-print-copies"><label class="form-label" for="pay-copies">How many (print sheet)</label><input class="form-input" id="pay-copies" type="number" min="1" max="60" value="6" style="width:110px;"></div>
                 <div id="pay-print-from" style="display:none;"><label class="form-label" for="pay-stall-from">From stall</label><input class="form-input" id="pay-stall-from" type="number" min="1" value="1" style="width:110px;"></div>
                 <div id="pay-print-to" style="display:none;"><label class="form-label" for="pay-stall-to">To stall</label><input class="form-input" id="pay-stall-to" type="number" min="1" value="50" style="width:110px;"></div>
-                <button class="btn btn-ghost btn-sm" style="height:42px;" onclick="printStickers()">🖨 Print Sheet</button>
+                <button class="btn btn-ghost btn-sm" style="height:42px;" onclick="printStickers()">Print Sheet</button>
                 <button class="btn btn-primary btn-sm" style="height:42px;" onclick="downloadStickerPDF(this)" title="Vector PDF, one 3x3 sticker per page with bleed. Send this to a sticker or sign company.">Print File (PDF)</button>
                 <button class="btn btn-ghost btn-sm" style="height:42px;" onclick="downloadStickerSVG()" title="Editable vector artwork for Illustrator">Design File (SVG)</button>
                 <button class="btn btn-ghost btn-sm" style="height:42px;" onclick="downloadStickerCSV()" title="Stall numbers and QR links, for printers that do variable-data printing">Stall List (CSV)</button>
@@ -1306,7 +1307,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
     </div>
     <!-- Self-managed fields -->
     <div id="ip-self-section" style="display:none;">
-      <div style="background:rgba(0,200,122,.06);border:1px solid rgba(0,200,122,.18);border-radius:8px;padding:10px 14px;font-size:12px;color:#007a4a;margin-bottom:16px;">🗂 Self-managed permit — stored internally only, no resident account needed.</div>
+      <div style="background:rgba(0,200,122,.06);border:1px solid rgba(0,200,122,.18);border-radius:8px;padding:10px 14px;font-size:12px;color:#007a4a;margin-bottom:16px;">Self-managed permit — stored internally only, no resident account needed.</div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Resident Name</label><input class="form-input" id="ip-holder-name" type="text" placeholder="Jane Smith"></div>
         <div class="form-group"><label class="form-label">Phone (optional)</label><input class="form-input" id="ip-holder-phone" type="tel" placeholder="+1 (555) 000-0000"></div>
@@ -1807,7 +1808,7 @@ async function savePwGate(){
   pwRecovery=false;if(currentUser) currentUser.must_change_password=false;
   if(/type=recovery/.test(location.hash)) history.replaceState(null,'',location.pathname);
   document.getElementById('pw-gate').style.display='none';
-  toast('✅ Password saved');
+  toast('Password saved');
 }
 
 function enterApp(profile){
@@ -1884,7 +1885,7 @@ async function teamCopyLink(propertyId,memberId,btn){
   const r=await teamApi({action:'inviteLink',propertyId,memberId});
   if(btn) btn.disabled=false;
   if(r.error){toast(r.error);return;}
-  if(await copyText(r.url)) toast('🔗 Invite link copied. Paste it in a text or email to '+r.email);
+  if(await copyText(r.url)) toast('Invite link copied. Paste it in a text or email to '+r.email);
 }
 // ── My account menu (top right) ──
 function toggleMeMenu(e){e.stopPropagation();document.getElementById('me-wrap').classList.toggle('open');}
@@ -1913,7 +1914,7 @@ async function saveProfile(){
   document.getElementById('tn-name').textContent=currentUser.full_name;
   document.getElementById('tn-avatar').textContent=currentUser.full_name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('me-name').textContent=currentUser.full_name;
-  closeModal('modal-profile');toast('✅ Profile saved');
+  closeModal('modal-profile');toast('Profile saved');
 }
 function openChangePw(){
   closeMeMenu();
@@ -1933,7 +1934,7 @@ async function saveChangePw(){
   btn.disabled=false;btn.textContent='Change password';
   if(r.error) return show(r.error);
   if(currentUser?.email) await sb.auth.signInWithPassword({email:currentUser.email,password:a}).catch(()=>{});
-  closeModal('modal-changepw');toast('✅ Password changed');
+  closeModal('modal-changepw');toast('Password changed');
 }
 
 // ── Team page (top bar; Owners) ──
@@ -1977,8 +1978,8 @@ function renderTeamPerson(p){
     ${p.properties.map(x=>x.main
       ?`<div class="tm-row"><div class="tm-who" style="min-width:160px;">${escHtml(x.name)}</div><div style="font-size:13px;font-weight:600;">Owner / Admin <span style="color:var(--text2);font-weight:500;">· main</span></div><div style="width:34px;"></div></div>`
       :`<div class="tm-row"><div class="tm-who" style="min-width:160px;">${escHtml(x.name)}${x.status==='invited'?` <span class="tm-status" style="margin-left:8px;background:#fef3c7;color:#92400e;">${x.expired?'Invite expired':'Invited'}</span>`:''}</div>
-        <select class="form-input" style="padding:7px 10px;font-size:13px;width:auto;" onchange="tpDo({action:'setRole',propertyId:'${x.propertyId}',memberId:'${x.memberId}',role:this.value},'✅ Role updated')">${roleOpts(x.role)}</select>
-        ${x.status==='invited'?`<button class="btn btn-ghost btn-sm" title="Copy a new invite link to text or email yourself" onclick="teamCopyLink('${x.propertyId}','${x.memberId}',this)">🔗 Copy link</button>`:''}
+        <select class="form-input" style="padding:7px 10px;font-size:13px;width:auto;" onchange="tpDo({action:'setRole',propertyId:'${x.propertyId}',memberId:'${x.memberId}',role:this.value},'Role updated')">${roleOpts(x.role)}</select>
+        ${x.status==='invited'?`<button class="btn btn-ghost btn-sm" title="Copy a new invite link to text or email yourself" onclick="teamCopyLink('${x.propertyId}','${x.memberId}',this)">Copy link</button>`:''}
         <button class="btn btn-ghost btn-sm" title="Remove from this property" onclick="tpRemoveOne('${x.propertyId}','${x.memberId}')">✕</button></div>`).join('')}
     ${free.length?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px;">
       <select class="form-input" id="tpm-prop" style="flex:1;min-width:180px;"><option value="">Add a property…</option>${free.map(x=>`<option value="${x.id}">${escHtml(x.name)}</option>`).join('')}</select>
@@ -2001,7 +2002,7 @@ async function tpAddOne(){
   const r=direct
     ?await tpDo({action:'addDirect',userId:p.userId,propertyId:pid,role})
     :await tpDo({action:'inviteMany',email:p.email,role,propertyIds:[pid]});
-  if(!r.error) toast(direct||r.direct?'✅ Added':'✅ Invite sent');
+  if(!r.error) toast(direct||r.direct?'Added':'Invite sent');
 }
 async function tpRemoveOne(pid,memberId){
   const p=_tp.people.find(x=>x.key===_tpPerson);
@@ -2037,7 +2038,7 @@ async function sendTeamInvite(){
   btn.disabled=false;btn.textContent='Send invite';
   if(r.error) return show(r.error);
   closeModal('modal-team-invite');
-  toast(r.direct?`✅ Added to ${r.count} propert${r.count===1?'y':'ies'}`:'✅ Invite sent to '+email);
+  toast(r.direct?`Added to ${r.count} propert${r.count===1?'y':'ies'}`:'Invite sent to '+email);
   loadTeamPage();
 }
 
@@ -2067,7 +2068,7 @@ async function sendPropertyRequest(){
   btn.disabled=false;btn.textContent='Send request';
   if(r.error){err.textContent=r.error;err.classList.add('show');return;}
   closeModal('modal-request-property');
-  toast('✅ Request sent. LotHQ will set it up and email you.');
+  toast('Request sent. LotHQ will set it up and email you.');
 }
 
 // ── Team access ──
@@ -2125,7 +2126,7 @@ function renderTeam(){
     const when=m.status==='active'?`Added ${tmDate(m.acceptedAt)}`:`Invited ${tmDate(m.invitedAt)}${m.invitedBy?' by '+escHtml(m.invitedBy):''}`;
     const acts=m.status==='active'
       ?(me?'':`<button class="btn btn-ghost btn-sm" onclick="teamRemove('${m.id}')">Remove</button>`)
-      :`<button class="btn btn-ghost btn-sm" title="Copy a new invite link to text or email yourself" onclick="teamCopyLink('${currentPropertyId}','${m.id}',this)">🔗 Copy link</button><button class="btn btn-ghost btn-sm" onclick="teamDo('resend','${m.id}')">Resend</button><button class="btn btn-ghost btn-sm" onclick="teamRemove('${m.id}',true)">Cancel</button>`;
+      :`<button class="btn btn-ghost btn-sm" title="Copy a new invite link to text or email yourself" onclick="teamCopyLink('${currentPropertyId}','${m.id}',this)">Copy link</button><button class="btn btn-ghost btn-sm" onclick="teamDo('resend','${m.id}')">Resend</button><button class="btn btn-ghost btn-sm" onclick="teamRemove('${m.id}',true)">Cancel</button>`;
     rows.push(`<div class="tm-row"><div class="tm-who"><span class="tm-av" style="${m.status==='active'?'':'background:#94a3b8;'}">${escHtml(tmInitials(m.name,m.email))}</span><div>${escHtml(m.name||m.email)}${me?' <span style="color:var(--text2);font-size:12px;">(you)</span>':''}<small>${m.name?escHtml(m.email)+' · ':''}${when}</small></div></div>
       <div style="min-width:150px;"><select class="form-input" style="padding:7px 10px;font-size:13px;" ${me?'disabled':''} onchange="teamDo('setRole','${m.id}',this.value)">${roleOpts(m.role)}</select></div>
       ${status}<div style="min-width:150px;display:flex;gap:6px;">${acts}</div></div>`);
@@ -2157,14 +2158,14 @@ async function teamInvite(){
   const r=await teamApi({action:'invite',email,role});
   _tmBusy=false;
   if(r.error){b.disabled=false;b.textContent='Send invite';toast(r.error);return;}
-  _tm=r;renderTeam();toast('✅ Invite sent to '+email);
+  _tm=r;renderTeam();toast('Invite sent to '+email);
 }
 async function teamDo(action,memberId,role){
   if(_tmBusy) return;_tmBusy=true;
   const r=await teamApi({action,memberId,role});
   _tmBusy=false;
   if(r.error){toast(r.error);renderTeam();return;}
-  _tm=r;renderTeam();toast(action==='resend'?'✅ Invite sent again':'✅ Role updated');
+  _tm=r;renderTeam();toast(action==='resend'?'Invite sent again':'Role updated');
 }
 async function teamRemove(memberId,invite){
   const m=(_tm.members||[]).find(x=>x.id===memberId);
@@ -2191,7 +2192,7 @@ async function loadPayouts(){
   if(back){
     history.replaceState(null,'',location.pathname+location.hash);
     if(back==='refresh'&&r.account&&!/^ready/.test(r.account.status)){continuePayouts();return;}
-    if(back==='done') toast(r.account&&/^ready/.test(r.account.status)?'✅ Payouts are ready':'Saved. Stripe may take a few minutes, or need a bit more info.');
+    if(back==='done') toast(r.account&&/^ready/.test(r.account.status)?'Payouts are ready':'Saved. Stripe may take a few minutes, or need a bit more info.');
   }
   renderPayouts();
 }
@@ -2277,7 +2278,7 @@ async function submitPayouts(){
     const r=await payoutsApi({action:'link',payeeType:_poType,accountId:chosen.id});
     if(r.error) return fail(r.error);
     _poBusy=false;_po=r;_poType=r.payeeType;_poEditing=false;
-    await refreshPropertyRow();renderPayouts();toast('✅ Payouts are ready');return;
+    await refreshPropertyRow();renderPayouts();toast('Payouts are ready');return;
   }
   const r=await payoutsApi({action:'setup',payeeType:_poType,label,accountId:chosen?chosen.id:undefined});
   if(r.error) return fail(r.error);
@@ -2287,7 +2288,7 @@ async function continuePayouts(){
   const a=_po&&_po.account;if(!a) return;
   toast('Opening Stripe…');
   const r=await payoutsApi({action:'setup',payeeType:_po.payeeType||a.payeeType||'management',accountId:a.id});
-  if(r.error){toast('❌ '+r.error);renderPayouts();return;}
+  if(r.error){toast(r.error);renderPayouts();return;}
   location.href=r.url;
 }
 async function refreshPropertyRow(){
@@ -2298,7 +2299,7 @@ async function refreshPropertyRow(){
 function restoreFromHash(){
   if(new URLSearchParams(location.search).get('plan')==='started'){
     history.replaceState(null,'',location.pathname+location.hash);
-    setTimeout(()=>toast('✅ Thanks! Your LotHQ subscription is set up.'),300);
+    setTimeout(()=>toast('Thanks! Your LotHQ subscription is set up.'),300);
   }
   const hash=window.location.hash.replace('#','');
   if(!hash||hash==='dashboard') return;
@@ -2502,7 +2503,7 @@ function renderPermitTables(data){
       const r=allResidents.find(r=>r.id===p.holder_id);
       return r?`<span style="font-size:12px;">${r.full_name||r.email}</span>`:`<span style="font-size:11px;color:var(--text3);">${p.holder_email||'—'}</span>`;
     }
-    if(p.holder_email) return `<span style="font-size:11px;color:var(--amber);" title="Waiting for holder to sign up">⏳ ${p.holder_email}</span>`;
+    if(p.holder_email) return `<span style="font-size:11px;color:var(--amber);" title="Waiting for holder to sign up">${p.holder_email}</span>`;
     return `<button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="openAssignModal('${p.id}','${p.plate}')">Assign →</button>`;
   };
   const row=(p,cols)=>{
@@ -2692,7 +2693,7 @@ async function syncResidentStallToMap(residentId, residentName, stallInput, prop
 
   const prop=allProperties.find(p=>p.id===propertyId);
   if(!prop||!prop.lot_layout||!prop.lot_layout.length){
-    toast('⚠️ No lot map found for this property. Create a map first.');
+    toast('No lot map found for this property. Create a map first.');
     return;
   }
 
@@ -2718,13 +2719,13 @@ async function syncResidentStallToMap(residentId, residentName, stallInput, prop
   });
 
   if(!matchCount){
-    toast('⚠️ No stalls found matching "'+stallInput+'" on this property\'s map.');
+    toast('No stalls found matching "'+stallInput+'" on this property\'s map.');
     return;
   }
 
   const {error}=await sb.from('properties').update({lot_layout:layout}).eq('id',propertyId);
   if(error){
-    toast('❌ Map sync failed: '+error.message);
+    toast('Map sync failed: '+error.message);
     return;
   }
   // Update local cache
@@ -2734,7 +2735,7 @@ async function syncResidentStallToMap(residentId, residentName, stallInput, prop
     lotElements=layout.filter(e=>e.type!=='__bg__');
     drawLot();
   }
-  toast('✅ '+matchCount+' stall'+(matchCount>1?'s':'')+' assigned to '+residentName+' on the lot map.');
+  toast(matchCount+' stall'+(matchCount>1?'s':'')+' assigned to '+residentName+' on the lot map.');
 }
 
 async function saveEditResident(){
@@ -2774,11 +2775,11 @@ async function saveEditResident(){
   // Sync stall to lot map only if both stall and property are explicitly selected
   if(stall && propId){
     await syncResidentStallToMap(id, full_name, stall, propId);
-    toast('✅ Resident updated! Stall synced to lot map.');
+    toast('Resident updated! Stall synced to lot map.');
   } else if(stall && !propId){
-    toast('✅ Resident updated! Select a property to sync stall to the lot map.');
+    toast('Resident updated! Select a property to sync stall to the lot map.');
   } else {
-    toast('✅ Resident updated!');
+    toast('Resident updated!');
   }
 
   // Reset button after everything
@@ -2788,7 +2789,7 @@ async function saveEditResident(){
 async function setResidentStatus(id,status){
   await sb.from('users').update({status}).eq('id',id);
   await loadResidents();
-  toast(status==='active'?'✅ Resident reactivated':'Resident deactivated');
+  toast(status==='active'?'Resident reactivated':'Resident deactivated');
 }
 
 function violStatusPill(v){
@@ -3004,9 +3005,9 @@ async function gpSave(){
     err=r.error;
   }
   btn.disabled=false;btn.textContent='Save Guest Pass Settings';
-  if(err){toast('❌ '+err.message);return;}
+  if(err){toast(err.message);return;}
   const p=allProperties.find(x=>x.id===pid); if(p) p.guest_rules=rules;
-  toast('✅ Guest pass settings saved');
+  toast('Guest pass settings saved');
   loadGuestSettings(pid);
 }
 
@@ -3084,7 +3085,7 @@ async function addProperty(){
   });
   setPropType('linked');
   await loadProperties();
-  toast('✅ Property added!');
+  toast('Property added!');
 }
 
 async function removeProperty(id){
@@ -3094,7 +3095,7 @@ async function removeProperty(id){
   const {error}=await sb.from('properties').delete().eq('id',id);
   if(error){toast('Couldn\'t remove it: '+error.message);return;}
   await loadProperties();
-  toast('🗑 Property removed');
+  toast('Property removed');
 }
 
 async function issuePermit(){
@@ -3163,8 +3164,8 @@ async function issuePermit(){
   closeModal('modal-issue-permit');
   await loadPermits();
   const msg=isSelf
-    ?'✅ Internal permit issued for '+(holderName||plate)
-    :(holderId?'✅ Permit linked to '+holderEmail:'✅ Permit issued!'+(holderEmail?' (holder will see it when they sign up)':''));
+    ?'Internal permit issued for '+(holderName||plate)
+    :(holderId?'Permit linked to '+holderEmail:'Permit issued!'+(holderEmail?' (holder will see it when they sign up)':''));
   toast(msg);
 }
 
@@ -3179,14 +3180,14 @@ async function findHolderByEmail(addr){
 }
 
 async function assignPermit(permitId,holderEmail){
-  if(!holderEmail){toast('⚠️ Enter the resident email');return;}
+  if(!holderEmail){toast('Enter the resident email');return;}
   holderEmail=holderEmail.trim().toLowerCase();
   const hUser=await findHolderByEmail(holderEmail);
-  if(!hUser){toast('⚠️ No holder account found for '+holderEmail+'. They need to sign up first.');return;}
+  if(!hUser){toast('No holder account found for '+holderEmail+'. They need to sign up first.');return;}
   const {error}=await sb.from('permits').update({holder_id:hUser.id,holder_email:holderEmail}).eq('id',permitId);
   if(error){toast('Error: '+error.message);return;}
   await loadPermits();
-  toast('✅ Permit assigned to '+holderEmail);
+  toast('Permit assigned to '+holderEmail);
 }
 
 function setResidentType(type){
@@ -3260,7 +3261,7 @@ async function addResidentManually(){
     btn.disabled=false;
     closeModal('modal-add-resident');
     await loadResidents();
-    toast('✅ Portal account created for '+(fname)+'. Share their email and password to sign in.');
+    toast('Portal account created for '+(fname)+'. Share their email and password to sign in.');
   } else {
     // Internal only — just store in users table without auth account
     const displayName=(fname+' '+lname).trim()||unit||'Resident';
@@ -3284,7 +3285,7 @@ async function addResidentManually(){
     btn.disabled=false;
     closeModal('modal-add-resident');
     await loadResidents();
-    toast('✅ '+(fname||unit)+' added to your internal roster.');
+    toast((fname||unit)+' added to your internal roster.');
   }
 
   ['ar-fname','ar-lname','ar-email','ar-phone','ar-unit','ar-stall'].forEach(id=>{
@@ -3336,7 +3337,7 @@ function openStripeRevenue(){
 
 async function revokePermit(id){
   const {error}=await sb.from('permits').update({status:'revoked'}).eq('id',id);
-  if(error){toast('❌ Error: '+error.message);return;}
+  if(error){toast('Error: '+error.message);return;}
   await loadPermits();
   if(currentPropertyId) renderPropertyDetail(currentPropertyId);
   toast('Permit deactivated');
@@ -3344,10 +3345,10 @@ async function revokePermit(id){
 
 async function reinstatePermit(id){
   const {error}=await sb.from('permits').update({status:'active'}).eq('id',id);
-  if(error){toast('❌ Error: '+error.message);return;}
+  if(error){toast('Error: '+error.message);return;}
   await loadPermits();
   if(currentPropertyId) renderPropertyDetail(currentPropertyId);
-  toast('✅ Permit reactivated');
+  toast('Permit reactivated');
 }
 
 // ── Renew a permit: pick a new end date ──
@@ -3386,7 +3387,7 @@ async function doRenewPermit(){
   closeModal('modal-renew-permit');
   await loadPermits();
   if(currentPropertyId) renderPropertyDetail(currentPropertyId);
-  toast(`✅ Permit renewed through ${end}`);
+  toast(`Permit renewed through ${end}`);
 }
 
 function openAssignModal(permitId,plate){
@@ -3399,12 +3400,12 @@ function openAssignModal(permitId,plate){
 async function doAssignPermit(){
   const permitId=document.getElementById('assign-permit-id').value;
   const email=document.getElementById('assign-email').value.trim().toLowerCase();
-  if(!email){toast('⚠️ Enter the resident email');return;}
+  if(!email){toast('Enter the resident email');return;}
   const hUser=await findHolderByEmail(email);
   if(!hUser){
     // Store the email for when they sign up — permit will auto-link
     await sb.from('permits').update({holder_email:email}).eq('id',permitId);
-    toast('📧 Email saved. Permit will link when '+email+' signs up.');
+    toast('Email saved. Permit will link when '+email+' signs up.');
     closeModal('modal-assign-permit');
     return;
   }
@@ -3412,7 +3413,7 @@ async function doAssignPermit(){
   if(error){toast('Error: '+error.message);return;}
   closeModal('modal-assign-permit');
   await loadPermits();
-  toast('✅ Permit assigned to '+email);
+  toast('Permit assigned to '+email);
 }
 
 async function loadInviteUnits(propertyId){
@@ -3466,7 +3467,7 @@ async function generateInviteFromModal(){
   if(!propertyId||!unitNum){toast('Select a property and unit first');return;}
   const code=makeInviteCode();
   await sb.from('property_units').update({invite_code:code,invite_used:false}).eq('property_id',propertyId).eq('unit_number',unitNum);
-  toast('✅ Invite code generated');
+  toast('Invite code generated');
   loadInviteUnits(propertyId);
 }
 
@@ -3496,7 +3497,7 @@ function exportViolations(){
   if(!allViolations.length){toast('No violations to export');return;}
   const csv=['Plate,Action,Reason,Property,Date,Status',...allViolations.map(v=>`${v.plate},${VP_ACTION[v.action]||''},"${v.reason||''}","${propName(v.property_id)}",${new Date(v.noted_at).toLocaleDateString()},${v.status}`)].join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='violations.csv';a.click();
-  toast('📁 Violations exported');
+  toast('Violations exported');
 }
 
 // -- CHARTS --
@@ -3633,7 +3634,7 @@ function renderPropertyDetail(propId){
   // Permit table rows
   const holderName=(permit)=>{
     if(permit.holder_id){const r=allResidents.find(r=>r.id===permit.holder_id);if(r)return r.full_name||r.email;}
-    if(permit.holder_email)return`<span style="color:var(--amber);font-size:11px;">⏳ ${permit.holder_email}</span>`;
+    if(permit.holder_email)return`<span style="color:var(--amber);font-size:11px;">${permit.holder_email}</span>`;
     return`<button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="openAssignModal('${permit.id}','${permit.plate}')">Assign →</button>`;
   };
   const allRow=propPermits.map(x=>`<tr>
@@ -3823,7 +3824,7 @@ function applyLotBackground(){
     }
     drawLot();
     closeModal('modal-lot-bg');
-    toast('✅ Background set! (~'+kb+'KB) — Place stalls on top, then Save Layout.');
+    toast('Background set! (~'+kb+'KB) — Place stalls on top, then Save Layout.');
   };
   img.src=lotBgDataUrl;
 }
@@ -3996,7 +3997,7 @@ async function downloadSticker(){
     a.download=stickerFileName('png');
     a.href=stickerCanvas(null,900).toDataURL('image/png'); // 3" at 300 dpi
     a.click();toast('Sticker downloaded');
-  }catch(e){toast('❌ '+e.message);}
+  }catch(e){toast(e.message);}
 }
 
 // Home / office printing: 6 stickers per letter page, each page its own block
@@ -4012,7 +4013,7 @@ async function printStickers(){
     for(let i=0;i<list.length;i+=6){
       pages.push('<div class="page">'+list.slice(i,i+6).map(st=>`<img src="${lot||stickerCanvas(st,750).toDataURL('image/png')}" alt="">`).join('')+'</div>');
     }
-  }catch(e){w.close();toast('❌ '+e.message);return;}
+  }catch(e){w.close();toast(e.message);return;}
   w.document.open();
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escHtml((p.name||'Property')+' stickers')}</title><style>
     @page{size:letter portrait;margin:0.5in}
@@ -4064,9 +4065,9 @@ async function downloadStickerPDF(btn){
       });
     }
     saveBlob(new Blob([await doc.save()],{type:'application/pdf'}),stickerFileName('pdf',sel.unique));
-    toast(`✅ Print file ready — ${sel.unique.length} sticker${sel.unique.length===1?'':'s'}`);
+    toast(`Print file ready — ${sel.unique.length} sticker${sel.unique.length===1?'':'s'}`);
     logAct('property.stickers_printed','Downloaded print file ('+sel.unique.length+' sticker'+(sel.unique.length===1?'':'s')+')',{property_id:currentPropertyId,target:p.name||null});
-  }catch(e){toast('❌ '+e.message);}
+  }catch(e){toast(e.message);}
   finally{if(btn){btn.disabled=false;btn.textContent=label;}}
 }
 function downloadStickerSVG(){
@@ -4075,7 +4076,7 @@ function downloadStickerSVG(){
     const st=sel.unique[0];
     saveBlob(new Blob([stickerSVG(st)],{type:'image/svg+xml'}),stickerFileName('svg',st?[st]:null).replace('-stalls-'+st+'-'+st,'-stall-'+st));
     toast(st?'Design file downloaded (stall '+st+' as a sample)':'Design file downloaded');
-  }catch(e){toast('❌ '+e.message);}
+  }catch(e){toast(e.message);}
 }
 function downloadStickerCSV(){
   const sel=stickerList(); if(!sel) return;
@@ -4143,11 +4144,11 @@ async function saveRates(){
     .update({transient_rates:transientRates})
     .eq('id',currentPropertyId);
   btn.disabled=false;btn.textContent='Save Rates';
-  if(error){toast('❌ '+error.message);return;}
+  if(error){toast(error.message);return;}
   // Update local cache
   const prop=allProperties.find(p=>p.id===currentPropertyId);
   if(prop) prop.transient_rates=transientRates;
-  toast('✅ Rates saved!');
+  toast('Rates saved!');
 }
 
 // ── Pay to Park promo codes (owners and managers) ──
@@ -4222,12 +4223,12 @@ async function savePromo(){
   btn.disabled=false;
   if(r.error){err.textContent=r.error;err.classList.add('show');return;}
   closeModal('modal-promo');
-  toast('✅ Code '+r.promo.code+(_pmEdit?' saved':' created'));
+  toast('Code '+r.promo.code+(_pmEdit?' saved':' created'));
   loadPromos();
 }
 async function togglePromo(id,active){
   const r=await pricingApi({action:'promoToggle',propertyId:currentPropertyId,id,active});
-  if(r.error){toast('⚠️ '+r.error);return;}
+  if(r.error){toast(r.error);return;}
   toast(active?'Code turned on':'Code turned off');
   loadPromos();
 }
@@ -4330,7 +4331,7 @@ async function doRefund(){
     const b=await res.json().catch(()=>({}));
     if(!res.ok) throw new Error(b.error||'The refund didn\'t go through. Please try again.');
     closeModal('modal-refund');
-    toast('✅ Refunded $'+(b.refundedCents/100).toFixed(2)+' to '+_rf.plate+(b.emailed?' · email sent to driver':''));
+    toast('Refunded $'+(b.refundedCents/100).toFixed(2)+' to '+_rf.plate+(b.emailed?' · email sent to driver':''));
     loadTransientSessions();loadRevenue&&loadRevenue();
   }catch(e){err.textContent=e.message;err.classList.add('show');}
   finally{_rfBusy=false;rfUpdate();}
@@ -4343,16 +4344,16 @@ function formatMins(min){
 }
 
 async function syncAllResidentsToMap(){
-  if(!currentPropertyId){toast('⚠️ Open a property first');return;}
+  if(!currentPropertyId){toast('Open a property first');return;}
   const prop=allProperties.find(p=>p.id===currentPropertyId);
   if(!prop||!prop.lot_layout||!prop.lot_layout.length){
-    toast('⚠️ No lot map found. Create a map first then sync.');
+    toast('No lot map found. Create a map first then sync.');
     return;
   }
   const residentsWithStalls=allResidents.filter(r=>r.badge_id&&r.badge_id.trim());
-  if(!residentsWithStalls.length){toast('⚠️ No residents have stall numbers set.');return;}
+  if(!residentsWithStalls.length){toast('No residents have stall numbers set.');return;}
 
-  toast('⏳ Syncing '+residentsWithStalls.length+' residents...');
+  toast('Syncing '+residentsWithStalls.length+' residents...');
 
   const layout=JSON.parse(JSON.stringify(prop.lot_layout));
   let totalMatched=0;
@@ -4377,7 +4378,7 @@ async function syncAllResidentsToMap(){
   });
 
   if(!totalMatched){
-    toast('⚠️ No stall numbers matched. Check that stall numbers match the map.');
+    toast('No stall numbers matched. Check that stall numbers match the map.');
     return;
   }
 
@@ -4385,12 +4386,12 @@ async function syncAllResidentsToMap(){
     .update({lot_layout:layout})
     .eq('id',currentPropertyId);
 
-  if(error){toast('❌ Sync failed: '+error.message);return;}
+  if(error){toast('Sync failed: '+error.message);return;}
 
   prop.lot_layout=layout;
   lotElements=layout.filter(e=>e.type!=='__bg__');
   drawLot();
-  toast('✅ Synced '+totalMatched+' stalls across '+residentsWithStalls.length+' residents!');
+  toast('Synced '+totalMatched+' stalls across '+residentsWithStalls.length+' residents!');
 }
 
 function setImportTab(tab){
@@ -4445,7 +4446,7 @@ function readLotImage(file){
   img.onerror=()=>{
     URL.revokeObjectURL(objectUrl);
     document.getElementById('lot-import-status').style.display='block';
-    document.getElementById('lot-import-status').innerHTML='<span style="color:var(--red);">❌ Could not load image. Try a JPG or PNG file.</span>';
+    document.getElementById('lot-import-status').innerHTML='<span style="color:var(--red);">Could not load image. Try a JPG or PNG file.</span>';
   };
   img.src=objectUrl;
 }
@@ -4470,7 +4471,7 @@ async function runLotImport(){
 
     if(lotImportMode==='text'){
       const description=document.getElementById('lot-description').value.trim();
-      if(!description){toast('⚠️ Please describe your lot first');btn.disabled=false;return;}
+      if(!description){toast('Please describe your lot first');btn.disabled=false;return;}
       btn.textContent='Generating...';
       // Text-only request — no image needed, call API directly
       const {data:{session:aiSession}}=await sb.auth.getSession();
@@ -4484,20 +4485,20 @@ async function runLotImport(){
       });
       const data=await response.json();
       if(data.error){
-        status.innerHTML='<span style="color:var(--red);">❌ Error: '+data.error+(data.details?' — '+data.details:'')+'</span>';
+        status.innerHTML='<span style="color:var(--red);">Error: '+data.error+(data.details?' — '+data.details:'')+'</span>';
         btn.disabled=false;btn.textContent='Generate Layout →';return;
       }
       const text=data.content?.[0]?.text||'';
       const parsed=parseAIResponse(text);
       if(!parsed){
-        status.innerHTML='<span style="color:var(--red);">❌ Could not parse response. Try being more specific in your description.</span>';
+        status.innerHTML='<span style="color:var(--red);">Could not parse response. Try being more specific in your description.</span>';
         btn.disabled=false;btn.textContent='Generate Layout →';return;
       }
       status.innerHTML='<span style="color:var(--green);">✓ Layout generated from description!</span>';
       generateLotFromAI(parsed);
     } else {
       // Image mode
-      if(!lotImportImageData){toast('⚠️ Please upload an image first');btn.disabled=false;return;}
+      if(!lotImportImageData){toast('Please upload an image first');btn.disabled=false;return;}
       btn.textContent='Analyzing image...';
       const base64=lotImportImageData.split(',')[1];
       const mediaType=lotImportImageData.split(';')[0].split(':')[1]||'image/jpeg';
@@ -4509,13 +4510,13 @@ async function runLotImport(){
       });
       const data=await response.json();
       if(data.error){
-        status.innerHTML='<span style="color:var(--red);">❌ Error: '+data.error+(data.details?' — '+data.details:'')+'</span>';
+        status.innerHTML='<span style="color:var(--red);">Error: '+data.error+(data.details?' — '+data.details:'')+'</span>';
         btn.disabled=false;btn.textContent='Generate Layout →';return;
       }
       const text=data.content?.[0]?.text||'';
       const parsed=parseAIResponse(text);
       if(!parsed){
-        status.innerHTML='<span style="color:var(--red);">❌ Could not identify parking layout. Try a clearer overhead photo or use the text description option.</span>';
+        status.innerHTML='<span style="color:var(--red);">Could not identify parking layout. Try a clearer overhead photo or use the text description option.</span>';
         btn.disabled=false;btn.textContent='Generate Layout →';return;
       }
       status.innerHTML='<span style="color:var(--green);">✓ Analysis complete! Generating layout...</span>';
@@ -4529,11 +4530,11 @@ async function runLotImport(){
       const inp=document.getElementById('lot-img-input');if(inp)inp.value='';
       const desc=document.getElementById('lot-description');if(desc)desc.value='';
       btn.disabled=false;btn.textContent='Generate Layout →';
-      toast('✅ Layout generated! Review and adjust as needed, then save.');
+      toast('Layout generated! Review and adjust as needed, then save.');
     },800);
 
   } catch(err){
-    status.innerHTML='<span style="color:var(--red);">❌ Error: '+err.message+'</span>';
+    status.innerHTML='<span style="color:var(--red);">Error: '+err.message+'</span>';
     btn.disabled=false;btn.textContent='Generate Layout →';
   }
 }
@@ -5162,7 +5163,7 @@ async function saveLotLayout(){
     if(bgSizeKB<500){
       saveData.unshift({id:-1,type:'__bg__',dataUrl:lotBgDataUrl,opacity:lotBgOpacity,x:0,y:0,w:0,h:0});
     } else {
-      toast('⚠️ Background image too large to save ('+bgSizeKB+'KB). Layout saved without background.');
+      toast('Background image too large to save ('+bgSizeKB+'KB). Layout saved without background.');
     }
   }
 
@@ -5171,11 +5172,11 @@ async function saveLotLayout(){
     .eq('id',currentPropertyId)
     .select();
   btn.disabled=false;btn.textContent='Save Layout';
-  if(error){console.error('Save error:',error);toast('❌ Save failed: '+error.message);return;}
-  if(!data||data.length===0){toast('❌ Save failed: Permission denied.');return;}
+  if(error){console.error('Save error:',error);toast('Save failed: '+error.message);return;}
+  if(!data||data.length===0){toast('Save failed: Permission denied.');return;}
   const prop=allProperties.find(p=>p.id===currentPropertyId);
   if(prop) prop.lot_layout=JSON.parse(JSON.stringify(saveData));
-  toast('✅ Lot layout saved! ('+(saveData.filter(e=>e.type!=='__bg__').length)+' elements)');
+  toast('Lot layout saved! ('+(saveData.filter(e=>e.type!=='__bg__').length)+' elements)');
 }
 
 let lotRafPending=false;
@@ -5808,10 +5809,10 @@ async function askDefaultRate(propId,oldRate,newRate){
   document.getElementById('pc-btn').textContent='Save';
   _pcPending=async(apply,email)=>{
     if(!apply) return;
-    toast('⏳ Updating tenants\' billing…');
+    toast('Updating tenants\' billing…');
     const r=await pricingApi({action:'applyDefaultRate',propertyId:propId,email});
-    if(r.error) toast('⚠️ '+r.error);
-    else toast('✅ Updated '+r.changed+' tenant'+(r.changed===1?'':'s')+(r.failed?' · '+r.failed+' couldn\'t be changed (see Activity)':'')+(r.emailed?' · '+r.emailed+' emailed':''));
+    if(r.error) toast(r.error);
+    else toast('Updated '+r.changed+' tenant'+(r.changed===1?'':'s')+(r.failed?' · '+r.failed+' couldn\'t be changed (see Activity)':'')+(r.emailed?' · '+r.emailed+' emailed':''));
   };
   openModal('modal-price-change');
 }
@@ -5849,7 +5850,7 @@ async function saveEditProperty(id){
   const newRate=parseFloat(document.getElementById('pp-rate').value)||0;
   await loadProperties();
   renderPropertyDetail(id);
-  toast('✅ Property updated!');
+  toast('Property updated!');
   if(newRate!==oldRate&&newRate>0&&canPrice()) askDefaultRate(id,oldRate,newRate);
 }
 
@@ -5860,7 +5861,7 @@ function exportPropertyPermits(){
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   const name=(allProperties.find(x=>x.id===currentPropertyId)?.name||'property').replace(/\s+/g,'-').toLowerCase();
   a.download=name+'-permits.csv';a.click();
-  toast('📁 Permits exported');
+  toast('Permits exported');
 }
 
 function exportPropertyViolations(){
@@ -5870,7 +5871,7 @@ function exportPropertyViolations(){
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   const name=(allProperties.find(x=>x.id===currentPropertyId)?.name||'property').replace(/\s+/g,'-').toLowerCase();
   a.download=name+'-violations.csv';a.click();
-  toast('📁 Violations exported');
+  toast('Violations exported');
 }
 const PAGES=['dashboard','properties','residents','permits','property-detail','team','training'];
 function showPage(name,tabEl){
@@ -6033,7 +6034,7 @@ function renderUnitsTab(){
             <button class="btn ${inviteUsed?'btn-ghost':'btn-primary'} btn-sm" onclick="copyInviteLink('${inviteLink}','${unitNum}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> ${inviteUsed?'View Invite':'Invite Tenant'}</button>
             ${inviteUsed||hasPassword||slots.some(x=>x.spot_paid&&(x.paid_via||'card')==='card')?`<button class="btn btn-ghost btn-sm" title="Tenant turnover: removes the current tenant and gets the unit ready for the next one" onclick="openMoveOut('${inv.id}','${unitNum}')">Move Out Tenant</button>`:''}
           `:`<button class="btn btn-ghost btn-sm" onclick="generateInviteCodeForUnit('${inv.id}','${unitNum}')">Generate Invite</button>`}
-          ${(_tenanciesByUnit[unitNum]||[]).length?`<button class="btn btn-ghost btn-sm" onclick="openPastTenants('${escHtml(unitNum)}')">🕘 Past Tenants (${_tenanciesByUnit[unitNum].length})</button>`:''}
+          ${(_tenanciesByUnit[unitNum]||[]).length?`<button class="btn btn-ghost btn-sm" onclick="openPastTenants('${escHtml(unitNum)}')">Past Tenants (${_tenanciesByUnit[unitNum].length})</button>`:''}
           <button class="btn btn-ghost btn-sm" onclick="openAddUnitSlot('${unitNum}')">+ Slot</button>
         </div>
       </div>
@@ -6069,7 +6070,7 @@ function renderUnitSlotCard(s){
     :`<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(26,111,255,0.10);color:var(--blue);font-family:'JetBrains Mono',monospace;">$${Number(s.monthly_amount||0).toFixed(Number(s.monthly_amount)%1?2:0)}/mo</span>`
       +(s.spot_paid===true?` <span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(0,200,122,0.12);color:#007a4a;font-family:'JetBrains Mono',monospace;">${s.paid_via==='manual'?'PAID · OUTSIDE':s.paid_via==='card'?'PAID · CARD':'PAID'}</span>`
         :s.spot_paid===false?` <span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(148,163,184,0.15);color:var(--text3);font-family:'JetBrains Mono',monospace;">NOT PAID</span>`:'');
-  const discBadge=!isFree&&dsActive(s)?` <span title="${escHtml(s.discount_note||'')}" style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(0,200,122,0.12);color:#007a4a;font-family:'JetBrains Mono',monospace;">🏷 ${escHtml(dsLabel(s).toUpperCase())}</span>`:'';
+  const discBadge=!isFree&&dsActive(s)?` <span title="${escHtml(s.discount_note||'')}" style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(0,200,122,0.12);color:#007a4a;font-family:'JetBrains Mono',monospace;">${escHtml(dsLabel(s).toUpperCase())}</span>`:'';
   const sJson=JSON.stringify(s).replace(/"/g,'&quot;');
   return `<div style="display:flex;align-items:center;gap:12px;background:${managed?'rgba(255,170,0,0.05)':'rgba(26,111,255,0.04)'};border:1px solid ${managed?'rgba(255,170,0,0.25)':'var(--border)'};border-radius:10px;padding:12px 14px;">
     <div style="flex-shrink:0;width:28px;height:28px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text2);">${typeIcon}</div>
@@ -6135,7 +6136,7 @@ function renderUnitVehicleRoster(unitNum, slots){
           ?`<span style="color:#007a4a;font-weight:600;">Assigned · ${slotLabel}</span>`
           :isVoided
             ?`<span style="color:var(--text3);">Previously assigned</span>`
-            :`<span style="color:#b45309;font-weight:600;">⚠ No spot</span>`}
+            :`<span style="color:#b45309;font-weight:600;">No spot</span>`}
       </div>
     </div>`;
   }).join('');
@@ -6235,7 +6236,7 @@ async function saveBulkDelete(){
     updateBulkDelPreview();return;
   }
   closeModal('modal-bulk-delete');
-  toast(`🗑 ${done} unit${done===1?'':'s'} deleted`);
+  toast(`${done} unit${done===1?'':'s'} deleted`);
 }
 
 // ── BULK ADD UNITS ──
@@ -6397,7 +6398,7 @@ async function saveBulkUnits(){
     done+=batch.length;
   }
   closeModal('modal-bulk-units');
-  toast(`✅ ${done} spot${done===1?'':'s'} created`);
+  toast(`${done} spot${done===1?'':'s'} created`);
   loadUnitsTab(currentPropertyId);
 }
 
@@ -6412,8 +6413,8 @@ async function generateInviteCodeForUnit(slotId,unitNum){
   const code=makeInviteCode();
   // The code goes on one spot of the unit (codes must be unique, so not on every spot)
   const {error}=await sb.from('property_units').update({invite_code:code,invite_used:false}).eq('id',slotId);
-  if(error){toast('❌ '+error.message);return;}
-  toast('✅ Invite code generated for Unit '+unitNum);
+  if(error){toast(error.message);return;}
+  toast('Invite code generated for Unit '+unitNum);
   loadUnitsTab(currentPropertyId);
 }
 
@@ -6488,7 +6489,7 @@ function exportTenancies(unitNum){
   const name=(propName?propName(currentPropertyId):'property')||'property';
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download=(String(name).replace(/[^a-z0-9]+/gi,'-')+(unitNum?'-unit-'+unitNum:'')+'-tenant-history.csv').toLowerCase();a.click();
-  toast('📁 Tenant history exported');
+  toast('Tenant history exported');
 }
 
 // ── Move Out Tenant (turnover) ──
@@ -6525,8 +6526,8 @@ async function doMoveOut(){
   if(r.error){err.textContent=r.error;err.classList.add('show');btn.disabled=false;btn.textContent='Move Out Tenant';return;}
   closeModal('modal-move-out');
   toast(r.cancelFailed&&r.cancelFailed.length
-    ?'⚠️ Unit '+_moveOut.unitNum+' cleared, but card billing couldn\'t be cancelled — contact support'
-    :'✅ Unit '+_moveOut.unitNum+' is ready for a new tenant');
+    ?'Unit '+_moveOut.unitNum+' cleared, but card billing couldn\'t be cancelled — contact support'
+    :'Unit '+_moveOut.unitNum+' is ready for a new tenant');
   loadUnitsTab(currentPropertyId);
 }
 
@@ -6534,7 +6535,7 @@ async function resetInviteCode(slotId,unitNum){
   if(!confirm('Reset the invite code? The old link will stop working. Use this when a tenant changes.')) return;
   const code=makeInviteCode();
   await sb.from('property_units').update({invite_code:code,invite_used:false,invite_used_at:null,tenant_email:null,tenant_name:null}).eq('property_id',currentPropertyId).eq('unit_number',unitNum);
-  toast('🔄 New invite code generated for Unit '+unitNum);
+  toast('New invite code generated for Unit '+unitNum);
   loadUnitsTab(currentPropertyId);
 }
 
@@ -6573,13 +6574,13 @@ async function sendSpotLink(){
   const r=await unitService('managerSendSpotLink',{slotId:_spotLinkId,email});
   btn.disabled=false;btn.textContent='Send Payment Link →';
   if(r.error){err.textContent=r.error;err.classList.add('show');return;}
-  ok.textContent='✅ Payment link sent to '+(r.sentTo||email);ok.style.display='block';
+  ok.textContent='Payment link sent to '+(r.sentTo||email);ok.style.display='block';
 }
 async function markSpotPaid(slotId,paid){
   if(paid&&!confirm('Mark this spot as paid outside the app (for example, included in rent)? The resident will be able to park here without paying by card.')) return;
   if(!paid&&!confirm('Mark this spot as not paid? The resident won\'t be able to assign a car to it until it\'s paid.')) return;
   const r=await unitService(paid?'managerMarkPaid':'managerMarkUnpaid',{slotId});
-  if(r.error){toast('❌ '+r.error);return;}
+  if(r.error){toast(r.error);return;}
   toast(paid?'Spot marked as paid':'Spot marked as not paid');
   loadUnitsTab(currentPropertyId);
 }
@@ -6614,7 +6615,7 @@ function copyInviteLink(link,unitNum){
   const claimed=document.getElementById('il-claimed');
   if(info.used){
     claimed.style.display='';
-    claimed.innerHTML='✅ This unit has already been claimed'+(info.email?' by <strong>'+escHtml(info.name||info.email)+'</strong>':'')+'. When they move out, use <strong>Move Out Tenant</strong> to get the unit ready for the next tenant.';
+    claimed.innerHTML='This unit has already been claimed'+(info.email?' by <strong>'+escHtml(info.name||info.email)+'</strong>':'')+'. When they move out, use <strong>Move Out Tenant</strong> to get the unit ready for the next tenant.';
     document.getElementById('il-email-wrap').style.display='none';
   } else {
     claimed.style.display='none';
@@ -6642,7 +6643,7 @@ async function sendUnitInvite(){
   }catch(e){res={ok:false};}
   btn.disabled=false;btn.textContent='Send Invite →';
   if(!res.ok){err.textContent=body.error||'Could not send the email. Please try again.';err.classList.add('show');return;}
-  ok.textContent='✅ Invite sent to '+email;ok.style.display='block';
+  ok.textContent='Invite sent to '+email;ok.style.display='block';
   await sb.from('property_units').update({tenant_email:email}).eq('property_id',currentPropertyId).eq('unit_number',_inviteUnit);
   const info=((window._unitInvites=window._unitInvites||{})[_inviteUnit]=window._unitInvites[_inviteUnit]||{});
   info.email=email;
@@ -6652,7 +6653,7 @@ async function sendUnitInvite(){
 }
 function copyLinkText(inputId){
   const el=document.getElementById(inputId);
-  const done=()=>toast('📋 Link copied');
+  const done=()=>toast('Link copied');
   const fallback=()=>{el.focus();el.select();el.setSelectionRange(0,99999);try{document.execCommand('copy')?done():toast('Select the link and copy it');}catch(e){toast('Select the link and copy it');}};
   if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(el.value).then(done).catch(fallback);
   else fallback();
@@ -6808,18 +6809,18 @@ async function saveUnitSlot(){
 async function saveUnitSlotNow(opt={}){
   const _s=_editingSlot;
   const discChange=_s&&document.getElementById('ds-wrap').dataset.on&&document.getElementById('us-billing-type').value==='monthly'&&dsChanged(_s);
-  if(discChange){const d=dsRead();if(d&&!(d.value>0)){toast('⚠️ Enter how much the discount is');return;}}
+  if(discChange){const d=dsRead();if(d&&!(d.value>0)){toast('Enter how much the discount is');return;}}
   const ok=await saveUnitSlotRow();
   if(!ok||!_s) return;
   if(discChange||opt.applyPrice){
     const r=await pricingApi({action:'spot',spotId:_s.id,...(discChange?{discount:dsRead()}:{}),applyPrice:!!opt.applyPrice,email:!!opt.email});
-    if(r.error){toast('⚠️ Saved the spot, but: '+r.error);}
+    if(r.error){toast('Saved the spot, but: '+r.error);}
     else{
       const bits=[];
       if(r.priceTo!=null) bits.push('billing now $'+(r.priceTo/100).toFixed(2)+' from next payment');
       if(discChange) bits.push(r.label?'discount: '+r.label:'discount removed');
       if(r.emailed) bits.push('tenant emailed');
-      toast('✅ '+(bits.join(' · ')||'Saved'));
+      toast((bits.join(' · ')||'Saved'));
     }
     loadUnitsTab(currentPropertyId);
   }
@@ -6858,7 +6859,7 @@ async function saveUnitSlotRow(){
     dbError=error;
   }
   btn.disabled=false;btn.textContent='Save Slot';
-  if(dbError){toast('❌ Error: '+dbError.message);console.error('saveUnitSlot error',dbError);return false;}
+  if(dbError){toast('Error: '+dbError.message);console.error('saveUnitSlot error',dbError);return false;}
   closeModal('modal-unit-slot');
   const isNewUnit=!existing&&!_editingSlot;
   toast(_editingSlot?'Slot updated':'Slot added');
@@ -6904,7 +6905,7 @@ async function sendFlyerEmail(){
   }catch(e){res={ok:false};}
   btn.disabled=false;btn.textContent='Send Invite →';
   if(res.ok){
-    ok.textContent='✅ Invite sent to '+email;
+    ok.textContent='Invite sent to '+email;
     ok.style.display='block';
     btn.style.display='none';
     // Save email to property_units so it's on file
@@ -6952,7 +6953,7 @@ async function unitService(action,payload){
 async function managerVoidSlot(slotId){
   if(!confirm('Void the current vehicle assignment for this slot? Its permit will no longer show as valid to enforcement.')) return;
   const r=await unitService('managerVoid',{slotId});
-  if(r.error){toast('❌ '+r.error);return;}
+  if(r.error){toast(r.error);return;}
   toast('Slot cleared');
   loadUnitsTab(currentPropertyId);
 }
@@ -6972,7 +6973,7 @@ async function saveManagerAssign(){
   btn.disabled=true;btn.textContent='Saving…';
   const r=await unitService('managerAssign',{slotId:_assigningSlotId,plate,desc});
   btn.disabled=false;btn.textContent='Assign Vehicle';
-  if(r.error){toast('❌ '+r.error);return;}
+  if(r.error){toast(r.error);return;}
   closeModal('modal-manager-assign');
   toast('Vehicle assigned');
   loadUnitsTab(currentPropertyId);

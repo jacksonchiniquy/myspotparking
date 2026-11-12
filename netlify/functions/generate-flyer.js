@@ -35,7 +35,8 @@ async function buildFlyer({ propertyName, propertyAddress, unitNumber, inviteCod
   // ── Header band ──────────────────────────────────────────
   page.drawRectangle({ x: 0, y: height - 120, width, height: 120, color: blue });
 
-  page.drawText('🅿', { x: 48, y: height - 72, size: 36, font: boldFont, color: white });
+  page.drawRectangle({ x: 48, y: height - 86, width: 36, height: 36, borderColor: white, borderWidth: 2.5 });
+  page.drawText('P', { x: 58, y: height - 77, size: 22, font: boldFont, color: white });
   page.drawText('LotHQ', { x: 96, y: height - 56, size: 22, font: boldFont, color: white });
   page.drawText('Resident Parking Permit Setup', { x: 96, y: height - 80, size: 12, font: regularFont, color: rgb(0.8, 0.88, 1) });
 
@@ -154,7 +155,7 @@ exports.handler = async (event) => {
               Data: `
 <!DOCTYPE html><html><body style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0f172a;">
   <div style="background:#1a6fff;border-radius:12px;padding:24px;text-align:center;margin-bottom:32px;">
-    <div style="color:#fff;font-size:20px;font-weight:700;">🅿 LotHQ</div>
+    <div style="color:#fff;font-size:20px;font-weight:700;">LotHQ</div>
   </div>
   <h2>Set up your parking permit</h2>
   <p style="color:#475569;">You have been invited to set up a parking permit for <strong>${propertyName}</strong> — <strong>${unitLabel(unitNumber)}</strong>.</p>

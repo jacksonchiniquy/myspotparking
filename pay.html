@@ -115,6 +115,7 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
 .notfound-icon{font-size:48px;margin-bottom:16px;}
 .notfound-h{font-family:'Sora',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px;}
 .notfound-sub{font-size:14px;color:var(--slate);line-height:1.6;}
+.ico{display:inline-block;vertical-align:middle;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -139,7 +140,7 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
 
     <!-- NOT FOUND -->
     <div class="notfound-screen" id="screen-notfound">
-      <div class="notfound-icon">🔍</div>
+      <div class="notfound-icon" style="color:#94a3b8;"><svg class="ico" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></div>
       <div class="notfound-h">Lot not found</div>
       <p class="notfound-sub">This parking lot could not be found. Check the code on the sign and try again at <a href="/park" style="color:var(--blue);font-weight:600;">lothq.com/park</a>.</p>
     </div>

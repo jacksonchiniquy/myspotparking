@@ -215,7 +215,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
   <div class="tn-right">
     <div data-lang-menu></div>
     <span class="tn-badge" id="unit-badge" style="display:none;">Unit —</span>
-    <button class="acct-btn" id="acct-btn" onclick="openModal('modal-account')">⚙ Account</button>
+    <button class="acct-btn" id="acct-btn" onclick="openModal('modal-account')">Account</button>
     <button class="btn-signout" id="signout-btn" onclick="signOut()">Sign Out</button>
   </div>
 </nav>
@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 <!-- FORGOT PASSWORD -->
 <div id="forgot-gate" style="display:none;min-height:100vh;align-items:center;justify-content:center;padding:80px 20px 40px;">
   <div class="gate-card">
-    <div class="gate-badge">🔑 Reset Password</div>
+    <div class="gate-badge">Reset Password</div>
     <div class="gate-title">Forgot Password?</div>
     <div class="gate-sub">Enter your property, unit number, and the email on your account. We'll send you a new temporary password.</div>
     <div class="err-msg" id="forgot-err"></div>
@@ -630,12 +630,12 @@ async function afterSpotPayment(){
   const params=new URLSearchParams(window.location.search);
   if(params.get('spot_added')!=='1') return;
   history.replaceState(null,'',window.location.pathname);
-  toast('✅ Payment received — unlocking your spot…');
+  toast('Payment received — unlocking your spot…');
   for(let i=0;i<5;i++){
     await new Promise(r=>setTimeout(r,2500));
     const before=unitSlots.filter(s=>s.needs_payment).length;
     await loadUnitData();
-    if(unitSlots.filter(s=>s.needs_payment).length<before) {toast('✅ Your new spot is ready');return;}
+    if(unitSlots.filter(s=>s.needs_payment).length<before) {toast('Your new spot is ready');return;}
   }
 }
 
@@ -1014,7 +1014,7 @@ function renderSlots(){
             : `<div class="picker-no-vehicles">Add a vehicle to "My Vehicles" above first, then you can assign it here.</div>`
           }
           ${myVehicles.length?`<div class="disclaimer-box">
-            <div class="disclaimer-text">⚠️ Selecting a new vehicle will <strong>immediately void</strong> the current permit for this slot.</div>
+            <div class="disclaimer-text">Selecting a new vehicle will <strong>immediately void</strong> the current permit for this slot.</div>
             <label class="disclaimer-check">
               <input type="checkbox" id="disc-${slot.id}" onchange="checkPickerReady('${slot.id}')">
               I understand the current permit will be voided.
@@ -1107,7 +1107,7 @@ async function doSwap(slotId){
     if(!r.signedOut){toast(r.error);btn.disabled=false;btn.textContent='Assign to This Spot →';}
     return;
   }
-  toast('✅ '+vehicle.plate+' assigned to this spot.');
+  toast(vehicle.plate+' assigned to this spot.');
   closePicker(slotId);
   await loadUnitData();
 }
@@ -1160,7 +1160,7 @@ async function saveEmail(){
   if(r.error){err.textContent=r.error;err.classList.add('show');return;}
   session.tenantEmail=email.toLowerCase();
   sessionStorage.setItem('unit_session',JSON.stringify(session));
-  toast('✅ Email saved.');
+  toast('Email saved.');
 }
 
 async function savePassword(){
@@ -1174,7 +1174,7 @@ async function savePassword(){
   if(r.error){err.textContent=r.error;err.classList.add('show');return;}
   session.token=r.token;
   sessionStorage.setItem('unit_session',JSON.stringify(session));
-  toast('✅ Password updated. Use it next time you log in.');
+  toast('Password updated. Use it next time you log in.');
   closeModal('modal-account');
 }
 
@@ -1216,7 +1216,7 @@ async function doForgot(){
   const r=await api('forgot',{propertyId,unitNumber,email});
   btn.disabled=false;btn.textContent='Send New Password →';
   if(r.error){err.textContent=r.error;err.classList.add('show');return;}
-  ok.textContent='✅ A new temporary password has been sent to '+r.sentTo+'. Check your inbox.';
+  ok.textContent='A new temporary password has been sent to '+r.sentTo+'. Check your inbox.';
   ok.classList.add('show');
 }
 

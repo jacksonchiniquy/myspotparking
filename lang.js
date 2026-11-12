@@ -6,7 +6,7 @@
  *     a ?lang= link can preview one that's still off, for reviewers)
  *   - translates the page's text (and text the page adds later) by its English
  *     wording; anything without a translation stays in English
- *   - shows a 🌐 menu in any element with data-lang-menu (or top-right)
+ *   - shows a language menu in any element with data-lang-menu (or top-right)
  *
  * Never translated: anything inside translate="no" or .notranslate (plates,
  * names, the Parking Terms text), and what people type into inputs.
@@ -121,7 +121,7 @@
     L._cbs.forEach(function (f) { try { f(L.code); } catch (e) {} });
   }
 
-  // ── The 🌐 menu ──
+  // ── The language menu ──
   function menus() {
     if (!document.body) return;
     var slots = document.querySelectorAll('[data-lang-menu]');
@@ -134,7 +134,7 @@
       var st = document.createElement('style'); st.id = 'lothq-lang-css';
       st.textContent = '.lq-lang{position:relative;display:inline-block;font-family:inherit}' +
         '.lq-lang select{appearance:none;-webkit-appearance:none;border:1.5px solid rgba(15,23,42,.14);background:#fff url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2710%27 height=%276%27%3E%3Cpath d=%27M1 1l4 4 4-4%27 stroke=%27%23475569%27 stroke-width=%271.6%27 fill=%27none%27/%3E%3C/svg%3E") no-repeat right 10px center;border-radius:20px;padding:6px 28px 6px 30px;font-size:13px;font-weight:600;color:#0f172a;cursor:pointer;font-family:inherit}' +
-        '.lq-lang::before{content:"\\1F310";position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none}' +
+        '.lq-lang::before{content:"";position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;background:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23475569%27 stroke-width=%272%27 stroke-linecap=%27round%27%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%2710%27/%3E%3Cpath d=%27M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20%27/%3E%3C/svg%3E") no-repeat center/contain;pointer-events:none}' +
         '.tn-right .lq-lang select{padding:5px 24px 5px 28px;font-size:12px}' +
         '@media(max-width:600px){.tn-right .lq-lang select{width:50px;padding:5px 0 5px 28px;color:transparent;background-position:right 6px center}.tn-right .lq-lang select option{color:#0f172a}}';
       document.head.appendChild(st);
