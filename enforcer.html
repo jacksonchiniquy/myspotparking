@@ -82,7 +82,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:13px;font-weight:500;color:#64748b;cursor:pointer;transition:all .2s;border-left:2px solid transparent;}
 .sidebar-item:hover{color:var(--white);background:rgba(15,23,42,0.04);}
 .sidebar-item.active{color:#e09600;background:rgba(255,170,0,.08);border-left-color:var(--amber);}
-.sidebar-icon{font-size:16px;width:22px;text-align:center;}
+.sidebar-icon{font-size:16px;width:22px;display:inline-flex;align-items:center;justify-content:center;}
+.ico{display:inline-block;vertical-align:middle;flex-shrink:0;}
 .main{margin-left:220px;flex:1;padding:36px 40px 80px;}
 .scan-box{background:#ffffff;border:1px solid rgba(15,23,42,0.10);border-radius:16px;padding:32px;box-shadow:0 2px 12px rgba(15,23,42,0.05);margin-bottom:24px;}
 .plate-input{background:#f1f5fb;border:2px solid var(--border);color:var(--white);padding:14px 20px;border-radius:12px;font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;outline:none;flex:1;transition:border-color .2s;text-align:center;}
@@ -108,7 +109,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 @media(max-width:900px){
   .mtabs{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:600;background:rgba(255,255,255,.97);border-top:1px solid var(--border);padding:6px 4px calc(6px + env(safe-area-inset-bottom));}
   .mtab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;font-family:inherit;font-size:11px;font-weight:600;color:#64748b;padding:6px 2px;border-radius:10px;cursor:pointer;}
-  .mtab span{font-size:18px;line-height:1;}
+  .mtab span{font-size:18px;line-height:1;display:inline-flex;}
   .mtab.active{color:#b45309;background:rgba(255,170,0,.1);}
   .main{padding-bottom:96px;}
   #toast{bottom:84px;}
@@ -143,7 +144,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
 
       <div id="panel-signin">
-        <div style="font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:12px;background:rgba(255,170,0,.1);display:inline-block;padding:4px 12px;border-radius:20px;border:1px solid rgba(255,170,0,.2);">🚨 Enforcement Company</div>
+        <div style="font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:12px;background:rgba(255,170,0,.1);display:inline-block;padding:4px 12px;border-radius:20px;border:1px solid rgba(255,170,0,.2);">Enforcement Company</div>
         <div style="font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Officer sign in</div>
         <div style="font-size:13px;color:var(--slate);margin-bottom:28px;">Access your enforcement console</div>
         <div class="err-msg" id="si-err"></div>
@@ -151,7 +152,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="si-pass" type="password" placeholder="••••••••"></div>
         <button class="btn btn-amber btn-full" id="si-btn" onclick="handleSignIn()">Sign In →</button>
         <div class="divider">or</div>
-        <button class="btn btn-ghost btn-full" onclick="toast('🔗 Google coming soon')">Continue with Google</button>
+        <button class="btn btn-ghost btn-full" onclick="toast('Google coming soon')">Continue with Google</button>
         <div class="modal-switch" style="margin-top:20px;">Need an enforcement account? Contact <a href="mailto:support@lothq.com">support@lothq.com</a></div>
         <div class="modal-switch" style="margin-top:8px;"><a href="index.html" style="color:var(--slate);">← Back to Home</a></div>
       </div>
@@ -181,29 +182,29 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   <div class="layout">
     <aside class="sidebar">
       <div class="sidebar-label">Patrol</div>
-      <div class="sidebar-item active" onclick="setTab('console',this)"><span class="sidebar-icon">🔍</span>Lookup Console</div>
-      <div class="sidebar-item" onclick="setTab('violations',this)"><span class="sidebar-icon">🚨</span>Violations Log</div>
+      <div class="sidebar-item active" onclick="setTab('console',this)"><span class="sidebar-icon"><svg class="ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>Lookup Console</div>
+      <div class="sidebar-item" onclick="setTab('violations',this)"><span class="sidebar-icon"><svg class="ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>Violations Log</div>
       <div class="sidebar-label">Reports</div>
-      <div class="sidebar-item" onclick="setTab('summary',this)"><span class="sidebar-icon">📊</span>Patrol Summary</div>
+      <div class="sidebar-item" onclick="setTab('summary',this)"><span class="sidebar-icon"><svg class="ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 16v-4"/><path d="M12 16V8"/><path d="M17 16v-7"/></svg></span>Patrol Summary</div>
       <div class="sidebar-label">Help</div>
-      <div class="sidebar-item" onclick="setTab('training',this)"><span class="sidebar-icon">🎓</span>Training Videos</div>
+      <div class="sidebar-item" onclick="setTab('training',this)"><span class="sidebar-icon"><svg class="ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M10 9l5 3-5 3z"/></svg></span>Training Videos</div>
       <div class="sidebar-label">Account</div>
-      <div class="sidebar-item" onclick="setTab('account',this)"><span class="sidebar-icon">⚙️</span>Account</div>
+      <div class="sidebar-item" onclick="setTab('account',this)"><span class="sidebar-icon"><svg class="ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>Account</div>
     </aside>
 
     <nav class="mtabs" aria-label="Sections">
-      <button class="mtab active" data-tab="console" onclick="setTab('console')"><span>🔍</span>Lookup</button>
-      <button class="mtab" data-tab="violations" onclick="setTab('violations')"><span>🚨</span>Violations</button>
-      <button class="mtab" data-tab="summary" onclick="setTab('summary')"><span>📊</span>Summary</button>
-      <button class="mtab" data-tab="training" onclick="setTab('training')"><span>🎓</span>Training</button>
-      <button class="mtab" data-tab="account" onclick="setTab('account')"><span>⚙️</span>Account</button>
+      <button class="mtab active" data-tab="console" onclick="setTab('console')"><span><svg class="ico" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>Lookup</button>
+      <button class="mtab" data-tab="violations" onclick="setTab('violations')"><span><svg class="ico" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>Violations</button>
+      <button class="mtab" data-tab="summary" onclick="setTab('summary')"><span><svg class="ico" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 16v-4"/><path d="M12 16V8"/><path d="M17 16v-7"/></svg></span>Summary</button>
+      <button class="mtab" data-tab="training" onclick="setTab('training')"><span><svg class="ico" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M10 9l5 3-5 3z"/></svg></span>Training</button>
+      <button class="mtab" data-tab="account" onclick="setTab('account')"><span><svg class="ico" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>Account</button>
     </nav>
 
     <main class="main">
       <!-- CONSOLE -->
       <div id="tab-console" class="tab-panel active">
         <div style="margin-bottom:24px;">
-          <h1 style="font-size:24px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">🔍 Permit Lookup Console</h1>
+          <h1 style="font-size:24px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">Permit Lookup Console</h1>
           <p style="font-size:14px;color:var(--slate);">Enter a license plate to verify permit status in real-time from the database.</p>
         </div>
         <div class="scan-box">
@@ -268,7 +269,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
             <div class="form-group"><label class="form-label">Badge ID</label><input class="form-input" id="acc-badge" type="text"></div>
             <div class="form-group"><label class="form-label">Region</label><input class="form-input" id="acc-region" type="text"></div>
           </div>
-          <button class="btn btn-amber" onclick="toast('✅ Account updated')">Save Changes</button>
+          <button class="btn btn-amber" onclick="toast('Account updated')">Save Changes</button>
         </div>
       </div>
     </main>
@@ -359,11 +360,11 @@ function togglePatrol(){
   if(onPatrol){
     label.textContent='On Patrol';dot.style.background='var(--green)';dot.style.animation='pulse 1.5s infinite';
     status.style.background='rgba(0,200,122,.1)';status.style.borderColor='rgba(0,200,122,.2)';status.style.color='var(--green)';
-    toast('🚔 Patrol started');
+    toast('Patrol started');
   } else {
     label.textContent='Off Patrol';dot.style.background='var(--amber)';dot.style.animation='none';
     status.style.background='rgba(255,170,0,.1)';status.style.borderColor='rgba(255,170,0,.2)';status.style.color='var(--amber)';
-    toast('🔴 Patrol ended');
+    toast('Patrol ended');
   }
 }
 
@@ -416,10 +417,10 @@ const fmtTime=d=>d?new Date(d).toLocaleString([], {month:'short',day:'numeric',h
 
 async function lookupPlate(){
   const raw=document.getElementById('plate-input').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
-  if(!patrolProperty){toast('⚠️ Select the property you are patrolling first');document.getElementById('patrol-property').focus();return;}
-  if(!raw){toast('⚠️ Enter a plate number');return;}
+  if(!patrolProperty){toast('Select the property you are patrolling first');document.getElementById('patrol-property').focus();return;}
+  if(!raw){toast('Enter a plate number');return;}
   const resultEl=document.getElementById('lookup-result');
-  resultEl.innerHTML=`<div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:24px;text-align:center;color:var(--slate);">🔍 Looking up <strong style="font-family:'JetBrains Mono',monospace;">${formatPlate(raw)}</strong> at ${esc(patrolProperty.name)}…</div>`;
+  resultEl.innerHTML=`<div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:24px;text-align:center;color:var(--slate);">Looking up <strong style="font-family:'JetBrains Mono',monospace;">${formatPlate(raw)}</strong> at ${esc(patrolProperty.name)}…</div>`;
   const {data:r,error}=await sb.rpc('enforcement_lookup',{p_plate:raw,p_property:patrolProperty.id});
   if(error){
     resultEl.innerHTML=`<div class="result-violation"><div style="font-weight:700;color:var(--red);">Lookup failed</div><div style="font-size:13px;color:var(--slate2);margin-top:6px;">${esc(error.message)}</div></div>`;
@@ -538,7 +539,7 @@ async function rejectPossible(){
 }
 
 // ── ENFORCEMENT ACTIONS (tow / boot / ticket) ──
-const ACTIONS={tow:{label:'Tow',done:'Towed',icon:'🚛'},boot:{label:'Boot',done:'Booted',icon:'🔒'},ticket:{label:'Ticket',done:'Ticketed',icon:'🎫'}};
+const ACTIONS={tow:{label:'Tow',done:'Towed',icon:''},boot:{label:'Boot',done:'Booted',icon:''},ticket:{label:'Ticket',done:'Ticketed',icon:''}};
 let pendingEnforce=null;
 function allowedActions(){
   const a=(patrolProperty?.actions||[]).filter(x=>ACTIONS[x]);
@@ -550,12 +551,12 @@ function showNoPermit(raw,r,reason,expired,where){
     expired?[['Property',r.property],['Vehicle',r.vehicle||'—'],['Permit Type',r.permit_type],['Expired',fmtDate(r.end_date)]]:[['Property',r.property||patrolProperty.name]],
     `<div id="enforce-actions" style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
       <button class="btn btn-sm" style="background:var(--red);color:#fff;border:1px solid var(--red);" onclick="openEnforce()">Enforcement</button>
-      <button class="btn btn-ghost btn-sm" onclick="toast('📷 Photo logged')">Log Photo</button>
+      <button class="btn btn-ghost btn-sm" onclick="toast('Photo logged')">Log Photo</button>
     </div>`);
 }
 function openEnforce(){
   if(!pendingEnforce) return;
-  const btns=allowedActions().map(a=>`<button class="btn btn-sm" style="background:var(--red);color:#fff;border:1px solid var(--red);min-width:96px;" onclick="takeAction('${a}',this)">${ACTIONS[a].icon} ${ACTIONS[a].label}</button>`).join('');
+  const btns=allowedActions().map(a=>`<button class="btn btn-sm" style="background:var(--red);color:#fff;border:1px solid var(--red);min-width:96px;" onclick="takeAction('${a}',this)">${ACTIONS[a].label}</button>`).join('');
   document.getElementById('enforce-actions').innerHTML=`<div style="width:100%;font-size:13px;font-weight:700;color:var(--red);margin-bottom:2px;">What action are you taking on ${esc(formatPlate(pendingEnforce.raw))}?</div>
     ${btns}<button class="btn btn-ghost btn-sm" onclick="cancelEnforce()">Cancel</button>`;
 }
@@ -570,9 +571,9 @@ async function takeAction(action,btn){
   btn.textContent='Saving…';
   const {error}=await sb.from('violations').insert({officer_id:currentUser.id,property_id:p.propertyId,plate:p.raw,reason:p.reason,status:'Open',action});
   if(error){
-    toast('❌ Could not save: '+error.message);
+    toast('Could not save: '+error.message);
     document.querySelectorAll('#enforce-actions button').forEach(b=>b.disabled=false);
-    btn.textContent=ACTIONS[action].icon+' '+ACTIONS[action].label;
+    btn.textContent=ACTIONS[action].label;
     return;
   }
   pendingEnforce=null;
@@ -584,14 +585,14 @@ async function takeAction(action,btn){
   renderViolationsLog();renderSummary();
   document.getElementById('lookup-result').innerHTML=resultCard('violation','VIOLATION — '+done.toUpperCase(),`Logged at ${esc(p.r.property||patrolProperty?.name||'')} · ${time}`,p.raw,
     [['Property',p.r.property||patrolProperty?.name],['Action',done],['Reason',p.reason]],
-    `<div style="display:flex;gap:10px;margin-top:16px;"><button class="btn btn-ghost btn-sm" onclick="toast('📷 Photo logged')">Log Photo</button></div>`);
+    `<div style="display:flex;gap:10px;margin-top:16px;"><button class="btn btn-ghost btn-sm" onclick="toast('Photo logged')">Log Photo</button></div>`);
   document.getElementById('plate-input').focus();
 }
 
 function renderViolationsLog(){
   const log=document.getElementById('violations-log');
   if(!sessionViolations.length){
-    log.innerHTML=`<div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:50px;text-align:center;color:var(--slate);"><div style="font-size:32px;margin-bottom:12px;">✅</div><div style="font-size:15px;font-weight:600;color:var(--white);margin-bottom:6px;">No violations logged this session</div></div>`;
+    log.innerHTML=`<div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:50px;text-align:center;color:var(--slate);"><div style="margin-bottom:12px;color:var(--green);"><svg class="ico" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg></div><div style="font-size:15px;font-weight:600;color:var(--white);margin-bottom:6px;">No violations logged this session</div></div>`;
     return;
   }
   log.innerHTML=sessionViolations.map(v=>`
@@ -603,7 +604,7 @@ function renderViolationsLog(){
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
         <span class="pill ${v.status==='Open'?'pill-open':'pill-resolved'}">${v.status}</span>
-        <button class="btn btn-ghost btn-sm" onclick="toast('🖨 Printing ${v.id}')">Print</button>
+        <button class="btn btn-ghost btn-sm" onclick="toast('Printing ${v.id}')">Print</button>
       </div>
     </div>`).join('');
 }
@@ -634,7 +635,7 @@ function exportViolations(){
   if(!sessionViolations.length){toast('No violations to export');return;}
   const csv=['ID,Plate,Reason,Time,Status',...sessionViolations.map(v=>`${v.id},${v.plate},"${v.reason}",${v.time},${v.status}`)].join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='violations-'+new Date().toISOString().split('T')[0]+'.csv';a.click();
-  toast('📁 Violations exported');
+  toast('Violations exported');
 }
 
 const tabNames=['console','violations','summary','training','account'];
