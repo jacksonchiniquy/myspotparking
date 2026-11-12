@@ -318,6 +318,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
         </div>
       </button>
       <button class="tn-tab" id="tab-team" style="display:none;" onclick="showPage('team',this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg> Team</button>
+      <button class="tn-tab" id="tab-train" onclick="showPage('training',this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M10 9l5 3-5 3z"/></svg> Training</button>
     </div>
     <div class="tn-right">
       <span class="tn-badge">Manager</span>
@@ -329,11 +330,11 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
         </button>
         <div class="me-menu" id="me-menu" role="menu">
           <div class="me-head"><b id="me-name"></b><span id="me-email"></span></div>
-          <button type="button" onclick="openProfile()">✏️&nbsp; My profile</button>
-          <button type="button" onclick="openChangePw()">🔑&nbsp; Change password</button>
-          <button type="button" onclick="closeMeMenu();showPage('training')">🎓&nbsp; Training videos</button>
-          <a href="/help.html" target="_blank" rel="noopener">❓&nbsp; Help Center</a>
-          <button type="button" class="me-out" onclick="closeMeMenu();signOut()">↪&nbsp; Sign out</button>
+          <button type="button" onclick="openProfile()">My profile</button>
+          <button type="button" onclick="openChangePw()">Change password</button>
+          <button type="button" onclick="closeMeMenu();showPage('training',document.getElementById('tab-train'))">Training videos</button>
+          <a href="/help.html" target="_blank" rel="noopener">Help Center</a>
+          <button type="button" class="me-out" onclick="closeMeMenu();signOut()">Sign out</button>
         </div>
       </div>
     </div>
@@ -2303,7 +2304,7 @@ function restoreFromHash(){
   if(!hash||hash==='dashboard') return;
 
   if(hash==='properties'){showPage('properties',document.getElementById('tab-prop'));return;}
-  if(hash==='training'){showPage('training');return;}
+  if(hash==='training'){showPage('training',document.getElementById('tab-train'));return;}
   if(hash==='team'&&ownsAny()){showPage('team',document.getElementById('tab-team'));return;}
   if(hash==='permits'){showPage('permits',document.getElementById('tab-perm'));return;}
   if(hash==='violations'){showPage('violations',document.getElementById('tab-viol'));return;}
