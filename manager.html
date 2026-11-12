@@ -7054,5 +7054,9 @@ checkExistingSession();
     <button class="btn btn-primary btn-full" id="rp-btn" style="margin-top:16px;" onclick="sendPropertyRequest()">Send request</button>
   </div>
 </div>
+<script>
+// Only one video plays at a time: starting one pauses the others
+document.addEventListener('play',e=>{if(e.target.tagName!=='VIDEO')return;document.querySelectorAll('video').forEach(v=>{if(v!==e.target&&!v.paused)v.pause();});},true);
+</script>
 </body>
 </html>
