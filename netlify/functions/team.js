@@ -157,6 +157,18 @@ async function authAdmin(method, path, body) {
   return out;
 }
 
+const roleWord = r => ({ manager: 'manager', admin: 'LotHQ admin', enforcer: 'enforcement', holder: 'resident', resident: 'resident' }[r] || r || 'login');
+// Finds a sign-in account by email (looks through the sign-in list page by page)
+async function authUserByEmail(email) {
+  for (let page = 1; page <= 50; page++) {
+    const out = await authAdmin('GET', `users?page=${page}&per_page=1000`);
+    const list = out.users || [];
+    const hit = list.find(x => String(x.email || '').toLowerCase() === email);
+    if (hit || list.length < 1000) return hit || null;
+  }
+  return null;
+}
+
 async function personRow(userId) {
   if (!UUID_RE.test(String(userId || ''))) throw new UserError('Person not found.', 404);
   const [u] = await sb('GET', `users?id=eq.${userId}&select=*`);
@@ -855,9 +867,22 @@ const actions = {
     email = String(email || '').trim().toLowerCase();
     if (!EMAIL_RE.test(email)) throw new UserError('Enter a valid email address.');
     if (email === String(u.email || '').toLowerCase()) return { ok: true };
-    const [taken] = await sb('GET', `users?email=eq.${q(email)}&select=id&limit=1`);
-    if (taken) throw new UserError('Another LotHQ login already uses that email.');
-    await authAdmin('PUT', `users/${u.id}`, { email, email_confirm: true });
+    const [taken] = await sb('GET', `users?email=eq.${q(email)}&select=id,full_name,role&limit=1`);
+    if (taken) throw new UserError(`That email already belongs to another LotHQ login (${taken.full_name || 'no name'} · ${roleWord(taken.role)}). Change or remove that login first.`);
+    // A sign-in account can exist without a LotHQ profile (an unfinished sign-up, for example)
+    const orphan = await authUserByEmail(email);
+    if (orphan && orphan.id !== u.id) throw new UserError('That email already has a sign-in account that isn\'t linked to anyone in LotHQ, usually left over from an unfinished sign-up. Remove it in Supabase (Authentication → Users), then try again.');
+    // Pending invites to the new email on this person's own properties would clash with their team rows: clear them
+    const mine = await sb('GET', `property_team?user_id=eq.${u.id}&select=property_id`);
+    for (const pid of [...new Set(mine.map(r => r.property_id))]) {
+      await sb('DELETE', `property_team?property_id=eq.${pid}&email=eq.${q(email)}&status=eq.invited`);
+    }
+    try {
+      await authAdmin('PUT', `users/${u.id}`, { email, email_confirm: true });
+    } catch (e) {
+      if (/email_exists|already been registered|already registered/i.test(e.message)) throw new UserError('That email already has a sign-in account. Remove it in Supabase (Authentication → Users), then try again.');
+      throw e;
+    }
     await sb('PATCH', `users?id=eq.${u.id}`, { email });
     await sb('PATCH', `property_team?user_id=eq.${u.id}`, { email });
     await logActivity({ ...(await actorOf(me)), action: 'team.email_changed', target: email, summary: `Changed ${nameOf(u)}'s login email from ${u.email} to ${email}` });
