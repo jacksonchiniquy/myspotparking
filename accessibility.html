@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accessibility — LotHQ</title>
+<meta name="description" content="How LotHQ makes parking permits, guest passes and Pay to Park accessible, and how to get help.">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0B1220;
+  --ink2: #1E2A3B;
+  --slate: #4A5568;
+  --slate2: #718096;
+  --blue: #1B6FFF;
+  --blue-dark: #0D5AE5;
+  --blue-light: rgba(27,111,255,0.08);
+  --green: #00C87A;
+  --amber: #F59E0B;
+  --white: #FFFFFF;
+  --bg: #F5F6F8;
+  --bg2: #EBEDF0;
+  --border: rgba(11,18,32,0.10);
+  --border2: rgba(11,18,32,0.06);
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { background: var(--white); color: var(--ink); font-family: 'Inter', sans-serif; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
+/* ── TYPOGRAPHY ── */
+.display { font-family: 'Sora', sans-serif; }
+h1, h2, h3 { font-family: 'Sora', sans-serif; }
+
+/* ── NAV ── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 60px; height: 64px;
+  background: rgba(255,255,255,0.95); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+.nav-mark {
+  width: 36px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-mark svg { width: 36px; height: 38px; }
+.nav-name { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+.nav-name span { color: #374269; font-weight: 800; }
+.nav-name em { font-style: normal; color: #2859a8; font-weight: 600; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; display: block; line-height: 1.1; margin-top: 1px; }
+.nav-links { display: flex; align-items: center; gap: 2px; }
+.nav-link { padding: 7px 14px; font-size: 14px; font-weight: 500; color: var(--slate); text-decoration: none; border-radius: 7px; transition: all .18s; }
+.nav-link:hover { color: var(--blue); background: var(--blue-light); }
+.nav-right { display: flex; align-items: center; gap: 10px; }
+.nav-signin { padding: 7px 16px; font-size: 14px; font-weight: 500; color: var(--slate); background: none; border: 1px solid var(--border); border-radius: 7px; cursor: pointer; text-decoration: none; font-family: 'Inter', sans-serif; transition: all .18s; display: inline-flex; align-items: center; }
+.nav-signin:hover { border-color: var(--blue); color: var(--blue); }
+.nav-cta { padding: 8px 20px; font-size: 14px; font-weight: 600; color: white; background: var(--blue); border: none; border-radius: 7px; cursor: pointer; text-decoration: none; font-family: 'Inter', sans-serif; transition: all .18s; display: inline-flex; align-items: center; letter-spacing: -0.01em; }
+.nav-cta:hover { background: var(--blue-dark); }
+footer { background: #080E19; padding: 48px 60px 36px; }
+.footer-inner { max-width: 1100px; margin: 0 auto; }
+.footer-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; padding-bottom: 32px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 24px; }
+.footer-brand-name { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; color: white; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.footer-brand-desc { font-size: 13px; color: rgba(255,255,255,0.35); line-height: 1.6; max-width: 220px; }
+.footer-cols { display: flex; gap: 48px; }
+.footer-col-title { font-size: 11px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(255,255,255,0.25); margin-bottom: 14px; }
+.footer-links { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+.footer-links a { font-size: 13px; color: rgba(255,255,255,0.45); text-decoration: none; transition: color .18s; }
+.footer-links a:hover { color: white; }
+.footer-bottom { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: rgba(255,255,255,0.25); }
+
+.lg-hero{padding:120px 24px 34px;background:linear-gradient(180deg,#EEF3FF 0%,#fff 100%);text-align:center;}
+.lg-hero h1{font-family:'Sora',sans-serif;font-size:40px;font-weight:700;letter-spacing:-.03em;color:var(--ink);}
+.lg-hero p{color:var(--slate);font-size:15px;margin-top:10px;}
+.lg-main{max-width:780px;margin:0 auto;padding:10px 24px 80px;}
+.lg-main h2{font-family:'Sora',sans-serif;font-size:21px;font-weight:700;letter-spacing:-.02em;margin:36px 0 10px;color:var(--ink);scroll-margin-top:80px;}
+.lg-main p,.lg-main li{font-size:15.5px;color:#3a4458;line-height:1.75;}
+.lg-main p{margin:0 0 12px;}
+.lg-main ul{margin:0 0 14px 22px;}
+.lg-main li{margin-bottom:6px;}
+.lg-main a{color:var(--blue);font-weight:600;text-decoration:none;}
+.lg-summary{background:#F5F8FF;border:1px solid var(--border);border-radius:14px;padding:18px 22px;margin-top:22px;}
+.lg-summary p{margin:0;}
+.lg-toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;}
+.lg-toc a{font-size:13px;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--slate);font-weight:500;}
+@media(max-width:960px){.nav{padding:0 20px;}.nav-links{display:none;}.footer-row{flex-direction:column;}.footer-cols{flex-wrap:wrap;gap:28px;}.footer-bottom{flex-direction:column;gap:10px;text-align:center;}}
+@media(max-width:420px){.nav-logo .nav-mark{display:none;}}
+@media(max-width:620px){.nav{padding:0 14px;}.nav-right{gap:6px;}.nav-right .nav-talk{display:none;}.nav-signin,.nav-cta{padding:7px 11px;font-size:13px;white-space:nowrap;}.nav-name em{display:none;}.lg-hero h1{font-size:30px;}}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-logo" href="index.html">
+    <div class="nav-mark">
+      <svg width="36" height="38" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="#374269" opacity="0.2"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg>
+    </div>
+    <span class="nav-name"><span>Lot<b style="color:#2859a8;font-weight:inherit;">HQ</b></span><em>Parking</em></span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="index.html#for-who">Solutions</a>
+    <a class="nav-link" href="index.html#modes">Parking Types</a>
+    <a class="nav-link" href="index.html#features">Features</a>
+    <a class="nav-link" href="index.html#how">How It Works</a>
+    <a class="nav-link" href="index.html#faq">FAQ</a>
+    <a class="nav-link" href="help.html">Help</a>
+    <a class="nav-link" href="get-started.html">Contact</a>
+  </div>
+  <div class="nav-right">
+    <div class="nav-login">
+      <button class="nav-signin nav-login-btn" type="button" aria-haspopup="true" aria-expanded="false">Login <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <div class="nav-login-menu" role="menu">
+        <a href="login.html" role="menuitem"><b>LotHQ Login</b><span>Residents, tenants and guests</span></a>
+        <a href="manager.html" role="menuitem"><b>Manager</b><span>Property managers and HOAs</span></a>
+        <a href="enforcer.html" role="menuitem"><b>Enforcement</b><span>Towing and patrol officers</span></a>
+      </div>
+    </div>
+    <a class="nav-cta nav-talk" href="get-started.html">Talk to Our Team</a>
+  </div>
+</nav>
+<script src="site-menu.js" defer></script>
+<div class="lg-hero"><h1>Accessibility</h1><p>Last updated November 13, 2026</p></div>
+<main class="lg-main"><div class="lg-summary"><p><b>The short version:</b> We want LotHQ to work for everyone. If something is hard to use, email support@lothq.com and we'll help.</p></div><div class="lg-toc"><a href="#our-commitment">Our commitment</a><a href="#what-we-do">What we do</a><a href="#known-limits">Known limits</a><a href="#report-a-problem-or-get-help">Report a problem or get help</a></div><h2 id="our-commitment">Our commitment</h2><p>LotHQ wants every resident, tenant, guest, driver, manager and officer to be able to use our website and portals, including people with disabilities. We aim to meet the Web Content Accessibility Guidelines (WCAG) 2.1 at level AA.</p><h2 id="what-we-do">What we do</h2><ul><li>Pages work on phones, tablets and computers, and can be zoomed without losing content.</li><li>Text and buttons are designed for readable color contrast.</li><li>Forms have labels, and most features can be used with a keyboard.</li><li>Training videos include captions.</li><li>Resident, tenant, guest and driver pages are available in 8 languages from the language menu.</li></ul><h2 id="known-limits">Known limits</h2><p>Some parts of LotHQ may not fully meet WCAG 2.1 AA yet, such as the lot map drawing tool and pages provided by others, like Stripe's payment pages. We review LotHQ regularly and fix problems as we find them.</p><h2 id="report-a-problem-or-get-help">Report a problem or get help</h2><p>If something on LotHQ is hard to use, or you need information in another format, email <a href="mailto:support@lothq.com">support@lothq.com</a>. Tell us the page and what happened, and we'll help you park or get what you need while we work on a fix. We try to respond within 2 business days.</p></main>
+<footer>
+  <div class="footer-inner">
+    <div class="footer-row">
+      <div>
+        <div class="footer-brand-name">
+          <div class="nav-mark" style="width:28px;height:30px;">
+            <svg width="28" height="30" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 40 L8 54 L20 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M69 40 L72 54 L60 54" stroke="#5a6378" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="40" cy="57" rx="8" ry="3" fill="#374269" opacity="0.2"/><path d="M40 4C31.163 4 24 11.163 24 20c0 11.2 16 33 16 33S56 31.2 56 20c0-8.837-7.163-16-16-16z" fill="#2859a8"/><circle cx="40" cy="20" r="10" fill="white"/><text x="40" y="25" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#374269">P</text></svg>
+          </div>
+          LotHQ
+        </div>
+        <p class="footer-brand-desc">Digital parking permit management for property managers, residents, and enforcement teams.</p>
+      </div>
+      <div class="footer-cols">
+        <div>
+          <div class="footer-col-title">Portals</div>
+          <ul class="footer-links">
+            <li><a href="manager.html">Property Manager</a></li>
+            <li><a href="login.html">LotHQ Login</a></li>
+            <li><a href="enforcer.html">Enforcement</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Company</div>
+          <ul class="footer-links">
+            <li><a href="get-started.html">Get Started</a></li>
+            <li><a href="get-started.html">Contact Sales</a></li>
+            <li><a href="help.html">Help Center</a></li>
+            <li><a href="mailto:support@lothq.com">Support</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Legal</div>
+          <ul class="footer-links">
+            <li><a href="privacy.html">Privacy Policy</a></li>
+            <li><a href="terms.html">Terms of Use</a></li>
+            <li><a href="accessibility.html">Accessibility</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 LotHQ LLC. All rights reserved.</span>
+      <span>Payments secured by Stripe · Built in Utah</span>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
