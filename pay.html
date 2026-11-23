@@ -381,10 +381,17 @@ function renderAreas(){
     return `<label class="area-option${on?' selected':''}">
       <input type="radio" name="park-area" value="${escH(a.id)}" ${on?'checked':''} onchange="selectArea('${escH(a.id)}')">
       <span><span class="rate-name" style="display:block;" translate="no">${escH(a.name)}</span>${a.desc?`<span class="rate-desc" translate="no">${escH(a.desc)}</span>`:''}</span>
-    </label>`;}).join('');
+    </label>`;}).join('')
+  // Optional areas: a way to say "none of these" (and to undo a tap)
+  +(currentProperty.area_mode==='optional'?`<label class="area-option${areaNone?' selected':''}">
+      <input type="radio" name="park-area" value="" ${areaNone?'checked':''} onchange="selectArea('')">
+      <span><span class="rate-name" style="display:block;">Somewhere else / not sure</span></span>
+    </label>`:'');
 }
+let areaNone=false; // the driver picked "Somewhere else / not sure"
 function selectArea(id){
   selectedArea=(currentProperty.areas||[]).find(a=>a.id===id)||null;
+  areaNone=!selectedArea;
   document.getElementById('area-section').classList.remove('need');
   renderAreas();
   // Keep the chosen rate if it's offered here; otherwise pick the first one that is
