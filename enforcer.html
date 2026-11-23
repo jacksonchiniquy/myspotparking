@@ -447,7 +447,8 @@ async function lookupPlate(){
       patrolLog.unshift({plate:raw,result:'Paid Session',time});
       const mins=Math.round((new Date(r.expires_at)-new Date())/60000);
       resultEl.innerHTML=resultCard('valid','PAID PARKING SESSION',`${mins} min remaining · ${where}`,raw,[
-        ['Property',r.property],['Vehicle',r.vehicle||'—'],['Amount Paid',r.amount_paid!=null?'$'+(Number(r.amount_paid)/100).toFixed(2):''],['Expires',fmtTime(r.expires_at)]]);
+        ['Property',r.property],['Area',r.area],['Stall',r.stall],['Vehicle',r.vehicle||'—'],['Paid For',r.rate_name],['Amount Paid',r.amount_paid!=null?'$'+(Number(r.amount_paid)/100).toFixed(2):''],['Expires',fmtTime(r.expires_at)]],
+        r.area?`<div style="margin-top:12px;font-size:12px;color:var(--slate2);">Paid for the <strong>${esc(r.area)}</strong> area${r.stall?', stall <strong style="font-family:\'JetBrains Mono\',monospace;">'+esc(r.stall)+'</strong>':''}. If the car is parked somewhere else, it may be in the wrong area.</div>`:'');
     }else{
       patrolLog.unshift({plate:raw,result:'Guest Pass',time});
       resultEl.innerHTML=resultCard('valid','VALID — GUEST PASS','Resident guest · '+where,raw,[
@@ -493,6 +494,7 @@ function renderPossible(raw,r,time){
       ['Type',kind+(m.permit_type?' · '+m.permit_type:'')],
       ['Vehicle',m.vehicle||(m.guest_name?'Guest: '+m.guest_name:'')],
       ['Unit',m.unit_number||(m.host_unit?'Guest of '+(m.host_word||'Unit')+' '+m.host_unit:'')],
+      ['Area',m.area],['Stall',m.stall],
       ['VIN (last 6)',m.vin_last6],
       ['Valid until',m.end_date?fmtDate(m.end_date):m.expires_at?fmtTime(m.expires_at):'']
     ].filter(d=>d[1]).map(([k,v])=>`<div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:3px;">${k}</div><div style="font-size:13px;font-weight:600;">${esc(v)}</div></div>`).join('');

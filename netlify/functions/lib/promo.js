@@ -37,8 +37,11 @@ function todayStart(tz = TZ) {
 }
 
 // '' if the code can be used for this rate and plate, otherwise why not
-async function promoProblem(promo, rate, plate, tz = TZ) {
+// area: the parking area the driver picked (null if none, or areas aren't used)
+async function promoProblem(promo, rate, plate, tz = TZ, area = null) {
   if (!promo || !promo.active) return 'That code isn\'t valid here.';
+  if (area && Array.isArray(promo.area_ids) && promo.area_ids.length && !promo.area_ids.includes(area.id))
+    return `That code doesn't work in ${area.name}.`;
   if (promo.ends_at && new Date(promo.ends_at) <= new Date()) return 'That code has ended.';
   if (promo.max_uses != null && promo.uses >= promo.max_uses) return 'That code has been used up.';
   if (rate && Array.isArray(promo.rate_ids) && promo.rate_ids.length && !promo.rate_ids.includes(String(rate.id || rate.name)))

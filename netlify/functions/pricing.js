@@ -38,6 +38,7 @@ async function sb(method, path, body) {
   });
   const text = await res.text();
   if (!res.ok) {
+    if (/area_ids/.test(text)) throw new UserError('Parking areas need one setup step from LotHQ first.', 503);
     if (/discount_|promo_codes|pay_ahead|42P01|42703/.test(text)) throw new UserError('Discounts aren\'t switched on yet. LotHQ needs to finish one setup step first.', 503);
     if (/promo_codes_property_code|duplicate key/.test(text)) throw new UserError('This property already has a code with that name.');
     throw new Error(`Supabase ${method} ${path.split('?')[0]} ${res.status}: ${text}`);
@@ -209,6 +210,8 @@ const actions = {
     const endsAt = p.endsAt ? new Date(p.endsAt) : null;
     if (endsAt && isNaN(endsAt)) throw new UserError('That end date isn\'t valid.');
     const row = { code, kind, value, rate_ids: rateIds, max_uses: maxUses, ends_at: endsAt ? endsAt.toISOString() : null, once_per_day: !!p.oncePerDay };
+    // Parking areas the code works in (sent only by properties that use areas; empty = every area)
+    if (Array.isArray(p.areaIds)) row.area_ids = p.areaIds.length ? p.areaIds.map(String).slice(0, 50) : null;
     let saved;
     if (p.id) {
       if (!UUID_RE.test(String(p.id))) throw new UserError('Code not found.', 404);

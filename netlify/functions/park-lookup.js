@@ -1,9 +1,9 @@
 // park-lookup.js — finds a Pay to Park property for pay.html and park.html
 //   POST { code: 'TPP-4821' }  or  { id: '<property id>' }
-// Returns only what a driver needs to see: name, address, code, stall setting
-// and the parking options. Nothing else about the property is shared.
+// Returns only what a driver needs to see: name, address, code, stall and area
+// settings, the property's areas and the parking options. Nothing else about the property is shared.
 
-const { ratesFor, sb } = require('./lib/parking');
+const { ratesFor, sb, areasFor, areaModeFor, findArea } = require('./lib/parking');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -23,7 +23,7 @@ exports.handler = async (event) => {
   let body;
   try { body = JSON.parse(event.body || '{}'); } catch { return reply(400, { error: 'Invalid request' }); }
 
-  // Check a promo code: { id, promo: 'GUEST50' } → the price of each option with it
+  // Check a promo code: { id, promo: 'GUEST50', area? } → the price of each option with it
   if (body.promo !== undefined) {
     if (!UUID_RE.test(String(body.id || ''))) return reply(404, { error: 'Property not found.' });
     try {
@@ -31,7 +31,7 @@ exports.handler = async (event) => {
       const [p] = await sb('GET', `properties?id=eq.${body.id}&select=*`);
       if (!p) return reply(404, { error: 'Property not found.' });
       const found = await promo.findPromo(p.id, body.promo);
-      const general = await promo.promoProblem(found, null, null);
+      const general = await promo.promoProblem(found, null, null, undefined, areaModeFor(p) === 'off' ? null : findArea(p, body.area));
       if (general) return reply(200, { error: general });
       const prices = {};
       ratesFor(p).forEach((r, i) => {
@@ -74,8 +74,11 @@ exports.handler = async (event) => {
         id: p.id, name: p.name, address: p.address || '',
         park_code: p.park_code || null,
         stall_mode: p.stall_mode || 'off',
+        area_mode: areaModeFor(p),
+        areas: areaModeFor(p) === 'off' ? [] : areasFor(p).map(a => ({ id: a.id, name: String(a.name).trim(), desc: a.desc || '' })),
         promos: await hasPromos(p.id),
-        rates: ratesFor(p).map(r => ({ id: r.id || null, name: r.name, minutes: r.minutes, amount: r.amount, desc: r.desc || '' })),
+        rates: ratesFor(p).map(r => ({ id: r.id || null, name: r.name, minutes: r.minutes, amount: r.amount, desc: r.desc || '',
+          areas: areaModeFor(p) !== 'off' && Array.isArray(r.areas) ? r.areas : [] })),
       },
     });
   } catch (err) {

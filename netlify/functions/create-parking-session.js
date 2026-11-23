@@ -4,7 +4,7 @@
 // The session is saved as 'pending' and becomes 'active' when Stripe confirms payment.
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { ratesFor, sb, insertSession } = require('./lib/parking');
+const { ratesForArea, sb, insertSession, areaModeFor, findArea } = require('./lib/parking');
 const I = require('./lib/i18n');
 const connect = require('./lib/connect');
 
@@ -40,12 +40,21 @@ exports.handler = async (event) => {
     const stall = stallMode === 'off' ? '' : String(body.stall || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 12);
     if (stallMode === 'required' && !stall) return reply(400, { error: 'Please enter the stall number from the sign.' });
 
+    // Parking area: required, optional or not used, as the property is set up
+    const areaMode = areaModeFor(property);
+    const areaRow = areaMode === 'off' ? null : findArea(property, body.area);
+    if (areaMode !== 'off' && body.area && !areaRow) return reply(400, { error: 'That parking area wasn\'t found. Please pick it again.', area: true });
+    if (areaMode === 'required' && !areaRow) return reply(400, { error: 'Please choose where you\'re parked.', area: true });
+    const area = areaRow ? String(areaRow.name).trim().slice(0, 60) : '';
+
     const terms = require('./lib/terms');
     const termsErr = await terms.checkAccepted(property.id, 'pay', body.termsVersion);
     if (termsErr) return reply(400, { error: termsErr, terms: true });
 
-    const rates = ratesFor(property);
-    const rate = rates.find(r => r.id && r.id === body.rateId) || rates[Number(body.rateIndex)];
+    // Only the rates offered in the chosen area (rateIndex is from the full list, for older pages)
+    const rates = ratesForArea(property, areaRow);
+    const all = require('./lib/parking').ratesFor(property);
+    const rate = rates.find(r => r.id && r.id === body.rateId) || (body.rateId ? null : rates.find(r => r === all[Number(body.rateIndex)]));
     const amount = Math.round(Number(rate && rate.amount));
     const minutes = Math.round(Number(rate && rate.minutes));
     if (!rate || !(amount >= 50) || !(minutes > 0)) {
@@ -57,7 +66,7 @@ exports.handler = async (event) => {
     if (body.promo) {
       const P = require('./lib/promo');
       promo = await P.findPromo(property.id, body.promo);
-      const problem = await P.promoProblem(promo, rate, plate, property.timezone || undefined);
+      const problem = await P.promoProblem(promo, rate, plate, property.timezone || undefined, areaRow);
       if (problem) return reply(400, { error: problem, promo: true });
       price = P.priceWith(promo, amount);
     }
@@ -71,6 +80,7 @@ exports.handler = async (event) => {
         ...(lang !== 'en' ? { lang } : {}),
         property_id: property.id, plate, vehicle_desc: vehicleDesc || null, email,
         ...(stall ? { stall } : {}),
+        ...(area ? { area } : {}),
         rate_name: rate.name || null, amount_paid: 0, original_cents: amount, promo_code: promo.code, duration_minutes: minutes,
         status: 'active', started_at: start.toISOString(), expires_at: new Date(start.getTime() + minutes * 60000).toISOString(),
       });
@@ -79,8 +89,8 @@ exports.handler = async (event) => {
       if (email) { try { await require('./lib/parking').sendReceipt(row, email); } catch (e) { console.error('Free parking receipt failed:', e.message); } }
       await require('./lib/activity').logActivity({ actorName: email || 'Pay to Park driver', actorRole: 'driver', portal: 'pay',
         action: 'pay.session_free', propertyId: property.id, target: plate,
-        summary: `Parked ${plate} free with code ${promo.code}${rate.name ? ' · ' + rate.name : ''}`, details: { promo: promo.code, minutes } });
-      return reply(200, { free: true, session: { status: 'active', plate, vehicle_desc: vehicleDesc || null, stall: stall || null, property_name: property.name || '',
+        summary: `Parked ${plate} free with code ${promo.code}${rate.name ? ' · ' + rate.name : ''}${area ? ' · ' + area : ''}`, details: { promo: promo.code, minutes } });
+      return reply(200, { free: true, session: { status: 'active', plate, vehicle_desc: vehicleDesc || null, stall: stall || null, area: area || null, property_name: property.name || '',
         duration_minutes: minutes, started_at: row.started_at, expires_at: row.expires_at } });
     }
 
@@ -100,20 +110,21 @@ exports.handler = async (event) => {
           unit_amount: price,
           product_data: {
             name: `Parking — ${property.name}`,
-            description: `${rate.name} · Plate: ${plate}${stall ? ' · Stall ' + stall : ''}${vehicleDesc ? ' · ' + vehicleDesc : ''}${promo ? ` · Code ${promo.code} (was $${(amount / 100).toFixed(2)})` : ''}`,
+            description: `${rate.name} · Plate: ${plate}${area ? ' · ' + area : ''}${stall ? ' · Stall ' + stall : ''}${vehicleDesc ? ' · ' + vehicleDesc : ''}${promo ? ` · Code ${promo.code} (was $${(amount / 100).toFixed(2)})` : ''}`,
           },
         },
         quantity: 1,
       }],
-      metadata: { kind: 'parking_session', property_id: property.id, plate, stall, duration_minutes: String(minutes), rate_name: String(rate.name || ''), ...(promo ? { promo_code: promo.code } : {}) },
+      metadata: { kind: 'parking_session', property_id: property.id, plate, stall, area, duration_minutes: String(minutes), rate_name: String(rate.name || ''), ...(promo ? { promo_code: promo.code } : {}) },
       success_url: `${SITE}/pay.html?lot=${property.id}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${SITE}/pay.html?lot=${property.id}${stall ? '&s=' + encodeURIComponent(stall) : ''}`,
+      cancel_url: `${SITE}/pay.html?lot=${property.id}${areaRow ? '&a=' + encodeURIComponent(areaRow.id) : ''}${stall ? '&s=' + encodeURIComponent(stall) : ''}`,
     }, connect.opts(account));
 
     await insertSession({
       ...(lang !== 'en' ? { lang } : {}),
       property_id: property.id, plate, vehicle_desc: vehicleDesc || null, email,
       ...(stall ? { stall } : {}),
+      ...(area ? { area } : {}),
       rate_name: rate.name || null, amount_paid: price /* cents */, duration_minutes: minutes,
       ...(promo ? { promo_code: promo.code, original_cents: amount } : {}),
       stripe_session_id: checkout.id, status: 'pending',

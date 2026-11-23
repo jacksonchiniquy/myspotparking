@@ -54,6 +54,12 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
 .rate-option{border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:space-between;}
 .rate-option:hover{border-color:rgba(27,111,255,0.3);background:rgba(27,111,255,0.02);}
 .rate-option.selected{border-color:var(--blue);background:rgba(27,111,255,0.05);}
+.area-section{margin-bottom:24px;}
+.area-option{border:1.5px solid var(--border);border-radius:12px;padding:12px 16px;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:12px;min-height:48px;box-sizing:border-box;}
+.area-option:hover{border-color:rgba(27,111,255,0.3);background:rgba(27,111,255,0.02);}
+.area-option.selected{border-color:var(--blue);background:rgba(27,111,255,0.05);}
+.area-option input{width:18px;height:18px;margin:0;accent-color:var(--blue);flex-shrink:0;}
+.area-section.need .area-option{border-color:#fca5a5;}
 .rate-left{}
 .rate-name{font-size:15px;font-weight:600;margin-bottom:2px;}
 .rate-desc{font-size:12px;color:var(--slate2);}
@@ -156,6 +162,12 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
       <div class="steps-wrap">
         <div class="err-banner" id="pay-err"></div>
 
+        <!-- STEP 0: WHERE ARE YOU PARKED? (properties that use parking areas) -->
+        <div class="area-section" id="area-section" style="display:none;">
+          <div class="section-label">Where are you parked? <span id="area-need" style="color:var(--slate2);font-weight:400;text-transform:none;letter-spacing:0;"></span></div>
+          <div class="rate-grid" id="area-list" role="radiogroup" aria-label="Parking area"></div>
+        </div>
+
         <!-- STEP 1: SELECT RATE -->
         <div class="rate-section">
           <div class="section-label">Select Parking Duration</div>
@@ -199,6 +211,10 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
             <span class="summary-label">Duration</span>
             <span class="summary-val" id="sum-duration">—</span>
           </div>
+          <div class="summary-row" id="sum-area-row" style="display:none;">
+            <span class="summary-label">Area</span>
+            <span class="summary-val" id="sum-area" translate="no">—</span>
+          </div>
           <div class="summary-row" id="sum-stall-row" style="display:none;">
             <span class="summary-label">Stall</span>
             <span class="summary-val" id="sum-stall">—</span>
@@ -241,6 +257,7 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
         <div style="font-size:13px;color:var(--slate2);" id="ss-vehicle" translate="no"></div>
         <div class="sc-fields">
           <div><div class="sc-field-label">Location</div><div class="sc-field-val" id="ss-prop" translate="no">—</div></div>
+          <div id="ss-area-wrap" style="display:none;"><div class="sc-field-label">Area</div><div class="sc-field-val" id="ss-area" translate="no">—</div></div>
           <div id="ss-stall-wrap" style="display:none;"><div class="sc-field-label">Stall</div><div class="sc-field-val" id="ss-stall">—</div></div>
           <div><div class="sc-field-label">Duration</div><div class="sc-field-val" id="ss-duration">—</div></div>
           <div><div class="sc-field-label">Started</div><div class="sc-field-val" id="ss-start">—</div></div>
@@ -263,6 +280,8 @@ const params=new URLSearchParams(window.location.search);
 const propId=params.get('lot')||params.get('property');
 const propCode=params.get('c')||params.get('code');
 const stallFromLink=(params.get('s')||params.get('stall')||'').toUpperCase().replace(/[^A-Z0-9-]/g,'').slice(0,12);
+const areaFromLink=(params.get('a')||params.get('area')||'').trim().slice(0,60);
+let selectedArea=null; // {id,name,desc} when the property uses parking areas
 const escH=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 // Check for returning from Stripe
@@ -302,6 +321,16 @@ async function init(){
   document.getElementById('prop-address').textContent=prop.address||'';
   const chips=[];
   if(prop.park_code) chips.push(`<span class="prop-chip">Code ${escH(prop.park_code)}</span>`);
+  // Parking areas (only for properties that use them). A QR sticker can carry the area.
+  const areas=prop.area_mode&&prop.area_mode!=='off'?(prop.areas||[]):[];
+  if(areas.length){
+    const v=areaFromLink.toLowerCase();
+    selectedArea=v?areas.find(a=>String(a.id).toLowerCase()===v||String(a.name).toLowerCase()===v)||null:null;
+    document.getElementById('area-need').textContent=prop.area_mode==='required'?'*':'(optional)';
+    document.getElementById('area-section').style.display='';
+    renderAreas();
+  }
+  if(selectedArea) chips.push(`<span class="prop-chip dark">${escH(selectedArea.name)}</span>`);
   if(prop.stall_mode!=='off'&&stallFromLink) chips.push(`<span class="prop-chip dark">Stall ${escH(stallFromLink)}</span>`);
   document.getElementById('prop-chips').innerHTML=chips.join('');
 
@@ -314,9 +343,9 @@ async function init(){
     document.getElementById('stall').value=stallFromLink;
   }
 
-  const rates=prop.rates||[];
-  selectedRateIndex=rates.length>1?1:0;
-  selectedRate=rates[selectedRateIndex];
+  const vis=visibleRateIndexes();
+  selectedRateIndex=vis.length>1?vis[1]:(vis[0]??0);
+  selectedRate=(prop.rates||[])[selectedRateIndex];
   renderRates();
   document.getElementById('promo-wrap').style.display=prop.promos?'':'none';
   updateSummary();
@@ -331,9 +360,45 @@ function priceOf(r,i){
   return r.amount;
 }
 const fmtPrice=c=>c===0?'Free':'$'+(c/100).toFixed(2);
+// Which rates show: with parking areas, only the chosen area's rates (plus rates for every area).
+// No area chosen yet: only rates for every area (or all, if every rate is limited). Same rule as the server.
+function usesAreas(){return !!(currentProperty&&currentProperty.area_mode&&currentProperty.area_mode!=='off'&&(currentProperty.areas||[]).length);}
+function rateShows(r){
+  if(!usesAreas()) return true;
+  const ids=Array.isArray(r.areas)?r.areas:[];
+  return !ids.length||(!!selectedArea&&ids.includes(selectedArea.id));
+}
+function visibleRateIndexes(){
+  const rates=currentProperty.rates||[];
+  let idx=rates.map((r,i)=>rateShows(r)?i:-1).filter(i=>i>=0);
+  if(usesAreas()&&!selectedArea&&!idx.length) idx=rates.map((r,i)=>i);
+  return idx;
+}
+function renderAreas(){
+  const areas=currentProperty.areas||[];
+  document.getElementById('area-list').innerHTML=areas.map(a=>{
+    const on=selectedArea&&selectedArea.id===a.id;
+    return `<label class="area-option${on?' selected':''}">
+      <input type="radio" name="park-area" value="${escH(a.id)}" ${on?'checked':''} onchange="selectArea('${escH(a.id)}')">
+      <span><span class="rate-name" style="display:block;" translate="no">${escH(a.name)}</span>${a.desc?`<span class="rate-desc" translate="no">${escH(a.desc)}</span>`:''}</span>
+    </label>`;}).join('');
+}
+function selectArea(id){
+  selectedArea=(currentProperty.areas||[]).find(a=>a.id===id)||null;
+  document.getElementById('area-section').classList.remove('need');
+  renderAreas();
+  // Keep the chosen rate if it's offered here; otherwise pick the first one that is
+  const vis=visibleRateIndexes();
+  if(!vis.includes(selectedRateIndex)){selectedRateIndex=vis[0]??0;selectedRate=(currentProperty.rates||[])[selectedRateIndex];}
+  if(promo){const code=promo.code;promo=null;document.getElementById('promo').value=code;applyPromo();}
+  renderRates();updateSummary();
+}
 function renderRates(){
   const rates=currentProperty.rates||[];
+  const vis=new Set(visibleRateIndexes());
+  if(!rates.length||!vis.size){document.getElementById('rate-grid').innerHTML='<div class="rate-desc" style="padding:6px 2px;">Choose where you\'re parked to see the rates.</div>';return;}
   document.getElementById('rate-grid').innerHTML=rates.map((r,i)=>{
+    if(!vis.has(i)) return '';
     const p=priceOf(r,i);
     return `<div class="rate-option${i===selectedRateIndex?' selected':''}" onclick="selectRate(${i})" id="rate-${i}">
       <div class="rate-left">
@@ -351,7 +416,7 @@ async function applyPromo(){
   if(!code){promo=null;msg.style.display='none';renderRates();updateSummary();return;}
   btn.disabled=true;btn.textContent='…';
   try{
-    const res=await fetch('/.netlify/functions/park-lookup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:currentProperty.id,promo:code})});
+    const res=await fetch('/.netlify/functions/park-lookup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:currentProperty.id,promo:code,area:selectedArea?selectedArea.id:null})});
     const d=await res.json().catch(()=>({}));
     if(d.promo){promo={code:d.promo.code,label:d.promo.label,prices:d.prices||{}};show('✓ '+d.promo.code+' · '+d.promo.label+' applied',true);}
     else{promo=null;show(d.error||'That code isn\'t valid here.',false);}
@@ -364,8 +429,8 @@ function selectRate(idx){
   const rates=currentProperty.rates||[];
   selectedRate=rates[idx];
   selectedRateIndex=idx;
-  document.querySelectorAll('.rate-option').forEach((el,i)=>{
-    el.classList.toggle('selected',i===idx);
+  document.querySelectorAll('#rate-grid .rate-option').forEach(el=>{
+    el.classList.toggle('selected',el.id==='rate-'+idx);
   });
   updateSummary();
 }
@@ -377,13 +442,16 @@ function updateSummary(){
 
   const stall=currentProperty&&currentProperty.stall_mode!=='off'?document.getElementById('stall').value.trim():'';
   const stallOk=!(currentProperty&&currentProperty.stall_mode==='required')||!!stall;
+  const areaOk=!(usesAreas()&&currentProperty.area_mode==='required')||!!selectedArea;
+  document.getElementById('sum-area-row').style.display=selectedArea?'':'none';
+  document.getElementById('sum-area').textContent=selectedArea?selectedArea.name:'';
   document.getElementById('sum-stall-row').style.display=stall?'':'none';
   document.getElementById('sum-stall').textContent=stall;
   const cur=selectedRate?priceOf(selectedRate,selectedRateIndex):0;
   if(selectedRate){
     btn.lastChild.textContent=cur===0?' Park for Free':' Pay '+fmtPrice(cur)+' & Park';
   }
-  if(selectedRate&&plate.length>=2&&stallOk){
+  if(selectedRate&&visibleRateIndexes().includes(selectedRateIndex)&&plate.length>=2&&stallOk&&areaOk){
     box.style.display='block';
     document.getElementById('sum-duration').textContent=selectedRate.name;
     document.getElementById('sum-plate').textContent=plate;
@@ -405,6 +473,7 @@ async function startPayment(){
   err.classList.remove('show');
 
   if(!plate){err.textContent='Please enter your license plate.';err.classList.add('show');return;}
+  if(usesAreas()&&currentProperty.area_mode==='required'&&!selectedArea){err.textContent='Please choose where you\'re parked.';err.classList.add('show');document.getElementById('area-section').classList.add('need');return;}
   if(!selectedRate){err.textContent='Please select a parking duration.';err.classList.add('show');return;}
   if(payTerms&&!payTerms.ok()) return;
 
@@ -422,6 +491,7 @@ async function startPayment(){
         vehicleDesc:desc,
         email:email||null,
         stall:currentProperty.stall_mode!=='off'?document.getElementById('stall').value.trim():'',
+        area:selectedArea?selectedArea.id:'',
         rateId:selectedRate.id||null,
         rateIndex:selectedRateIndex,
         promo:promo?promo.code:null,
@@ -433,6 +503,7 @@ async function startPayment(){
     const data=await response.json();
     if(data.error){
       err.textContent='Payment error: '+data.error;
+      if(data.area) document.getElementById('area-section').classList.add('need');
       err.classList.add('show');
       btn.disabled=false;
       btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Pay & Park';
@@ -476,6 +547,7 @@ function showSuccessScreen(session){
   document.getElementById('ss-plate').textContent=session.plate;
   document.getElementById('ss-vehicle').textContent=session.vehicle_desc||'';
   document.getElementById('ss-prop').textContent=session.property_name||'—';
+  if(session.area){document.getElementById('ss-area').textContent=session.area;document.getElementById('ss-area-wrap').style.display='';}
   if(session.stall){document.getElementById('ss-stall').textContent=session.stall;document.getElementById('ss-stall-wrap').style.display='';}
   document.getElementById('ss-duration').textContent=formatMinutes(session.duration_minutes);
   document.getElementById('ss-start').textContent=formatTime(session.started_at);

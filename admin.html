@@ -330,7 +330,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 
       <div id="panel-properties" class="panel">
         <div class="section-head"><div class="section-title">All Properties</div><button class="btn btn-primary btn-sm" onclick="openPropEdit(null)">+ Add Property</button></div>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th title="Which actions enforcement officers can take at this property">Enforcement</th><th title="Code printed on Pay to Park signs, and whether drivers enter a stall number">Pay to Park</th><th title="Which tabs and tools this property uses">Features</th><th title="LotHQ's fee on each parking payment, the LotHQ subscription, and whether the property's payouts are set up">LotHQ Billing</th><th title="Who can sign in and work on this property">Access</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Manager</th><th>Address</th><th>Type</th><th>Spots</th><th>Active Permits</th><th title="Lets the property's managers mark paid spots as paid outside the app (e.g. included in rent)">Outside Billing</th><th title="Which actions enforcement officers can take at this property">Enforcement</th><th title="Code printed on Pay to Park signs, and whether drivers pick an area or enter a stall number">Pay to Park</th><th title="Which tabs and tools this property uses">Features</th><th title="LotHQ's fee on each parking payment, the LotHQ subscription, and whether the property's payouts are set up">LotHQ Billing</th><th title="Who can sign in and work on this property">Access</th><th>Actions</th></tr></thead><tbody id="tbl-properties"></tbody></table></div>
       </div>
 
       <!-- PARKING TERMS -->
@@ -521,6 +521,17 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
     <div class="form-group"><label class="form-label">Property rules (optional)</label><textarea class="form-input" id="tp-rules" rows="5" maxlength="4000" style="resize:vertical;font-family:inherit;" placeholder="e.g. Guest stalls are 24 hours max. No parking in fire lanes. Boats and trailers need manager approval."></textarea></div>
     <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:16px;"><input type="checkbox" id="tp-enabled"> Show the Parking Terms checkbox at this property</label>
     <div style="display:flex;gap:8px;"><button class="btn btn-primary" id="tp-save" onclick="savePropTerms()">Save</button><button class="btn btn-ghost" onclick="closeModal('modal-terms-prop')">Cancel</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-areas">
+  <div class="modal" style="width:560px;">
+    <button class="modal-close" onclick="closeModal('modal-areas')">✕</button>
+    <div class="modal-title">Parking Areas · <span id="ar-name"></span></div>
+    <div class="modal-sub">The areas drivers pick from on the payment page. Managers can also edit these on the property's Pay to Park tab.</div>
+    <div class="err-msg" id="ar-err"></div>
+    <div id="ar-list"></div>
+    <button class="btn btn-ghost btn-sm" style="margin:4px 0 16px;" onclick="_areaRows.push({id:'',name:'',desc:''});drawAreaRows()">+ Add Area</button>
+    <div style="display:flex;gap:8px;"><button class="btn btn-primary" id="ar-save" onclick="saveAreasAdmin()">Save</button><button class="btn btn-ghost" onclick="closeModal('modal-areas')">Cancel</button></div>
   </div>
 </div>
 <div class="modal-overlay" id="modal-propedit">
@@ -1226,14 +1237,75 @@ async function toggleEnforcement(id,action){
 
 function parkCell(p){
   if(p.park_code===undefined) return '<span style="font-size:11px;color:var(--text3)" title="Run supabase-park-codes.sql">Not set up</span>';
-  const mode=p.stall_mode||'off';
-  return `<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
+  const mode=p.stall_mode||'off', amode=p.area_mode||'off', hasAreaCol=p.area_mode!==undefined;
+  const n=Array.isArray(p.parking_areas)?p.parking_areas.length:0;
+  const ask=amode!=='off'&&mode!=='off'?'both':amode!=='off'?'area':mode!=='off'?'stall':'off';
+  const sel='class="form-input" style="padding:3px 6px;font-size:11px;width:auto;"';
+  const req=(what,v)=>`<select ${sel} title="${what==='area'?'Area':'Stall number'}: required or optional" onchange="setLocation('${p.id}',{${what==='area'?'areaMode':'stallMode'}:this.value},this)">
+      <option value="optional"${v==='optional'?' selected':''}>${what==='area'?'Area':'Stall'}: Optional</option>
+      <option value="required"${v==='required'?' selected':''}>${what==='area'?'Area':'Stall'}: Required</option></select>`;
+  // Before the parking areas database step: the old stall-only menu
+  if(!hasAreaCol) return `<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
     <button class="btn btn-ghost btn-sm" style="font-family:'JetBrains Mono',monospace;font-weight:700;padding:3px 8px;" title="Change code (signs already printed will stop working)" onclick="changeParkCode('${p.id}')">${p.park_code||'—'}</button>
-    <select class="form-input" style="padding:3px 6px;font-size:11px;width:auto;" title="Ask drivers for a stall number" onchange="setStallMode('${p.id}',this.value,this)">
+    <select ${sel} title="Ask drivers for a stall number" onchange="setLocation('${p.id}',{stallMode:this.value},this)">
       <option value="off"${mode==='off'?' selected':''}>Stalls: Off</option>
       <option value="optional"${mode==='optional'?' selected':''}>Stalls: Optional</option>
       <option value="required"${mode==='required'?' selected':''}>Stalls: Required</option>
     </select></div>`;
+  return `<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
+    <button class="btn btn-ghost btn-sm" style="font-family:'JetBrains Mono',monospace;font-weight:700;padding:3px 8px;" title="Change code (signs already printed will stop working)" onclick="changeParkCode('${p.id}')">${p.park_code||'—'}</button>
+    <select ${sel} title="What the payment page asks drivers for" onchange="setAsk('${p.id}',this.value,this)">
+      <option value="off"${ask==='off'?' selected':''}>Ask for: Nothing</option>
+      <option value="stall"${ask==='stall'?' selected':''}>Ask for: Stall</option>
+      <option value="area"${ask==='area'?' selected':''}>Ask for: Area</option>
+      <option value="both"${ask==='both'?' selected':''}>Ask for: Area or stall</option>
+    </select>
+    ${amode!=='off'?req('area',amode):''}${mode!=='off'?req('stall',mode):''}
+    <button class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:11px;" onclick="openAreas('${p.id}')" title="The areas drivers pick from">Areas (${n})</button></div>`;
+}
+// "Ask for" menu → area and stall settings. Turning one on starts it as Optional.
+async function setAsk(id,ask,sel){
+  const p=allProperties.find(x=>x.id===id); if(!p) return;
+  const on=(cur)=>cur&&cur!=='off'?cur:'optional';
+  const patch={areaMode:ask==='area'||ask==='both'?on(p.area_mode):'off',stallMode:ask==='stall'||ask==='both'?on(p.stall_mode):'off'};
+  if((patch.areaMode!=='off')&&!(Array.isArray(p.parking_areas)&&p.parking_areas.length))
+    toast('Add the property\'s areas too (Areas button), or the manager can add them. Drivers aren\'t asked until there is at least one.');
+  await setLocation(id,patch,sel);
+}
+async function setLocation(id,patch,sel){
+  const p=allProperties.find(x=>x.id===id);
+  if(!(await parkSettings(id,patch))){loadProperties();return;}
+  const W={off:'off',optional:'optional',required:'required'};
+  toast(`${p?.name||'Property'}: `+[patch.areaMode?'areas '+W[patch.areaMode]:'',patch.stallMode?'stall numbers '+W[patch.stallMode]:''].filter(Boolean).join(', '));
+  loadProperties();
+}
+// Edit a property's parking areas (managers can edit them too, on the Pay to Park tab)
+let _areasFor=null;
+function openAreas(id){
+  const p=allProperties.find(x=>x.id===id); if(!p) return;
+  _areasFor=p;
+  document.getElementById('ar-name').textContent=p.name||'';
+  document.getElementById('ar-err').classList.remove('show');
+  _areaRows=JSON.parse(JSON.stringify(Array.isArray(p.parking_areas)?p.parking_areas:[]));
+  drawAreaRows();
+  openModal('modal-areas');
+}
+let _areaRows=[];
+function drawAreaRows(){
+  const e=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  document.getElementById('ar-list').innerHTML=_areaRows.map((a,i)=>`<div style="display:grid;grid-template-columns:1fr 1.3fr auto;gap:6px;margin-bottom:6px;">
+    <input class="form-input" maxlength="40" placeholder="Area name" value="${e(a.name)}" oninput="_areaRows[${i}].name=this.value">
+    <input class="form-input" maxlength="80" placeholder="Description (optional)" value="${e(a.desc)}" oninput="_areaRows[${i}].desc=this.value">
+    <button class="btn btn-ghost btn-sm" onclick="_areaRows.splice(${i},1);drawAreaRows()" aria-label="Remove">✕</button></div>`).join('')
+    ||'<div style="font-size:12.5px;color:var(--text3);padding:6px 0 10px;">No areas yet.</div>';
+}
+async function saveAreasAdmin(){
+  const btn=document.getElementById('ar-save'), err=document.getElementById('ar-err');
+  err.classList.remove('show');btn.disabled=true;
+  const ok=await parkSettings(_areasFor.id,{areas:_areaRows});
+  btn.disabled=false;
+  if(!ok) return;
+  closeModal('modal-areas');toast('Areas saved');loadProperties();
 }
 async function parkSettings(id,patch){
   const {data:{session}}=await sb.auth.getSession();
@@ -1262,12 +1334,7 @@ async function toggleGuestPasses(id,on){
   toast(on?'Guest passes turned on'+(body.seeded?' — starter pass types added':''):'Guest passes turned off');
   loadProperties();
 }
-async function setStallMode(id,mode,sel){
-  const p=allProperties.find(x=>x.id===id);
-  if(!(await parkSettings(id,{stallMode:mode}))){if(sel&&p)sel.value=p.stall_mode||'off';return;}
-  toast(`${p?.name||'Property'}: stall numbers ${mode==='off'?'off':mode}`);
-  loadProperties();
-}
+async function setStallMode(id,mode,sel){ return setLocation(id,{stallMode:mode},sel); }
 async function changeParkCode(id){
   const p=allProperties.find(x=>x.id===id); if(!p) return;
   const next=prompt(`Property code for ${p.name}\n\nWARNING: stickers and signs already printed with ${p.park_code} will stop working.\n\nNew code (3 letters, 4 numbers):`,p.park_code||'');
