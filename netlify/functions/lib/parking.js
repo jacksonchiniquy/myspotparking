@@ -19,6 +19,39 @@ function ratesFor(property) {
   return Array.isArray(r) && r.length ? r : DEFAULT_RATES;
 }
 
+// ── Parking areas ("Where are you parked?") ──
+// properties.area_mode: 'off' | 'optional' | 'required'
+// properties.parking_areas: [{ id, name, desc }]
+function areasFor(property) {
+  const a = property && property.parking_areas;
+  return Array.isArray(a) ? a.filter(x => x && x.id && String(x.name || '').trim()) : [];
+}
+function areaModeFor(property) {
+  const m = (property && property.area_mode) || 'off';
+  return areasFor(property).length ? m : 'off'; // no areas set up yet: don't ask
+}
+// The area a driver picked (by id, or by name from an older link), or null
+function findArea(property, raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  if (!v) return null;
+  return areasFor(property).find(a => String(a.id).toLowerCase() === v || String(a.name).trim().toLowerCase() === v) || null;
+}
+// Does this rate show in this area? A rate with no areas shows everywhere.
+function rateInArea(rate, area) {
+  const ids = Array.isArray(rate && rate.areas) ? rate.areas : [];
+  if (!ids.length) return true;
+  return !!area && ids.includes(area.id);
+}
+// The rates a driver can pick. No area chosen: only the rates for every area
+// (or every rate, if all of them are limited to areas).
+function ratesForArea(property, area) {
+  const all = ratesFor(property);
+  if (areaModeFor(property) === 'off') return all;
+  if (area) return all.filter(r => rateInArea(r, area));
+  const open = all.filter(r => !(Array.isArray(r.areas) && r.areas.length));
+  return open.length ? open : all;
+}
+
 async function sb(method, path, body) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     method,
@@ -84,6 +117,8 @@ function fmtDuration(m, lang) {
 async function insertSession(row) {
   try { return await sb('POST', 'parking_sessions', row); }
   catch (e) {
+    // Before the parking areas database step: save without the area
+    if (row.area !== undefined && /\barea\b/.test(e.message)) { const { area, ...rest } = row; return insertSession(rest); }
     if (row.lang !== undefined && /lang/.test(e.message)) { const { lang, ...rest } = row; return sb('POST', 'parking_sessions', rest); }
     throw e;
   }
@@ -98,6 +133,8 @@ async function sendReceipt(row, to) {
   const amount = `$${(Number(row.amount_paid || 0) / 100).toFixed(2)}`;
   const rows = [
     [t('Plate'), row.plate], [t('Vehicle'), row.vehicle_desc || '—'], [t('Location'), name + (property?.address ? ` — ${property.address}` : '')],
+    ...(row.area ? [[t('Area'), row.area]] : []),
+    ...(row.stall ? [[t('Stall'), row.stall]] : []),
     [t('Duration'), fmtDuration(Number(row.duration_minutes) || 0, lang)], [t('Started'), fmtTime(row.started_at, lang, tz)],
     [t('Expires'), fmtTime(row.expires_at, lang, tz)],
     ...(row.promo_code ? [[t('Promo code'), row.original_cents ? t('{code} (was {amt})', { code: row.promo_code, amt: `$${(Number(row.original_cents) / 100).toFixed(2)}` }) : row.promo_code]] : []),
@@ -120,4 +157,4 @@ async function sendReceipt(row, to) {
   });
 }
 
-module.exports = { DEFAULT_RATES, ratesFor, sb, activateSession, sendReceipt, insertSession, fmtDuration };
+module.exports = { DEFAULT_RATES, ratesFor, areasFor, areaModeFor, findArea, rateInArea, ratesForArea, sb, activateSession, sendReceipt, insertSession, fmtDuration };

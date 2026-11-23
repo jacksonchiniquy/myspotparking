@@ -12,8 +12,8 @@
 //   setPropertyBilling { propertyId, feeMode, feePercent, feeFlatCents, planInterval, planAmountCents }
 //                                          LotHQ's fee on each parking payment + LotHQ subscription
 //   planLink { propertyId, send }          payment link for that subscription (send=true emails the manager)
-//   setParkSettings { propertyId, stallMode?, parkCode? }
-//                                          Pay to Park stall numbers / property code
+//   setParkSettings { propertyId, stallMode?, areaMode?, areas?, parkCode? }
+//                                          Pay to Park stall numbers / parking areas / property code
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -228,12 +228,22 @@ exports.handler = async (event) => {
     }
     if (body.action === 'setParkSettings') {
       if (!UUID_RE.test(String(body.propertyId || ''))) return reply(400, { error: 'Property not found.' });
-      const [before] = await sb('GET', `properties?id=eq.${body.propertyId}&select=name,park_code,stall_mode`);
+      const [before] = await sb('GET', `properties?id=eq.${body.propertyId}&select=*`);
       if (!before) return reply(404, { error: 'Property not found.' });
       const patch = {};
       if (body.stallMode !== undefined) {
         if (!['off', 'optional', 'required'].includes(body.stallMode)) return reply(400, { error: 'Unknown stall setting.' });
         patch.stall_mode = body.stallMode;
+      }
+      if (body.areaMode !== undefined) {
+        if (!['off', 'optional', 'required'].includes(body.areaMode)) return reply(400, { error: 'Unknown area setting.' });
+        patch.area_mode = body.areaMode;
+      }
+      if (body.areas !== undefined) {
+        const { cleanAreas } = require('./lib/parking-areas');
+        const r = cleanAreas(body.areas);
+        if (r.error) return reply(400, { error: r.error });
+        patch.parking_areas = r.areas;
       }
       if (body.parkCode !== undefined) {
         const raw = String(body.parkCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -250,12 +260,14 @@ exports.handler = async (event) => {
       const words = { off: 'Off', optional: 'Optional', required: 'Required' };
       const said = [];
       if (patch.stall_mode && patch.stall_mode !== before.stall_mode) said.push(`stall numbers ${words[before.stall_mode] || 'Off'} → ${words[patch.stall_mode]}`);
+      if (patch.area_mode && patch.area_mode !== (before.area_mode || 'off')) said.push(`parking areas ${words[before.area_mode] || 'Off'} → ${words[patch.area_mode]}`);
+      if (patch.parking_areas) said.push(`areas: ${patch.parking_areas.map(a => a.name).join(', ') || '(none)'}`);
       if (patch.park_code && patch.park_code !== before.park_code) said.push(`property code ${before.park_code || '(none)'} → ${patch.park_code}`);
       if (said.length) {
         const { logActivity, userActor } = require('./lib/activity');
         await logActivity({ ...(await userActor(admin.id)), actorRole: 'admin', portal: 'admin', action: 'property.park_settings',
           propertyId: body.propertyId, target: before.name || null, summary: 'Changed Pay to Park ' + said.join(', '),
-          details: { before: { park_code: before.park_code, stall_mode: before.stall_mode }, after: patch } });
+          details: { before: { park_code: before.park_code, stall_mode: before.stall_mode, area_mode: before.area_mode, parking_areas: before.parking_areas }, after: patch } });
       }
       return reply(200, { ok: true, property: rows[0] });
     }

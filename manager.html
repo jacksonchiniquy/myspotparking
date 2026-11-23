@@ -164,7 +164,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 @media(max-width:900px){.tn-tabs{display:none;}.page-head{padding:20px 16px 0;}.content{padding:0 16px 60px;}.stat-grid{grid-template-columns:1fr 1fr;}.chart-grid{grid-template-columns:1fr;}.form-row{grid-template-columns:1fr;}}
 /* Team roles: what each role can't do (the database enforces it too) */
 body.no-add-prop .add-prop-ctl{display:none!important;}
-body.ro-leasing #lot-save-btn,body.ro-leasing #save-rates-btn,body.ro-leasing #gp-save,body.ro-leasing .pd-edit-btn{display:none!important;}
+body.ro-leasing #lot-save-btn,body.ro-leasing #save-rates-btn,body.ro-leasing #save-areas-btn,body.ro-leasing #add-area-btn,body.ro-leasing #gp-save,body.ro-leasing .pd-edit-btn{display:none!important;}
 body.ro-viewer #page-property-detail .btn:not(.ro-keep){display:none!important;}
 body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail select,body.ro-viewer #page-property-detail textarea{pointer-events:none;opacity:.75;}
 .role-pill{display:inline-block;margin-left:10px;vertical-align:middle;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#ede9fe;color:#5b21b6;letter-spacing:.02em;}
@@ -772,17 +772,38 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
                 <span id="pay-stall-pill" style="font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;"></span>
               </div>
               <div id="pay-print-note" style="font-size:12px;color:var(--text2);margin-bottom:12px;"></div>
+              <div id="pay-make-wrap" style="display:none;margin-bottom:12px;"><label class="form-label">Make stickers</label><div class="ds-seg" id="pay-make"></div></div>
               <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-                <div id="pay-print-copies"><label class="form-label" for="pay-copies">How many (print sheet)</label><input class="form-input" id="pay-copies" type="number" min="1" max="60" value="6" style="width:110px;"></div>
-                <div id="pay-print-from" style="display:none;"><label class="form-label" for="pay-stall-from">From stall</label><input class="form-input" id="pay-stall-from" type="number" min="1" value="1" style="width:110px;"></div>
-                <div id="pay-print-to" style="display:none;"><label class="form-label" for="pay-stall-to">To stall</label><input class="form-input" id="pay-stall-to" type="number" min="1" value="50" style="width:110px;"></div>
+                <div id="pay-print-area" style="display:none;"><label class="form-label" for="pay-area">Area</label><select class="form-input" id="pay-area" style="width:200px;" onchange="updateStickerNote()"></select></div>
+                <div id="pay-print-copies"><label class="form-label" for="pay-copies">How many (print sheet)</label><input class="form-input" id="pay-copies" type="number" min="1" max="60" value="6" style="width:110px;" oninput="updateStickerNote()"></div>
+                <div id="pay-print-from" style="display:none;"><label class="form-label" for="pay-stall-from">From stall</label><input class="form-input" id="pay-stall-from" type="number" min="1" value="1" style="width:110px;" oninput="updateStickerNote()"></div>
+                <div id="pay-print-to" style="display:none;"><label class="form-label" for="pay-stall-to">To stall</label><input class="form-input" id="pay-stall-to" type="number" min="1" value="50" style="width:110px;" oninput="updateStickerNote()"></div>
+                <div id="pay-print-letters" style="display:none;"><label class="form-label" for="pay-letters">Letters <span style="text-transform:none;letter-spacing:0;font-weight:400;">(optional)</span></label><input class="form-input" id="pay-letters" type="text" maxlength="20" placeholder="e.g. A-D" style="width:110px;text-transform:uppercase;" oninput="updateStickerNote()"></div>
+                <div id="pay-print-list" style="display:none;flex:1;min-width:240px;"><label class="form-label" for="pay-list">Stall numbers</label><input class="form-input" id="pay-list" type="text" maxlength="2000" placeholder="e.g. 12A, 12B, 14, P1, EV-1" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;" oninput="updateStickerNote()"></div>
+              </div>
+              <div id="pay-print-count" style="font-size:12px;color:var(--text2);margin:10px 0 2px;"></div>
+              <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:8px;">
                 <button class="btn btn-ghost btn-sm" style="height:42px;" onclick="printStickers()">Print Sheet</button>
                 <button class="btn btn-primary btn-sm" style="height:42px;" onclick="downloadStickerPDF(this)" title="Vector PDF, one 3x3 sticker per page with bleed. Send this to a sticker or sign company.">Print File (PDF)</button>
                 <button class="btn btn-ghost btn-sm" style="height:42px;" onclick="downloadStickerSVG()" title="Editable vector artwork for Illustrator">Design File (SVG)</button>
-                <button class="btn btn-ghost btn-sm" style="height:42px;" onclick="downloadStickerCSV()" title="Stall numbers and QR links, for printers that do variable-data printing">Stall List (CSV)</button>
+                <button class="btn btn-ghost btn-sm" style="height:42px;" onclick="downloadStickerCSV()" title="Areas, stall numbers and QR links, for printers that do variable-data printing">Sticker List (CSV)</button>
               </div>
-              <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.6;"><strong>Print Sheet:</strong> home/office printer, 6 stickers per letter page. <strong>Print File:</strong> send to a sticker or sign company. <strong>Design File:</strong> for a designer in Illustrator. <strong>Stall List:</strong> for shops that print numbered runs from a list.</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.6;"><strong>Print Sheet:</strong> home/office printer, 6 stickers per letter page. <strong>Print File:</strong> send to a sticker or sign company. <strong>Design File:</strong> for a designer in Illustrator. <strong>Sticker List:</strong> for shops that print numbered runs from a list.</div>
             </div>
+          </div>
+
+          <!-- Parking Areas ("Where are you parked?") -->
+          <div id="areas-card" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;margin-bottom:20px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+              <div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:3px;"><div style="font-size:16px;font-weight:700;">Parking Areas</div><span id="areas-pill" style="font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;"></span></div>
+                <div style="font-size:12px;color:var(--text2);max-width:620px;">Areas drivers pick from on the payment page, like Visitor, Overflow or a business's customer stalls. Each area can have its own stickers, rates and promo codes.</div>
+              </div>
+              <button class="btn btn-primary btn-sm" id="add-area-btn" onclick="addArea()">+ Add Area</button>
+            </div>
+            <div id="areas-off-note" style="display:none;font-size:12px;color:var(--text2);background:var(--surface2);border-radius:9px;padding:10px 12px;margin-bottom:12px;line-height:1.5;">Drivers aren't asked for an area at this property yet. You can set up areas now; <a href="mailto:support@lothq.com" style="color:var(--blue);">ask LotHQ</a> to turn them on when you're ready.</div>
+            <div id="areas-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;"></div>
+            <button class="btn btn-ghost btn-sm btn-full" id="save-areas-btn" onclick="saveAreas()">Save Areas</button>
           </div>
 
           <!-- Rate Configuration -->
@@ -816,7 +837,7 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
               <div style="font-size:16px;font-weight:700;">Recent Pay-to-Park Sessions</div>
               <button class="btn btn-ghost btn-sm" onclick="loadTransientSessions()">↻ Refresh</button>
             </div>
-            <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Stall</th><th>Vehicle</th><th>Duration</th><th>Paid</th><th>Started</th><th>Expires</th><th>Status</th><th></th></tr></thead><tbody id="transient-sessions-body"><tr><td colspan="9" class="loading">Loading...</td></tr></tbody></table></div>
+            <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Plate</th><th>Area</th><th>Stall</th><th>Vehicle</th><th>Duration</th><th>Paid</th><th>Started</th><th>Expires</th><th>Status</th><th></th></tr></thead><tbody id="transient-sessions-body"><tr><td colspan="9" class="loading">Loading...</td></tr></tbody></table></div>
           </div>
         </div>
       </div>
@@ -1065,6 +1086,11 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
     <div class="rf-lbl">Works on</div>
     <div id="pm-rates" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
     <div style="font-size:11.5px;color:var(--text3);margin-top:4px;">Leave all unticked to work on every rate.</div>
+    <div id="pm-areas-wrap" style="display:none;">
+      <div class="rf-lbl">Works in these areas</div>
+      <div id="pm-areas" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
+      <div style="font-size:11.5px;color:var(--text3);margin-top:4px;">Leave all unticked to work in every area. Handy for a business's validation code.</div>
+    </div>
     <div class="rf-lbl">Limits <span style="font-weight:400;color:var(--text3);">(optional)</span></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
       <input class="form-input" id="pm-max" type="number" min="1" placeholder="Max uses" style="width:120px;">
@@ -3861,12 +3887,16 @@ let transientRates=[];
 
 function payProp(){return allProperties.find(p=>p.id===currentPropertyId)||{};}
 // The address inside the QR code. Uses the short property code when there is one.
-function getPayLink(stall){
+// area: the area's id (optional). A sticker for an area or a stall carries them in its QR code.
+function getPayLink(stall,area){
   const p=payProp();
   const base=window.location.origin+'/pay.html?';
-  const s=stall?'&s='+encodeURIComponent(stall):'';
+  const s=(area?'&a='+encodeURIComponent(area):'')+(stall?'&s='+encodeURIComponent(stall):'');
   return p.park_code?base+'c='+encodeURIComponent(p.park_code)+s:base+'lot='+currentPropertyId+s;
 }
+// Parking areas: the saved list, and whether drivers are asked (set by LotHQ)
+function payAreas(){const a=payProp().parking_areas;return Array.isArray(a)?a.filter(x=>x&&x.id&&String(x.name||'').trim()):[];}
+function areaMode(){return payAreas().length?(payProp().area_mode||'off'):'off';}
 
 function initPayPanel(){
   if(!document.getElementById('pay-link-display')) return;
@@ -3877,17 +3907,22 @@ function initPayPanel(){
   document.getElementById('pay-code-lock').style.display=p.park_code?'':'none';
   const openEl=document.getElementById('pay-link-open');
   if(openEl) openEl.href=link;
-  // Stall setting (set by LotHQ)
-  const mode=p.stall_mode||'off';
+  // Stall and area settings (set by LotHQ)
+  const mode=p.stall_mode||'off', amode=areaMode(), W={optional:'Optional',required:'Required'};
   const pill=document.getElementById('pay-stall-pill');
-  pill.textContent=mode==='off'?'Open lot — one sticker for the whole property':'Stall numbers: '+(mode==='required'?'Required':'Optional');
-  pill.style.cssText+=mode==='off'?';background:var(--surface2);color:var(--text2);':';background:rgba(0,200,122,.12);color:#007a4a;';
-  document.getElementById('pay-print-note').textContent=mode==='off'
-    ?'Every sticker for this property is the same. Put one at each entrance or pay station.'
-    :'Each sticker has its own stall number built into the QR code, so drivers don\'t have to type it.';
-  document.getElementById('pay-print-copies').style.display=mode==='off'?'':'none';
-  document.getElementById('pay-print-from').style.display=mode==='off'?'none':'';
-  document.getElementById('pay-print-to').style.display=mode==='off'?'none':'';
+  pill.textContent=mode==='off'&&amode==='off'?'Open lot — one sticker for the whole property'
+    :[amode!=='off'?'Areas: '+W[amode]:'',mode!=='off'?'Stall numbers: '+W[mode]:''].filter(Boolean).join(' · ');
+  pill.style.cssText+=mode==='off'&&amode==='off'?';background:var(--surface2);color:var(--text2);':';background:rgba(0,200,122,.12);color:#007a4a;';
+  // Which kinds of sticker this property can make
+  const makes=[['lot','Whole property']];
+  if(amode!=='off') makes.push(['area','By area']);
+  if(mode!=='off') makes.push(['stall','By stall'],['list','Type a list']);
+  if(!makes.some(m=>m[0]===_stkMake)) _stkMake=makes.length>1?makes[1][0]:'lot';
+  document.getElementById('pay-make').innerHTML=makes.map(([v,t])=>`<span data-v="${v}" onclick="setStickerMake('${v}')">${t}</span>`).join('');
+  document.getElementById('pay-make-wrap').style.display=makes.length>1?'':'none';
+  document.getElementById('pay-area').innerHTML=payAreas().map(a=>`<option value="${escHtml(a.id)}">${escHtml(a.name)}</option>`).join('');
+  setStickerMake(_stkMake);
+  renderAreas();
   const canvas=document.getElementById('qr-canvas');
   if(canvas) drawQR(canvas,link,180);
   loadTransientRates();
@@ -3946,20 +3981,34 @@ function qrShapes(url,x0,y0,size){
     {d:circ(cx,cy-R*0.25,R*0.27),fill:'#FFFFFF'},
   ];
 }
-function stickerSpec(stall){
+// A sticker: null = the whole property, or {s: stall number or '', a: area or null}
+function stickerSpec(item){
   const p=payProp(), code=p.park_code||'';
+  const stall=item&&item.s||'', area=item&&item.a||null;
   const shapes=[{d:'M0 0H750V750H0Z',fill:'#FFFFFF'}], texts=[];
   const T=(t,x,y,size,fill)=>texts.push({t:String(t),x,y,size,fill});
-  if(!stall){
+  const fit=(t,max,width)=>Math.min(max,Math.floor(width/(0.6*Math.max(1,String(t).length)))); // bold Helvetica ≈ 0.6em per letter
+  if(!stall&&!area){
     shapes.push(...qrShapes(getPayLink(),140,40,470));
     T('PROPERTY CODE',375,560,26,'#5D6886');
     T(code,375,645,78,'#1B2340');
     T('lothq.com/park',375,700,24,'#5D6886');
+  }else if(!stall){
+    shapes.push(...qrShapes(getPayLink('',area.id),140,40,470));
+    T('PARKING AREA',375,560,26,'#5D6886');
+    T(area.name,375,640,fit(area.name,72,680),'#1B2340');
+    T(code+' · lothq.com/park',375,700,24,'#5D6886');
   }else{
-    shapes.push(...qrShapes(getPayLink(stall),165,34,420));
-    T('ZONE',215,505,22,'#5D6886');
-    T(code,215,565,52,'#1B2340');
-    T('lothq.com/park',215,610,21,'#5D6886');
+    shapes.push(...qrShapes(getPayLink(stall,area&&area.id),165,34,420));
+    if(area){
+      T('AREA',215,505,22,'#5D6886');
+      T(area.name,215,565,fit(area.name,52,370),'#1B2340');
+      T(code+' · lothq.com/park',215,610,19,'#5D6886');
+    }else{
+      T('ZONE',215,505,22,'#5D6886');
+      T(code,215,565,52,'#1B2340');
+      T('lothq.com/park',215,610,21,'#5D6886');
+    }
     const bx=420,by=470,bw=270,bh=230,r=22;
     shapes.push({d:`M${bx+r} ${by}H${bx+bw-r}A${r} ${r} 0 0 1 ${bx+bw} ${by+r}V${by+bh-r}A${r} ${r} 0 0 1 ${bx+bw-r} ${by+bh}H${bx+r}A${r} ${r} 0 0 1 ${bx} ${by+bh-r}V${by+r}A${r} ${r} 0 0 1 ${bx+r} ${by}Z`,fill:'#374269'});
     T('STALL',bx+bw/2,by+52,24,'#C9D4F0');
@@ -3984,21 +4033,90 @@ function stickerSVG(stall){
     spec.texts.map(t=>`<text x="${t.x}" y="${t.y}" font-family="${STK_FONT}" font-weight="bold" font-size="${t.size}" text-anchor="middle" fill="${t.fill}">${escHtml(t.t)}</text>`).join('\n')+
     '\n</svg>\n';
 }
-function stickerList(){
-  const p=payProp(), mode=p.stall_mode||'off';
-  if(mode==='off'){
-    const n=Math.min(60,Math.max(1,parseInt(document.getElementById('pay-copies').value)||1));
-    return {list:Array(n).fill(null),unique:[null]};
-  }
-  const from=parseInt(document.getElementById('pay-stall-from').value), to=parseInt(document.getElementById('pay-stall-to').value);
-  if(!(from>=1)||!(to>=from)){toast('Enter a stall range, like 1 to 50');return null;}
-  if(to-from+1>300){toast('Up to 300 stalls at a time');return null;}
-  const list=[];for(let i=from;i<=to;i++) list.push(String(i));
-  return {list,unique:list};
+// Which stickers to make: 'lot' (whole property), 'area', 'stall' (range + letters) or 'list' (typed)
+let _stkMake='lot';
+function setStickerMake(v){
+  _stkMake=v;
+  document.querySelectorAll('#pay-make span').forEach(x=>x.classList.toggle('on',x.dataset.v===v));
+  const show=(id,on)=>{const el=document.getElementById(id);if(el)el.style.display=on?'':'none';};
+  const hasAreas=areaMode()!=='off';
+  show('pay-print-copies',v==='lot'||v==='area');
+  show('pay-print-area',hasAreas&&v!=='lot');
+  show('pay-print-from',v==='stall');show('pay-print-to',v==='stall');show('pay-print-letters',v==='stall');
+  show('pay-print-list',v==='list');
+  // Area picker: "Every area" makes one of each; stalls can be "No area"
+  const sel=document.getElementById('pay-area'), keep=sel.value;
+  const opts=payAreas().map(a=>`<option value="${escHtml(a.id)}">${escHtml(a.name)}</option>`).join('');
+  sel.innerHTML=(v==='area'?'<option value="*">Every area (one of each)</option>':'<option value="">No area</option>')+opts;
+  if([...sel.options].some(o=>o.value===keep)) sel.value=keep;
+  document.getElementById('pay-print-note').textContent=
+    v==='lot'?'Every sticker for this property is the same. Put one at each entrance or pay station.'
+    :v==='area'?'Each sticker has its area built into the QR code, so drivers who scan it skip picking the area.'
+    :'Each sticker has its stall number'+(hasAreas?' (and area, if you pick one)':'')+' built into the QR code, so drivers don\'t have to type it.';
+  updateStickerNote();
 }
+// "A-D" → A,B,C,D ; "ABC" or "A, B" → A,B,C
+function parseLetters(raw){
+  const t=String(raw||'').toUpperCase().replace(/[–—]/g,'-').replace(/\s+/g,'');
+  if(!t) return [''];
+  const m=t.match(/^([A-Z])-([A-Z])$/);
+  if(m){const a=m[1].charCodeAt(0),b=m[2].charCodeAt(0);if(b<a) return null;const out=[];for(let c=a;c<=b;c++) out.push(String.fromCharCode(c));return out;}
+  const ls=t.replace(/,/g,'').split('');
+  return ls.length&&ls.every(c=>/[A-Z]/.test(c))?[...new Set(ls)]:null;
+}
+function stickerAreaPick(){
+  const v=document.getElementById('pay-area').value;
+  if(areaMode()==='off'||!v) return null;
+  return v==='*'?'*':payAreas().find(a=>a.id===v)||null;
+}
+// Works out the sticker list. quiet: don't show messages (for the live count)
+function stickerList(quiet){
+  const say=m=>{if(!quiet) toast(m);return null;};
+  const copies=Math.min(60,Math.max(1,parseInt(document.getElementById('pay-copies').value)||1));
+  const v=_stkMake;
+  if(v==='lot') return {list:Array(copies).fill(null),unique:[null]};
+  const pick=stickerAreaPick();
+  if(v==='area'){
+    const areas=pick==='*'?payAreas():pick?[pick]:[];
+    if(!areas.length) return say('Add an area first');
+    const unique=areas.map(a=>({s:'',a}));
+    const list=[];unique.forEach(it=>{for(let i=0;i<copies;i++) list.push(it);});
+    return {list,unique};
+  }
+  const area=pick&&pick!=='*'?pick:null;
+  let stalls=[];
+  if(v==='stall'){
+    const from=parseInt(document.getElementById('pay-stall-from').value), to=parseInt(document.getElementById('pay-stall-to').value);
+    if(!(from>=1)||!(to>=from)) return say('Enter a stall range, like 1 to 50');
+    const letters=parseLetters(document.getElementById('pay-letters').value);
+    if(!letters) return say('Letters should look like A-D or ABC');
+    for(let i=from;i<=to&&stalls.length<=300;i++) letters.forEach(l=>stalls.push(String(i)+l));
+  }else{
+    stalls=[...new Set(String(document.getElementById('pay-list').value||'').toUpperCase().split(/[\s,;]+/).map(x=>x.replace(/[^A-Z0-9-]/g,'').slice(0,12)).filter(Boolean))];
+    if(!stalls.length) return say('Type the stall numbers, like 12A, 12B, 14');
+  }
+  if(stalls.length>300) return say('Up to 300 stickers at a time');
+  const unique=stalls.map(s=>({s,a:area}));
+  return {list:unique,unique};
+}
+const stickerLabel=it=>it?[it.a?it.a.name:'',it.s?'Stall '+it.s:''].filter(Boolean).join(' · '):'Whole property';
+function updateStickerNote(){
+  const el=document.getElementById('pay-print-count');if(!el) return;
+  let sel=null;try{sel=stickerList(true);}catch(e){}
+  if(!sel){el.textContent='';return;}
+  const u=sel.unique, n=sel.list.length;
+  const sample=u.length>8?u.slice(0,6).map(it=>it&&it.s||stickerLabel(it)).join(', ')+' … '+(u[u.length-1].s||stickerLabel(u[u.length-1])):u.map(it=>it&&it.s||stickerLabel(it)).join(', ');
+  el.textContent=_stkMake==='lot'?'':n+' sticker'+(n===1?'':'s')+(u.length&&u[0]&&u[0].a&&_stkMake!=='area'?' · '+u[0].a.name:'')+': '+sample;
+}
+const slug=v=>String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,30);
 function stickerFileName(ext,list){
-  const p=payProp(), base='my-spot-'+(p.park_code||'property').toLowerCase();
-  return list&&list[0]?`${base}-stalls-${list[0]}-${list[list.length-1]}.${ext}`:`${base}.${ext}`;
+  const p=payProp(), base='lothq-'+(p.park_code||'property').toLowerCase();
+  const items=(list||[]).filter(Boolean);
+  if(!items.length) return `${base}.${ext}`;
+  const first=items[0], last=items[items.length-1];
+  const areaPart=first.a&&items.every(it=>it.a&&it.a.id===first.a.id)?'-'+slug(first.a.name):items.some(it=>it.a)&&!first.s?'-areas':'';
+  if(!first.s) return `${base}${areaPart}.${ext}`;
+  return first===last?`${base}${areaPart}-stall-${first.s.toLowerCase()}.${ext}`:`${base}${areaPart}-stalls-${first.s.toLowerCase()}-${last.s.toLowerCase()}.${ext}`;
 }
 function saveBlob(blob,name){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
@@ -4021,11 +4139,11 @@ async function printStickers(){
   const w=window.open('','_blank');
   if(!w){toast('Allow pop-ups to print stickers');return;}
   w.document.write('<p style="font-family:sans-serif;padding:24px">Preparing '+list.length+' stickers…</p>');
-  let lot=null, pages=[];
+  let pages=[];const pic=new Map(); // each different sticker is drawn once
+  const img=it=>{const k=it?(it.a?it.a.id:'')+'|'+it.s:'';if(!pic.has(k)) pic.set(k,stickerCanvas(it,750).toDataURL('image/png'));return pic.get(k);};
   try{
-    if(!list[0]) lot=stickerCanvas(null,750).toDataURL('image/png');
     for(let i=0;i<list.length;i+=6){
-      pages.push('<div class="page">'+list.slice(i,i+6).map(st=>`<img src="${lot||stickerCanvas(st,750).toDataURL('image/png')}" alt="">`).join('')+'</div>');
+      pages.push('<div class="page">'+list.slice(i,i+6).map(it=>`<img src="${img(it)}" alt="">`).join('')+'</div>');
     }
   }catch(e){w.close();toast(e.message);return;}
   w.document.open();
@@ -4040,7 +4158,7 @@ async function printStickers(){
   </style></head><body><div class="tip"><strong>${list.length} sticker${list.length===1?'':'s'} · ${pages.length} page${pages.length===1?'':'s'}</strong> for ${escHtml(p.name||'')}.<br>In the print window set <strong>Scale: 100%</strong> (not "fit to page"). Dashed lines are cut lines.</div>${pages.join('')}
   <script>window.onload=()=>setTimeout(()=>window.print(),400);<\/script></bo${''}dy></html>`);
   w.document.close();
-  logAct('property.stickers_printed','Printed '+list.length+' Pay to Park sticker'+(list.length===1?'':'s')+(list[0]?' (stalls '+list[0]+'–'+list[list.length-1]+')':''),{property_id:currentPropertyId,target:p.name||null});
+  logAct('property.stickers_printed','Printed '+list.length+' Pay to Park sticker'+(list.length===1?'':'s')+(list[0]?' ('+stickerLabel(list[0])+(list.length>1&&list[list.length-1]!==list[0]?' – '+stickerLabel(list[list.length-1]):'')+')':''),{property_id:currentPropertyId,target:p.name||null});
 }
 
 // Print-ready PDF for sticker companies / sign shops:
@@ -4088,20 +4206,79 @@ function downloadStickerSVG(){
   try{
     const sel=stickerList(); if(!sel) return;
     const st=sel.unique[0];
-    saveBlob(new Blob([stickerSVG(st)],{type:'image/svg+xml'}),stickerFileName('svg',st?[st]:null).replace('-stalls-'+st+'-'+st,'-stall-'+st));
-    toast(st?'Design file downloaded (stall '+st+' as a sample)':'Design file downloaded');
+    saveBlob(new Blob([stickerSVG(st)],{type:'image/svg+xml'}),stickerFileName('svg',st?[st]:null));
+    toast(st&&sel.unique.length>1?'Design file downloaded ('+stickerLabel(st)+' as a sample)':'Design file downloaded');
   }catch(e){toast(e.message);}
 }
 function downloadStickerCSV(){
   const sel=stickerList(); if(!sel) return;
   const p=payProp(), q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  const rows=[['property','zone_code','stall','qr_link'].join(',')].concat(sel.unique.map(st=>[q(p.name),q(p.park_code||''),q(st||''),q(getPayLink(st))].join(',')));
+  const rows=[['property','zone_code','area','stall','qr_link'].join(',')].concat(sel.unique.map(it=>[q(p.name),q(p.park_code||''),q(it&&it.a?it.a.name:''),q(it&&it.s||''),q(getPayLink(it&&it.s,it&&it.a&&it.a.id))].join(',')));
   saveBlob(new Blob([rows.join('\n')+'\n'],{type:'text/csv'}),stickerFileName('csv',sel.unique[0]?sel.unique:null));
-  toast('Stall list downloaded');
+  toast('Sticker list downloaded');
 }
 
 function copyPayLink(){
   navigator.clipboard.writeText(getPayLink()).then(()=>toast('Pay link copied!'));
+}
+
+// ── Parking areas (managers and LotHQ edit the list; LotHQ turns asking drivers on) ──
+let parkAreas=[];
+function renderAreas(){
+  parkAreas=JSON.parse(JSON.stringify(payProp().parking_areas||[]));
+  drawAreas();
+  const amode=payProp().area_mode||'off', pill=document.getElementById('areas-pill');
+  pill.textContent=amode==='off'?'Off':'Drivers are asked: '+(amode==='required'?'Required':'Optional');
+  pill.style.cssText='font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;'+(amode==='off'?'background:var(--surface2);color:var(--text2);':'background:rgba(0,200,122,.12);color:#007a4a;');
+  document.getElementById('areas-off-note').style.display=amode==='off'?'':'none';
+}
+function drawAreas(){
+  const list=document.getElementById('areas-list');if(!list) return;
+  const lbl=t=>`<div style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">${t}</div>`;
+  list.innerHTML=parkAreas.map((a,i)=>`
+    <div style="display:grid;grid-template-columns:1fr 1.4fr auto;gap:8px;align-items:end;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;">
+      <div>${lbl('Area name')}<input class="form-input" style="padding:6px 10px;font-size:13px;" maxlength="40" value="${escHtml(a.name||'')}" oninput="parkAreas[${i}].name=this.value" placeholder="e.g. Visitor"></div>
+      <div>${lbl('Description (optional)')}<input class="form-input" style="padding:6px 10px;font-size:13px;" maxlength="80" value="${escHtml(a.desc||'')}" oninput="parkAreas[${i}].desc=this.value" placeholder="e.g. Front lot, rows A–C"></div>
+      <button class="btn btn-danger btn-sm" onclick="removeArea(${i})" style="padding:6px 10px;" aria-label="Remove area">✕</button>
+    </div>`).join('')||'<div style="text-align:center;padding:16px;color:var(--text3);font-size:13px;">No areas yet. The whole lot is one area.</div>';
+}
+function addArea(){parkAreas.push({id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:'',desc:''});drawAreas();}
+function removeArea(i){
+  const a=parkAreas[i];
+  if(a&&a.name&&!confirm('Remove "'+a.name+'"? Stickers already printed for this area will stop filling it in, and rates or codes limited to it will show everywhere.')) return;
+  parkAreas.splice(i,1);drawAreas();
+}
+async function saveAreas(){
+  const clean=[],seen=new Set();
+  for(const a of parkAreas){
+    const name=String(a.name||'').replace(/\s+/g,' ').trim().slice(0,40);
+    if(!name) continue;
+    if(seen.has(name.toLowerCase())){toast('"'+name+'" is listed twice');return;}
+    seen.add(name.toLowerCase());
+    clean.push({id:a.id,name,desc:String(a.desc||'').replace(/\s+/g,' ').trim().slice(0,80)});
+  }
+  const btn=document.getElementById('save-areas-btn');
+  btn.disabled=true;btn.textContent='Saving...';
+  // Rates limited to an area that was removed go back to showing in their other areas (or everywhere)
+  const ids=new Set(clean.map(a=>a.id)), prop0=allProperties.find(p=>p.id===currentPropertyId)||{};
+  const rates=Array.isArray(prop0.transient_rates)?prop0.transient_rates:null;
+  const update={parking_areas:clean};
+  if(rates&&rates.some(r=>Array.isArray(r.areas)&&r.areas.some(id=>!ids.has(id)))){
+    update.transient_rates=rates.map(r=>{
+      if(!Array.isArray(r.areas)) return r;
+      const keep=r.areas.filter(id=>ids.has(id)), n={...r};
+      if(keep.length) n.areas=keep; else delete n.areas;
+      return n;
+    });
+  }
+  const {error}=await sb.from('properties').update(update).eq('id',currentPropertyId);
+  btn.disabled=false;btn.textContent='Save Areas';
+  if(error){toast(/parking_areas/.test(error.message)?'Parking areas need one setup step from LotHQ first.':error.message);return;}
+  const prop=allProperties.find(p=>p.id===currentPropertyId);
+  if(prop){prop.parking_areas=clean;if(update.transient_rates) prop.transient_rates=update.transient_rates;}
+  logAct('property.areas_saved','Saved parking areas: '+(clean.map(a=>a.name).join(', ')||'(none)'),{property_id:currentPropertyId,target:prop&&prop.name||null});
+  toast('Areas saved!');
+  initPayPanel();
 }
 
 function loadTransientRates(){
@@ -4137,10 +4314,30 @@ function renderRates(){
         <input class="form-input" style="padding:6px 10px;font-size:13px;" value="${r.desc||''}" oninput="transientRates[${i}].desc=this.value" placeholder="Short stay">
       </div>
       <button class="btn btn-danger btn-sm" onclick="removeRate(${i})" style="padding:6px 10px;margin-top:16px;">✕</button>
+      ${rateAreaChips(r,i)}
     </div>
   `).join('')||'<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">No rates configured. Add your first rate above.</div>';
 }
 
+// Which areas a rate shows in (only when the property has areas). None ticked = every area.
+function rateAreaChips(r,i){
+  const areas=payAreas();if(!areas.length) return '';
+  const on=new Set(Array.isArray(r.areas)?r.areas:[]);
+  const chip=(id,name,checked)=>`<label class="rf-opt" style="margin:0;padding:5px 10px;font-size:12px;"><input type="checkbox" ${checked?'checked':''} onchange="toggleRateArea(${i},'${escHtml(id)}',this.checked)"> ${escHtml(name)}</label>`;
+  return `<div style="grid-column:1/-1;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-top:2px;">
+    <span style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;margin-right:4px;">Areas</span>
+    ${chip('*','All areas',!on.size)}${areas.map(a=>chip(a.id,a.name,on.has(a.id))).join('')}</div>`;
+}
+function toggleRateArea(i,id,checked){
+  const r=transientRates[i];
+  if(id==='*'){if(checked) delete r.areas;}
+  else{
+    const set=new Set(Array.isArray(r.areas)?r.areas:[]);
+    checked?set.add(id):set.delete(id);
+    if(set.size) r.areas=[...set]; else delete r.areas;
+  }
+  renderRates();
+}
 function addRate(){
   transientRates.push({id:'rate-'+Date.now(),name:'',minutes:60,amount:500,desc:''});
   renderRates();
@@ -4168,10 +4365,14 @@ async function saveRates(){
 // ── Pay to Park promo codes (owners and managers) ──
 let _promos=[],_pmEdit=null,_pmKind='pct';
 const promoWhat=p=>p.kind==='free'?'Free':p.kind==='pct'?(+Number(p.value).toFixed(2))+'% off':'$'+Number(p.value).toFixed(2)+' off';
+function promoAreaNames(p){
+  if(!Array.isArray(p.area_ids)||!p.area_ids.length) return '';
+  return ' · in '+p.area_ids.map(id=>{const a=payAreas().find(a=>a.id===id);return a?a.name:'(removed area)';}).join(', ');
+}
 function promoRateNames(p){
-  if(!Array.isArray(p.rate_ids)||!p.rate_ids.length) return '';
+  if(!Array.isArray(p.rate_ids)||!p.rate_ids.length) return promoAreaNames(p);
   const rates=(allProperties.find(x=>x.id===currentPropertyId)||{}).transient_rates||transientRates||[];
-  return ' · '+p.rate_ids.map(id=>{const r=rates.find(r=>(r.id||r.name)===id);return r?r.name:id;}).join(', ')+' only';
+  return ' · '+p.rate_ids.map(id=>{const r=rates.find(r=>(r.id||r.name)===id);return r?r.name:id;}).join(', ')+' only'+promoAreaNames(p);
 }
 async function loadPromos(){
   const body=document.getElementById('promo-body');if(!body) return;
@@ -4215,6 +4416,9 @@ function openPromo(id){
   const rates=(allProperties.find(x=>x.id===currentPropertyId)||{}).transient_rates||transientRates||[];
   const sel=new Set(p&&p.rate_ids||[]);
   document.getElementById('pm-rates').innerHTML=rates.map(r=>{const k=r.id||r.name;return `<label class="rf-opt" style="margin:0;padding:6px 10px;"><input type="checkbox" class="pm-rate" value="${escHtml(k)}" ${sel.has(k)?'checked':''}> ${escHtml(r.name)}</label>`;}).join('')||'<span style="font-size:12px;color:var(--text3);">Every rate</span>';
+  const areas=payAreas(), asel=new Set(p&&p.area_ids||[]);
+  document.getElementById('pm-areas-wrap').style.display=areas.length?'':'none';
+  document.getElementById('pm-areas').innerHTML=areas.map(a=>`<label class="rf-opt" style="margin:0;padding:6px 10px;"><input type="checkbox" class="pm-area" value="${escHtml(a.id)}" ${asel.has(a.id)?'checked':''}> ${escHtml(a.name)}</label>`).join('');
   document.getElementById('pm-max').value=p&&p.max_uses?p.max_uses:'';
   document.getElementById('pm-ends').value=p&&p.ends_at?new Date(new Date(p.ends_at).getTime()-864e5).toISOString().slice(0,10):'';
   document.getElementById('pm-once').checked=!!(p&&p.once_per_day);
@@ -4230,6 +4434,7 @@ async function savePromo(){
   const promo={id:_pmEdit?_pmEdit.id:undefined,code:document.getElementById('pm-code').value.trim(),kind:_pmKind,
     value:_pmKind==='free'?null:parseFloat(document.getElementById('pm-value').value),
     rateIds:[...document.querySelectorAll('.pm-rate:checked')].map(x=>x.value),
+    ...(payAreas().length?{areaIds:[...document.querySelectorAll('.pm-area:checked')].map(x=>x.value)}:{}),
     maxUses:parseInt(document.getElementById('pm-max').value)||null,endsAt:endsAt?new Date(endsAt).toISOString():null,
     oncePerDay:document.getElementById('pm-once').checked};
   btn.disabled=true;
@@ -4252,7 +4457,7 @@ const canRefund=()=>['owner','manager'].includes(myRole());
 async function loadTransientSessions(){
   const body=document.getElementById('transient-sessions-body');
   if(!body) return;
-  body.innerHTML='<tr><td colspan="9" class="loading">Loading sessions...</td></tr>';
+  body.innerHTML='<tr><td colspan="10" class="loading">Loading sessions...</td></tr>';
   const {data,error}=await sb.from('parking_sessions')
     .select('*')
     .eq('property_id',currentPropertyId)
@@ -4260,7 +4465,7 @@ async function loadTransientSessions(){
     .limit(50);
   _tsRows=data||[];
   if(error||!data||!data.length){
-    body.innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3);">No pay-to-park sessions yet.</td></tr>';
+    body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--text3);">No pay-to-park sessions yet.</td></tr>';
     return;
   }
   const now=new Date();
@@ -4283,6 +4488,7 @@ async function loadTransientSessions(){
     const action=(canDo?`<button class="btn btn-ghost btn-sm" onclick="openRefund('${s.id}')">↩ Refund</button>`:'')+by;
     return`<tr>
       <td><strong style="font-family:'JetBrains Mono',monospace;font-size:12px;">${escHtml(s.plate)}</strong></td>
+      <td style="font-size:12px;">${escHtml(s.area||'—')}</td>
       <td style="font-size:12px;font-weight:700;">${escHtml(s.stall||'—')}</td>
       <td style="font-size:12px;color:var(--text2);">${escHtml(s.vehicle_desc||'—')}</td>
       <td style="font-size:12px;">${formatMins(s.duration_minutes)}</td>
