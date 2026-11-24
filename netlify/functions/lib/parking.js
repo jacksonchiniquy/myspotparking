@@ -75,7 +75,14 @@ async function activateSession(checkout) {
   if (!row) return null;
   if (row.status === 'active' || row.status === 'expired') return row;
   const minutes = Number(row.duration_minutes) || 60;
-  const startedAt = new Date();
+  // Added time starts when the driver's current session ends (or now, if it already has)
+  let startedAt = new Date();
+  if (row.extends_id) {
+    try {
+      const cur = await latestActive(row.property_id, row.plate, row.id);
+      if (cur && new Date(cur.expires_at) > startedAt) startedAt = new Date(cur.expires_at);
+    } catch (e) { console.error('Add time start lookup failed:', e.message); }
+  }
   const updated = await sb('PATCH', `parking_sessions?id=eq.${row.id}&status=eq.pending`, {
     status: 'active',
     started_at: startedAt.toISOString(),
@@ -103,6 +110,7 @@ async function activateSession(checkout) {
   return (await sb('GET', `parking_sessions?id=eq.${row.id}&select=*`))[0];
 }
 
+const SITE = process.env.SITE_URL || 'https://lothq.com';
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = require('./i18n');
 const fmtTime = (iso, lang, tz = TZ) => new Date(iso).toLocaleString(I.locale(lang), { timeZone: tz, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
@@ -113,6 +121,26 @@ function fmtDuration(m, lang) {
   if (m >= 60) return I.t(lang, m > 60 ? '{n} Hours' : '{n} Hour', { n: m / 60 });
   return I.t(lang, '{n} Min', { n: m });
 }
+// ── Add time ──
+// The driver's latest active session for this plate at this property (skipping one id)
+async function latestActive(propertyId, plate, skipId) {
+  const now = new Date().toISOString();
+  const rows = await sb('GET', `parking_sessions?property_id=eq.${propertyId}&plate=eq.${encodeURIComponent(plate)}&status=eq.active&expires_at=gt.${now}${skipId ? `&id=neq.${skipId}` : ''}&select=*&order=expires_at.desc&limit=1`);
+  return rows[0] || null;
+}
+// The session a driver is adding time to: { property, latest } or { error }
+async function extendTarget(id) {
+  const [orig] = await sb('GET', `parking_sessions?id=eq.${id}&select=*`);
+  if (!orig || orig.status === 'pending') return { error: 'That parking session wasn\'t found.' };
+  const [property] = await sb('GET', `properties?id=eq.${orig.property_id}&select=*`);
+  if (!property) return { error: 'That parking session wasn\'t found.' };
+  if (!property.add_time_enabled) return { error: 'Adding time isn\'t offered at this property. Please start a new session.', ended: true };
+  if (!require('./features').on(property, 'pay_to_park')) return { error: 'Pay to Park isn\'t offered at this property.', ended: true };
+  const latest = await latestActive(property.id, orig.plate);
+  if (!latest) return { error: 'This parking session has ended. Please start a new one.', ended: true };
+  return { property, latest };
+}
+
 // Save a new session; before the languages database step, without its language
 async function insertSession(row) {
   try { return await sb('POST', 'parking_sessions', row); }
@@ -149,6 +177,7 @@ async function sendReceipt(row, to) {
   <h2 style="margin:0 0 8px;">${esc(t("You're all set!"))}</h2>
   <p style="color:#475569;margin:0 0 20px;">${esc(t('Your parking session is active. Show this email if an enforcement officer checks your vehicle.'))}</p>
   <div style="background:#f4f7ff;border-radius:10px;padding:16px 20px;margin-bottom:20px;"><table width="100%" cellpadding="0" cellspacing="0">${table}</table></div>
+  ${property?.add_time_enabled ? `<p style="margin:0 0 20px;"><a href="${SITE}/pay.html?extend=${row.id}" style="display:inline-block;background:#1a6fff;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:8px;">${esc(t('Add time'))}</a></p>` : ''}
   <p style="color:#94a3b8;font-size:12px;">${esc(t('Keep this email as your receipt.'))}</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
   <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ · Provo, UT</p>
@@ -157,4 +186,4 @@ async function sendReceipt(row, to) {
   });
 }
 
-module.exports = { DEFAULT_RATES, ratesFor, areasFor, areaModeFor, findArea, rateInArea, ratesForArea, sb, activateSession, sendReceipt, insertSession, fmtDuration };
+module.exports = { latestActive, extendTarget, SITE, fmtTime, esc, DEFAULT_RATES, ratesFor, areasFor, areaModeFor, findArea, rateInArea, ratesForArea, sb, activateSession, sendReceipt, insertSession, fmtDuration };

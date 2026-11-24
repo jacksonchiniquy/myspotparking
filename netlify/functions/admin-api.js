@@ -12,7 +12,7 @@
 //   setPropertyBilling { propertyId, feeMode, feePercent, feeFlatCents, planInterval, planAmountCents }
 //                                          LotHQ's fee on each parking payment + LotHQ subscription
 //   planLink { propertyId, send }          payment link for that subscription (send=true emails the manager)
-//   setParkSettings { propertyId, stallMode?, areaMode?, areas?, parkCode? }
+//   setParkSettings { propertyId, stallMode?, areaMode?, areas?, addTime?, parkCode? }
 //                                          Pay to Park stall numbers / parking areas / property code
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -239,6 +239,7 @@ exports.handler = async (event) => {
         if (!['off', 'optional', 'required'].includes(body.areaMode)) return reply(400, { error: 'Unknown area setting.' });
         patch.area_mode = body.areaMode;
       }
+      if (body.addTime !== undefined) patch.add_time_enabled = !!body.addTime;
       if (body.areas !== undefined) {
         const { cleanAreas } = require('./lib/parking-areas');
         const r = cleanAreas(body.areas);
@@ -261,6 +262,7 @@ exports.handler = async (event) => {
       const said = [];
       if (patch.stall_mode && patch.stall_mode !== before.stall_mode) said.push(`stall numbers ${words[before.stall_mode] || 'Off'} → ${words[patch.stall_mode]}`);
       if (patch.area_mode && patch.area_mode !== (before.area_mode || 'off')) said.push(`parking areas ${words[before.area_mode] || 'Off'} → ${words[patch.area_mode]}`);
+      if (patch.add_time_enabled !== undefined && patch.add_time_enabled !== !!before.add_time_enabled) said.push(`Add time ${patch.add_time_enabled ? 'on' : 'off'}`);
       if (patch.parking_areas) said.push(`areas: ${patch.parking_areas.map(a => a.name).join(', ') || '(none)'}`);
       if (patch.park_code && patch.park_code !== before.park_code) said.push(`property code ${before.park_code || '(none)'} → ${patch.park_code}`);
       if (said.length) {

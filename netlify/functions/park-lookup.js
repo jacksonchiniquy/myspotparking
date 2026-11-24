@@ -1,9 +1,9 @@
 // park-lookup.js — finds a Pay to Park property for pay.html and park.html
-//   POST { code: 'TPP-4821' }  or  { id: '<property id>' }
+//   POST { code: 'TPP-4821' }  or  { id: '<property id>' }  or  { extend: '<session id>' } (Add time)
 // Returns only what a driver needs to see: name, address, code, stall and area
 // settings, the property's areas and the parking options. Nothing else about the property is shared.
 
-const { ratesFor, sb, areasFor, areaModeFor, findArea } = require('./lib/parking');
+const { ratesFor, ratesForArea, sb, areasFor, areaModeFor, findArea, extendTarget } = require('./lib/parking');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -43,6 +43,29 @@ exports.handler = async (event) => {
     } catch (err) {
       console.error('park-lookup promo error:', err.message);
       return reply(500, { error: 'Couldn\'t check that code. Please try again.' });
+    }
+  }
+
+  // Add time: { extend: '<session id>' } → the property, the session being extended and the rates for its area
+  if (body.extend !== undefined) {
+    if (!UUID_RE.test(String(body.extend))) return reply(404, { error: 'That parking session wasn\'t found.' });
+    try {
+      const ext = await extendTarget(String(body.extend));
+      if (ext.error) return reply(200, { error: ext.error, ended: !!ext.ended });
+      const p = ext.property, s = ext.latest, areaRow = findArea(p, s.area);
+      const offered = new Set(ratesForArea(p, areaRow));
+      return reply(200, {
+        property: {
+          id: p.id, name: p.name, address: p.address || '', park_code: p.park_code || null,
+          stall_mode: 'off', area_mode: 'off', areas: [], promos: await hasPromos(p.id),
+          rates: ratesFor(p).map(r => ({ id: r.id || null, name: r.name, minutes: r.minutes, amount: r.amount, desc: r.desc || '', areas: [], hide: !offered.has(r) })),
+        },
+        extend: { id: s.id, plate: s.plate, vehicle_desc: s.vehicle_desc || '', area: s.area || null, area_id: areaRow ? areaRow.id : null,
+          stall: s.stall || null, expires_at: s.expires_at, has_email: !!s.email },
+      });
+    } catch (err) {
+      console.error('park-lookup extend error:', err.message);
+      return reply(500, { error: 'Something went wrong. Please try again.' });
     }
   }
 
