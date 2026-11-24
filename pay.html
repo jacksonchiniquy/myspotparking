@@ -161,6 +161,7 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
 
       <div class="steps-wrap">
         <div class="err-banner" id="pay-err"></div>
+        <div id="extend-banner" style="display:none;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:18px;font-size:14px;color:var(--slate2);"></div>
 
         <!-- STEP 0: WHERE ARE YOU PARKED? (properties that use parking areas) -->
         <div class="area-section" id="area-section" style="display:none;">
@@ -185,17 +186,17 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
         </div>
 
         <!-- STEP 2: VEHICLE INFO -->
-        <div class="vehicle-section">
+        <div class="vehicle-section" id="vehicle-section">
           <div class="section-label">Your Vehicle</div>
           <div class="form-group" id="stall-group" style="display:none;">
             <label class="form-label" for="stall">Stall Number <span id="stall-need" style="color:var(--slate2);font-weight:400;text-transform:none;letter-spacing:0;"></span></label>
             <input class="form-input plate-input" id="stall" type="text" placeholder="e.g. 112" maxlength="12" inputmode="text" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9\-]/g,'');updateSummary()">
           </div>
-          <div class="form-group">
+          <div class="form-group" id="plate-group">
             <label class="form-label">License Plate *</label>
             <input class="form-input plate-input" id="plate" type="text" placeholder="ABC-1234" maxlength="10" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9\-]/g,'');updateSummary()">
           </div>
-          <div class="form-group">
+          <div class="form-group" id="vdesc-group">
             <label class="form-label">Vehicle Description <span style="color:var(--slate2);font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
             <input class="form-input" id="vehicle-desc" type="text" placeholder="e.g. Blue Toyota Camry">
           </div>
@@ -247,7 +248,7 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
       <div class="success-check">
         <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
-      <div class="success-h">You're all set!</div>
+      <div class="success-h" id="ss-title">You're all set!</div>
       <p class="success-sub">Your parking session is confirmed. Show this screen if an enforcement officer checks your vehicle.</p>
       <div class="session-card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
@@ -260,9 +261,14 @@ body{background:var(--off);color:var(--ink);font-family:'Inter',sans-serif;min-h
           <div id="ss-area-wrap" style="display:none;"><div class="sc-field-label">Area</div><div class="sc-field-val" id="ss-area" translate="no">—</div></div>
           <div id="ss-stall-wrap" style="display:none;"><div class="sc-field-label">Stall</div><div class="sc-field-val" id="ss-stall">—</div></div>
           <div><div class="sc-field-label">Duration</div><div class="sc-field-val" id="ss-duration">—</div></div>
-          <div><div class="sc-field-label">Started</div><div class="sc-field-val" id="ss-start">—</div></div>
+          <div><div class="sc-field-label" id="ss-start-label">Started</div><div class="sc-field-val" id="ss-start">—</div></div>
           <div><div class="sc-field-label">Expires</div><div class="sc-field-val" id="ss-expires">—</div></div>
         </div>
+      </div>
+      <div id="ss-addtime" style="display:none;background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:16px;margin:0 0 16px;text-align:left;">
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px;">Need more time?</div>
+        <div style="font-size:13px;color:var(--slate2);margin-bottom:12px;">Add time before this session ends. It starts when this session ends, so you don't lose any minutes.</div>
+        <a id="ss-addtime-link" href="#" class="btn-pay" style="text-decoration:none;margin:0;">Add time</a>
       </div>
       <p class="success-note">Keep this page open or take a screenshot. A receipt has been emailed to you.</p>
     </div>
@@ -281,6 +287,8 @@ const propId=params.get('lot')||params.get('property');
 const propCode=params.get('c')||params.get('code');
 const stallFromLink=(params.get('s')||params.get('stall')||'').toUpperCase().replace(/[^A-Z0-9-]/g,'').slice(0,12);
 const areaFromLink=(params.get('a')||params.get('area')||'').trim().slice(0,60);
+const extendId=(params.get('extend')||'').trim();
+let extendInfo=null; // Add time: the session being extended
 let selectedArea=null; // {id,name,desc} when the property uses parking areas
 const escH=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -304,6 +312,7 @@ async function init(){
     return;
   }
 
+  if(extendId){await initExtend();return;}
   if(!propId&&!propCode){showScreen('notfound');return;}
 
   let prop=null;
@@ -352,6 +361,50 @@ async function init(){
   showScreen('form');
 }
 
+// ── Add time: pay for more time on a session that hasn't ended ──
+function extendStart(){return Math.max(Date.now(),new Date(extendInfo.expires_at).getTime());}
+async function initExtend(){
+  let d=null;
+  try{
+    const res=await fetch('/.netlify/functions/park-lookup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({extend:extendId})});
+    d=await res.json().catch(()=>null);
+  }catch(e){}
+  if(!d||!d.property){
+    document.querySelector('#screen-notfound .notfound-h').textContent='Can\'t add time';
+    const sub=document.querySelector('#screen-notfound .notfound-sub');
+    sub.textContent=(d&&d.error)||'Something went wrong. Please try again.';
+    sub.insertAdjacentHTML('beforeend',' <a href="/park" style="color:var(--blue);font-weight:600;">Start a new session</a>');
+    showScreen('notfound');return;
+  }
+  const prop=d.property;extendInfo=d.extend;
+  prop.transient_rates=prop.rates;
+  currentProperty=prop;
+  payTerms=null;
+  document.getElementById('prop-name').textContent='Add time';
+  document.getElementById('prop-address').textContent=prop.name+(prop.address?' · '+prop.address:'');
+  const chips=[`<span class="prop-chip dark">${escH(extendInfo.plate)}</span>`];
+  if(extendInfo.area) chips.push(`<span class="prop-chip dark">${escH(extendInfo.area)}</span>`);
+  if(extendInfo.stall) chips.push(`<span class="prop-chip dark">Stall ${escH(extendInfo.stall)}</span>`);
+  document.getElementById('prop-chips').innerHTML=chips.join('');
+  const ends=new Date(extendInfo.expires_at), left=Math.max(0,Math.round((ends-Date.now())/60000));
+  const banner=document.getElementById('extend-banner');
+  banner.innerHTML=`Current session ends <b style="color:var(--navy,#0f172a);">${escH(formatTime(extendInfo.expires_at))}</b> (${left} min left). Added time starts then.`;
+  banner.style.display='';
+  // Plate, vehicle, area and stall come from the current session
+  document.getElementById('plate').value=extendInfo.plate;
+  ['plate-group','vdesc-group','stall-group'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  if(extendInfo.has_email) document.getElementById('vehicle-section').style.display='none';
+  else document.querySelector('#vehicle-section .section-label').textContent='Receipt';
+  document.querySelector('.rate-section .section-label').textContent='How much more?';
+  const vis=visibleRateIndexes();
+  selectedRateIndex=vis[0]??0;
+  selectedRate=(prop.rates||[])[selectedRateIndex];
+  renderRates();
+  document.getElementById('promo-wrap').style.display=prop.promos?'':'none';
+  updateSummary();
+  showScreen('form');
+}
+
 // ── Promo codes ──
 let promo=null; // {code,label,prices:{rateKey:cents|null}}
 const rateKey=(r,i)=>r.id||String(i);
@@ -364,6 +417,7 @@ const fmtPrice=c=>c===0?'Free':'$'+(c/100).toFixed(2);
 // No area chosen yet: only rates for every area (or all, if every rate is limited). Same rule as the server.
 function usesAreas(){return !!(currentProperty&&currentProperty.area_mode&&currentProperty.area_mode!=='off'&&(currentProperty.areas||[]).length);}
 function rateShows(r){
+  if(r.hide) return false; // Add time: not offered in this session's area
   if(!usesAreas()) return true;
   const ids=Array.isArray(r.areas)?r.areas:[];
   return !ids.length||(!!selectedArea&&ids.includes(selectedArea.id));
@@ -410,7 +464,7 @@ function renderRates(){
     return `<div class="rate-option${i===selectedRateIndex?' selected':''}" onclick="selectRate(${i})" id="rate-${i}">
       <div class="rate-left">
         <div class="rate-name">${escH(r.name)}</div>
-        <div class="rate-desc">${escH(r.desc||'')}</div>
+        <div class="rate-desc">${extendInfo?'New end time: '+escH(formatTime(new Date(extendStart()+r.minutes*60000).toISOString())):escH(r.desc||'')}</div>
       </div>
       <div class="rate-price">${p!==r.amount?`<s>$${(r.amount/100).toFixed(2)}</s>`:''}${fmtPrice(p)}</div>
     </div>`;}).join('');
@@ -423,7 +477,7 @@ async function applyPromo(){
   if(!code){promo=null;msg.style.display='none';renderRates();updateSummary();return;}
   btn.disabled=true;btn.textContent='…';
   try{
-    const res=await fetch('/.netlify/functions/park-lookup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:currentProperty.id,promo:code,area:selectedArea?selectedArea.id:null})});
+    const res=await fetch('/.netlify/functions/park-lookup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:currentProperty.id,promo:code,area:selectedArea?selectedArea.id:(extendInfo?extendInfo.area_id:null)})});
     const d=await res.json().catch(()=>({}));
     if(d.promo){promo={code:d.promo.code,label:d.promo.label,prices:d.prices||{}};show('✓ '+d.promo.code+' · '+d.promo.label+' applied',true);}
     else{promo=null;show(d.error||'That code isn\'t valid here.',false);}
@@ -456,7 +510,7 @@ function updateSummary(){
   document.getElementById('sum-stall').textContent=stall;
   const cur=selectedRate?priceOf(selectedRate,selectedRateIndex):0;
   if(selectedRate){
-    btn.lastChild.textContent=cur===0?' Park for Free':' Pay '+fmtPrice(cur)+' & Park';
+    btn.lastChild.textContent=extendInfo?(cur===0?' Add Time for Free':' Pay '+fmtPrice(cur)+' & Add Time'):cur===0?' Park for Free':' Pay '+fmtPrice(cur)+' & Park';
   }
   if(selectedRate&&visibleRateIndexes().includes(selectedRateIndex)&&plate.length>=2&&stallOk&&areaOk){
     box.style.display='block';
@@ -494,6 +548,7 @@ async function startPayment(){
       body:JSON.stringify({
         // The server looks up the price and duration for this rate itself
         propertyId:currentProperty.id,
+        ...(extendInfo?{extendId:extendInfo.id}:{}),
         plate,
         vehicleDesc:desc,
         email:email||null,
@@ -559,6 +614,15 @@ function showSuccessScreen(session){
   document.getElementById('ss-duration').textContent=formatMinutes(session.duration_minutes);
   document.getElementById('ss-start').textContent=formatTime(session.started_at);
   document.getElementById('ss-expires').textContent=formatTime(session.expires_at);
+  // Time added: the new time starts when the earlier session ends
+  if(session.extended||extendInfo){
+    document.getElementById('ss-title').textContent='Time added!';
+    document.getElementById('ss-start-label').textContent='Starts';
+  }
+  if(session.add_time&&session.id){
+    document.getElementById('ss-addtime-link').href='/pay.html?extend='+encodeURIComponent(session.id);
+    document.getElementById('ss-addtime').style.display='';
+  }
   showScreen('success');
 }
 

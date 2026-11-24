@@ -1261,6 +1261,9 @@ function parkCell(p){
       <option value="both"${ask==='both'?' selected':''}>Ask for: Area or stall</option>
     </select>
     ${amode!=='off'?req('area',amode):''}${mode!=='off'?req('stall',mode):''}
+    ${p.add_time_enabled!==undefined?`<select ${sel} title="Let drivers add time before their session ends" onchange="setAddTime('${p.id}',this.value==='on',this)">
+      <option value="off"${p.add_time_enabled?'':' selected'}>Add time: Off</option>
+      <option value="on"${p.add_time_enabled?' selected':''}>Add time: On</option></select>`:''}
     <button class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:11px;" onclick="openAreas('${p.id}')" title="The areas drivers pick from">Areas (${n})</button></div>`;
 }
 // "Ask for" menu → area and stall settings. Turning one on starts it as Optional.
@@ -1271,6 +1274,12 @@ async function setAsk(id,ask,sel){
   if((patch.areaMode!=='off')&&!(Array.isArray(p.parking_areas)&&p.parking_areas.length))
     toast('Add the property\'s areas too (Areas button), or the manager can add them. Drivers aren\'t asked until there is at least one.');
   await setLocation(id,patch,sel);
+}
+async function setAddTime(id,on,sel){
+  const p=allProperties.find(x=>x.id===id);
+  if(!(await parkSettings(id,{addTime:on}))){loadProperties();return;}
+  toast(`${p?.name||'Property'}: Add time ${on?'on':'off'}`);
+  loadProperties();
 }
 async function setLocation(id,patch,sel){
   const p=allProperties.find(x=>x.id===id);
