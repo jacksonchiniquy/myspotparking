@@ -27,7 +27,7 @@ exports.handler = async (event) => {
     if (!row) return reply(404, { error: 'Session not found' });
     const [property] = await sb('GET', `properties?id=eq.${row.property_id}&select=*`);
     return reply(200, {
-      id: row.id, add_time: !!property?.add_time_enabled, extended: !!row.extends_id,
+      id: row.id, add_time: require('./lib/parking').canAddTime(property, row), extended: !!row.extends_id,
       status: row.status, plate: row.plate, vehicle_desc: row.vehicle_desc, stall: row.stall || null, area: row.area || null, property_name: property?.name || '',
       duration_minutes: row.duration_minutes, started_at: row.started_at, expires_at: row.expires_at,
     });

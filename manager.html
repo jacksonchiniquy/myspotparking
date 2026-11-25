@@ -164,7 +164,7 @@ body{background:var(--bg);color:var(--text);font-family:'Bricolage Grotesque',sa
 @media(max-width:900px){.tn-tabs{display:none;}.page-head{padding:20px 16px 0;}.content{padding:0 16px 60px;}.stat-grid{grid-template-columns:1fr 1fr;}.chart-grid{grid-template-columns:1fr;}.form-row{grid-template-columns:1fr;}}
 /* Team roles: what each role can't do (the database enforces it too) */
 body.no-add-prop .add-prop-ctl{display:none!important;}
-body.ro-leasing #lot-save-btn,body.ro-leasing #save-rates-btn,body.ro-leasing #save-areas-btn,body.ro-leasing #add-area-btn,body.ro-leasing #gp-save,body.ro-leasing .pd-edit-btn{display:none!important;}
+body.ro-leasing #lot-save-btn,body.ro-leasing #save-rates-btn,body.ro-leasing #save-areas-btn,body.ro-leasing #save-maxstay-btn,body.ro-leasing #add-area-btn,body.ro-leasing #gp-save,body.ro-leasing .pd-edit-btn{display:none!important;}
 body.ro-viewer #page-property-detail .btn:not(.ro-keep){display:none!important;}
 body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail select,body.ro-viewer #page-property-detail textarea{pointer-events:none;opacity:.75;}
 .role-pill{display:inline-block;margin-left:10px;vertical-align:middle;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#ede9fe;color:#5b21b6;letter-spacing:.02em;}
@@ -817,6 +817,23 @@ body.ro-viewer #page-property-detail input,body.ro-viewer #page-property-detail 
             </div>
             <div id="rates-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;"></div>
             <button class="btn btn-ghost btn-sm btn-full" id="save-rates-btn" onclick="saveRates()">Save Rates</button>
+          </div>
+
+          <!-- Longest stay (managers set it; counts time added) -->
+          <div id="maxstay-card" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;margin-bottom:20px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+              <div>
+                <div style="font-size:16px;font-weight:700;margin-bottom:3px;">Longest Stay</div>
+                <div style="font-size:12px;color:var(--text2);max-width:620px;">The most time one car can park in a row, counting any time added.</div>
+              </div>
+              <span id="maxstay-addtime" style="font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;"></span>
+            </div>
+            <div class="ds-seg" id="maxstay-seg" style="margin-bottom:12px;flex-wrap:wrap;"></div>
+            <div id="maxstay-custom-wrap" style="display:none;margin-bottom:12px;"><label class="form-label" for="maxstay-custom">Hours</label><input class="form-input" id="maxstay-custom" type="number" min="0.25" max="168" step="0.25" style="width:120px;"></div>
+            <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.45;margin-bottom:14px;cursor:pointer;"><input type="checkbox" id="maxstay-hide" style="width:16px;height:16px;margin-top:2px;">
+              <span><strong>Hide rates longer than the limit</strong><br><span style="color:var(--text2);">For example, with 8 hours an All Day rate won't show to drivers. Leave unticked to keep it.</span></span></label>
+            <div style="font-size:12px;color:var(--text2);background:var(--surface2);border-radius:9px;padding:10px 12px;margin-bottom:14px;line-height:1.5;">Drivers see the limit when they add time, and only the rates that fit in the time they have left. Once they reach it, Add time disappears.</div>
+            <button class="btn btn-ghost btn-sm btn-full" id="save-maxstay-btn" onclick="saveMaxStay()">Save Longest Stay</button>
           </div>
 
           <!-- Promo codes -->
@@ -3923,6 +3940,7 @@ function initPayPanel(){
   document.getElementById('pay-area').innerHTML=payAreas().map(a=>`<option value="${escHtml(a.id)}">${escHtml(a.name)}</option>`).join('');
   setStickerMake(_stkMake);
   renderAreas();
+  renderMaxStay();
   const canvas=document.getElementById('qr-canvas');
   if(canvas) drawQR(canvas,link,180);
   loadTransientRates();
@@ -4220,6 +4238,48 @@ function downloadStickerCSV(){
 
 function copyPayLink(){
   navigator.clipboard.writeText(getPayLink()).then(()=>toast('Pay link copied!'));
+}
+
+// ── Longest stay (managers set it; Add time is turned on by LotHQ) ──
+let _maxStay=null; // minutes, or null = no limit
+function renderMaxStay(){
+  const p=payProp(), m=Number(p.max_stay_minutes)||null;
+  _maxStay=m;
+  const presets=[null,240,480,720,1440];
+  const custom=m&&!presets.includes(m);
+  document.getElementById('maxstay-seg').innerHTML=[[null,'No limit'],[240,'4 hours'],[480,'8 hours'],[720,'12 hours'],[1440,'24 hours'],['c','Custom']]
+    .map(([v,t])=>`<span data-v="${v}" class="${(v==='c'?custom:(!custom&&v===m))?'on':''}" onclick="pickMaxStay('${v}')">${t}</span>`).join('');
+  document.getElementById('maxstay-custom-wrap').style.display=custom?'':'none';
+  document.getElementById('maxstay-custom').value=custom?Math.round(m/15)/4:'';
+  document.getElementById('maxstay-hide').checked=!!p.hide_long_rates;
+  const on=!!p.add_time_enabled, pill=document.getElementById('maxstay-addtime');
+  pill.textContent='Add time: '+(on?'On':'Off');
+  pill.title=on?'Drivers can add time before their session ends':'LotHQ turns Add time on. The limit still applies to the rates drivers see.';
+  pill.style.cssText='font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;'+(on?'background:rgba(0,200,122,.12);color:#007a4a;':'background:var(--surface2);color:var(--text2);');
+}
+function pickMaxStay(v){
+  document.querySelectorAll('#maxstay-seg span').forEach(x=>x.classList.toggle('on',x.dataset.v===v));
+  document.getElementById('maxstay-custom-wrap').style.display=v==='c'?'':'none';
+  _maxStay=v==='c'?'c':v==='null'?null:Number(v);
+}
+async function saveMaxStay(){
+  let m=_maxStay;
+  if(m==='c'){
+    const h=parseFloat(document.getElementById('maxstay-custom').value);
+    if(!(h>=0.25&&h<=168)){toast('Enter hours between 0.25 and 168');return;}
+    m=Math.round(h*60);
+  }
+  const hide=document.getElementById('maxstay-hide').checked;
+  const btn=document.getElementById('save-maxstay-btn');
+  btn.disabled=true;btn.textContent='Saving...';
+  const {error}=await sb.from('properties').update({max_stay_minutes:m,hide_long_rates:hide}).eq('id',currentPropertyId);
+  btn.disabled=false;btn.textContent='Save Longest Stay';
+  if(error){toast(/max_stay|hide_long/.test(error.message)?'Longest stay needs one setup step from LotHQ first.':error.message);return;}
+  const prop=allProperties.find(p=>p.id===currentPropertyId);
+  if(prop){prop.max_stay_minutes=m;prop.hide_long_rates=hide;}
+  logAct('property.max_stay_saved','Set longest stay: '+(m?(m%60?m+' min':(m/60)+' h'):'no limit')+(m&&hide?' (longer rates hidden)':''),{property_id:currentPropertyId,target:prop&&prop.name||null});
+  toast('Longest stay saved!');
+  renderMaxStay();
 }
 
 // ── Parking areas (managers and LotHQ edit the list; LotHQ turns asking drivers on) ──

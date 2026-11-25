@@ -74,6 +74,10 @@ exports.handler = async (event) => {
     if (!rate || !(amount >= 50) || !(minutes > 0)) {
       return reply(400, { error: 'That parking option is no longer available. Please refresh and try again.' });
     }
+    // Longest stay: added time can't go past the property's limit
+    if (ext && ext.stay && ext.stay.max && minutes > ext.stay.left) {
+      return reply(400, { error: `That's longer than this property allows. You can add up to ${require('./lib/parking').fmtLimit(Math.max(0, ext.stay.left))} more.` });
+    }
 
     // Promo code (if the driver typed one)
     let promo = null, price = amount;
@@ -91,7 +95,7 @@ exports.handler = async (event) => {
       if (!(await P.useIt(promo.id))) return reply(400, { error: 'That code has been used up.', promo: true });
       const start = startAt();
       const [row] = await insertSession({
-        ...(ext ? { extends_id: ext.latest.id } : {}),
+        ...(ext ? { extends_id: ext.latest.id, stay_started_at: new Date(ext.latest.stay_started_at || ext.latest.started_at).toISOString() } : {}),
         ...(lang !== 'en' ? { lang } : {}),
         property_id: property.id, plate, vehicle_desc: vehicleDesc || null, email,
         ...(stall ? { stall } : {}),
@@ -105,7 +109,7 @@ exports.handler = async (event) => {
       await require('./lib/activity').logActivity({ actorName: email || 'Pay to Park driver', actorRole: 'driver', portal: 'pay',
         action: ext ? 'pay.time_added' : 'pay.session_free', propertyId: property.id, target: plate,
         summary: `${ext ? 'Added time for' : 'Parked'} ${plate} free with code ${promo.code}${rate.name ? ' · ' + rate.name : ''}${area ? ' · ' + area : ''}`, details: { promo: promo.code, minutes } });
-      return reply(200, { free: true, session: { id: row.id, add_time: !!property.add_time_enabled, extended: !!ext, status: 'active', plate, vehicle_desc: vehicleDesc || null, stall: stall || null, area: area || null, property_name: property.name || '',
+      return reply(200, { free: true, session: { id: row.id, add_time: require('./lib/parking').canAddTime(property, row), extended: !!ext, status: 'active', plate, vehicle_desc: vehicleDesc || null, stall: stall || null, area: area || null, property_name: property.name || '',
         duration_minutes: minutes, started_at: row.started_at, expires_at: row.expires_at } });
     }
 
@@ -144,7 +148,7 @@ exports.handler = async (event) => {
       rate_name: rate.name || null, amount_paid: price /* cents */, duration_minutes: minutes,
       ...(promo ? { promo_code: promo.code, original_cents: amount } : {}),
       stripe_session_id: checkout.id, status: 'pending',
-      ...(ext ? { extends_id: ext.latest.id } : {}),
+      ...(ext ? { extends_id: ext.latest.id, stay_started_at: new Date(ext.latest.stay_started_at || ext.latest.started_at).toISOString() } : {}),
       ...(account ? { stripe_account_id: account, lothq_fee_cents: lothqFee } : {}),
       // Placeholder; replaced with the real times when payment is confirmed.
       // (Enforcement only counts sessions marked 'active'.)
