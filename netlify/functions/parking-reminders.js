@@ -4,7 +4,7 @@
 // Skips sessions that already have time added, and very short sessions.
 
 const P = require('./lib/parking');
-const { sb, latestActive, SITE, fmtTime, esc } = P;
+const { sb, latestActive, SITE, fmtTime, esc, canAddTime } = P;
 const { sendRaw, logoHeader } = require('./send-email');
 const I = require('./lib/i18n');
 
@@ -31,7 +31,7 @@ exports.handler = async () => {
       const time = new Date(s.expires_at).toLocaleTimeString(I.locale(lang), { timeZone: tz, hour: 'numeric', minute: '2-digit' });
       const where = s.area ? `${name} (${s.area})` : name;
       const line = t('Your Pay to Park session for {plate} at {property} ends at {time}.', { plate: s.plate, property: where, time });
-      const addTime = p && p.add_time_enabled;
+      const addTime = canAddTime(p, s);
       const after = addTime ? t('Need more time? Add it before then and it starts when this session ends.')
         : t('Please move your vehicle by then, or start a new session.');
       await sendRaw({

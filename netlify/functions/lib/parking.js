@@ -44,8 +44,17 @@ function rateInArea(rate, area) {
 }
 // The rates a driver can pick. No area chosen: only the rates for every area
 // (or every rate, if all of them are limited to areas).
+// Longest stay (minutes) or null; and whether rates longer than it are hidden
+function maxStayFor(property) {
+  const m = Math.round(Number(property && property.max_stay_minutes));
+  return m >= 15 ? m : null;
+}
+function fitsMax(property, r) {
+  const max = maxStayFor(property);
+  return !(max && property.hide_long_rates && Number(r.minutes) > max);
+}
 function ratesForArea(property, area) {
-  const all = ratesFor(property);
+  const all = ratesFor(property).filter(r => fitsMax(property, r));
   if (areaModeFor(property) === 'off') return all;
   if (area) return all.filter(r => rateInArea(r, area));
   const open = all.filter(r => !(Array.isArray(r.areas) && r.areas.length));
@@ -138,13 +147,33 @@ async function extendTarget(id) {
   if (!require('./features').on(property, 'pay_to_park')) return { error: 'Pay to Park isn\'t offered at this property.', ended: true };
   const latest = await latestActive(property.id, orig.plate);
   if (!latest) return { error: 'This parking session has ended. Please start a new one.', ended: true };
-  return { property, latest };
+  const stay = stayInfo(property, latest);
+  if (stay.reached) return { error: `You've reached the longest stay allowed here (${fmtLimit(stay.max)}). Please move your vehicle when your time ends.`, ended: true, reached: true };
+  return { property, latest, stay };
 }
+// When this car's stay began, and how much of the property's longest stay is left
+function stayStart(row) { return new Date(row.stay_started_at || row.started_at); }
+function stayInfo(property, latest) {
+  const max = maxStayFor(property);
+  if (!max || !latest) return { max: null, used: null, left: null, reached: false };
+  const used = Math.round((new Date(latest.expires_at) - stayStart(latest)) / 60000);
+  const left = max - used;
+  return { max, used, left, reached: left < 15 };
+}
+// Can this driver still add time? (Add time on, and not at the longest stay)
+function canAddTime(property, row) {
+  if (!property || !property.add_time_enabled) return false;
+  return !stayInfo(property, row).reached;
+}
+// "8 hours", "90 minutes"
+function fmtLimit(m) { return m % 60 === 0 ? `${m / 60} hour${m === 60 ? '' : 's'}` : `${m} minutes`; }
 
 // Save a new session; before the languages database step, without its language
 async function insertSession(row) {
   try { return await sb('POST', 'parking_sessions', row); }
   catch (e) {
+    // Before the longest stay database step: save without when the stay began
+    if (row.stay_started_at !== undefined && /stay_started_at/.test(e.message)) { const { stay_started_at, ...rest } = row; return insertSession(rest); }
     // Before the parking areas database step: save without the area
     if (row.area !== undefined && /\barea\b/.test(e.message)) { const { area, ...rest } = row; return insertSession(rest); }
     if (row.lang !== undefined && /lang/.test(e.message)) { const { lang, ...rest } = row; return sb('POST', 'parking_sessions', rest); }
@@ -177,7 +206,7 @@ async function sendReceipt(row, to) {
   <h2 style="margin:0 0 8px;">${esc(t("You're all set!"))}</h2>
   <p style="color:#475569;margin:0 0 20px;">${esc(t('Your parking session is active. Show this email if an enforcement officer checks your vehicle.'))}</p>
   <div style="background:#f4f7ff;border-radius:10px;padding:16px 20px;margin-bottom:20px;"><table width="100%" cellpadding="0" cellspacing="0">${table}</table></div>
-  ${property?.add_time_enabled ? `<p style="margin:0 0 20px;"><a href="${SITE}/pay.html?extend=${row.id}" style="display:inline-block;background:#1a6fff;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:8px;">${esc(t('Add time'))}</a></p>` : ''}
+  ${canAddTime(property, row) ? `<p style="margin:0 0 20px;"><a href="${SITE}/pay.html?extend=${row.id}" style="display:inline-block;background:#1a6fff;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:8px;">${esc(t('Add time'))}</a></p>` : ''}
   <p style="color:#94a3b8;font-size:12px;">${esc(t('Keep this email as your receipt.'))}</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
   <p style="color:#94a3b8;font-size:11px;text-align:center;">© ${new Date().getFullYear()} LotHQ · Provo, UT</p>
@@ -186,4 +215,4 @@ async function sendReceipt(row, to) {
   });
 }
 
-module.exports = { latestActive, extendTarget, SITE, fmtTime, esc, DEFAULT_RATES, ratesFor, areasFor, areaModeFor, findArea, rateInArea, ratesForArea, sb, activateSession, sendReceipt, insertSession, fmtDuration };
+module.exports = { maxStayFor, fitsMax, stayInfo, canAddTime, fmtLimit, latestActive, extendTarget, SITE, fmtTime, esc, DEFAULT_RATES, ratesFor, areasFor, areaModeFor, findArea, rateInArea, ratesForArea, sb, activateSession, sendReceipt, insertSession, fmtDuration };

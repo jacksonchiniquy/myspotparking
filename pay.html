@@ -396,7 +396,13 @@ async function initExtend(){
   if(extendInfo.has_email) document.getElementById('vehicle-section').style.display='none';
   else document.querySelector('#vehicle-section .section-label').textContent='Receipt';
   document.querySelector('.rate-section .section-label').textContent='How much more?';
-  const vis=visibleRateIndexes();
+  // Longest stay: how much more this car can park
+  if(d.stay){
+    const h=m=>m%60===0?(m/60)+' hour'+(m===60?'':'s'):m+' minutes';
+    banner.insertAdjacentHTML('beforeend',`<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:#fff7ed;border:1px solid #fdba74;color:#7c2d12;"><b>Longest stay here: ${h(d.stay.max)}.</b> You can add up to ${h(Math.max(0,d.stay.left))} more.</div>`);
+    extendInfo.maxLabel=h(d.stay.max);
+  }
+  const vis=visibleRateIndexes().filter(i=>!(prop.rates[i]||{}).over);
   selectedRateIndex=vis[0]??0;
   selectedRate=(prop.rates||[])[selectedRateIndex];
   renderRates();
@@ -425,7 +431,7 @@ function rateShows(r){
 function visibleRateIndexes(){
   const rates=currentProperty.rates||[];
   let idx=rates.map((r,i)=>rateShows(r)?i:-1).filter(i=>i>=0);
-  if(usesAreas()&&!selectedArea&&!idx.length) idx=rates.map((r,i)=>i);
+  if(usesAreas()&&!selectedArea&&!idx.length) idx=rates.map((r,i)=>r.hide?-1:i).filter(i=>i>=0);
   return idx;
 }
 function renderAreas(){
@@ -461,6 +467,9 @@ function renderRates(){
   document.getElementById('rate-grid').innerHTML=rates.map((r,i)=>{
     if(!vis.has(i)) return '';
     const p=priceOf(r,i);
+    if(r.over) return `<div class="rate-option" id="rate-${i}" style="opacity:.55;cursor:not-allowed;" aria-disabled="true">
+      <div class="rate-left"><div class="rate-name">${escH(r.name)}</div><div class="rate-desc">Over the ${escH(extendInfo&&extendInfo.maxLabel||'')} limit</div></div>
+      <div class="rate-price">${fmtPrice(p)}</div></div>`;
     return `<div class="rate-option${i===selectedRateIndex?' selected':''}" onclick="selectRate(${i})" id="rate-${i}">
       <div class="rate-left">
         <div class="rate-name">${escH(r.name)}</div>
@@ -488,6 +497,7 @@ async function applyPromo(){
 
 function selectRate(idx){
   const rates=currentProperty.rates||[];
+  if(rates[idx]&&rates[idx].over) return;
   selectedRate=rates[idx];
   selectedRateIndex=idx;
   document.querySelectorAll('#rate-grid .rate-option').forEach(el=>{
@@ -512,7 +522,7 @@ function updateSummary(){
   if(selectedRate){
     btn.lastChild.textContent=extendInfo?(cur===0?' Add Time for Free':' Pay '+fmtPrice(cur)+' & Add Time'):cur===0?' Park for Free':' Pay '+fmtPrice(cur)+' & Park';
   }
-  if(selectedRate&&visibleRateIndexes().includes(selectedRateIndex)&&plate.length>=2&&stallOk&&areaOk){
+  if(selectedRate&&!selectedRate.over&&visibleRateIndexes().includes(selectedRateIndex)&&plate.length>=2&&stallOk&&areaOk){
     box.style.display='block';
     document.getElementById('sum-duration').textContent=selectedRate.name;
     document.getElementById('sum-plate').textContent=plate;

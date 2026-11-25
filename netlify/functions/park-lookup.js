@@ -3,7 +3,7 @@
 // Returns only what a driver needs to see: name, address, code, stall and area
 // settings, the property's areas and the parking options. Nothing else about the property is shared.
 
-const { ratesFor, ratesForArea, sb, areasFor, areaModeFor, findArea, extendTarget } = require('./lib/parking');
+const { ratesFor, ratesForArea, sb, areasFor, areaModeFor, findArea, extendTarget, fitsMax } = require('./lib/parking');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -52,14 +52,16 @@ exports.handler = async (event) => {
     try {
       const ext = await extendTarget(String(body.extend));
       if (ext.error) return reply(200, { error: ext.error, ended: !!ext.ended });
-      const p = ext.property, s = ext.latest, areaRow = findArea(p, s.area);
+      const p = ext.property, s = ext.latest, areaRow = findArea(p, s.area), stay = ext.stay;
       const offered = new Set(ratesForArea(p, areaRow));
       return reply(200, {
         property: {
           id: p.id, name: p.name, address: p.address || '', park_code: p.park_code || null,
           stall_mode: 'off', area_mode: 'off', areas: [], promos: await hasPromos(p.id),
-          rates: ratesFor(p).map(r => ({ id: r.id || null, name: r.name, minutes: r.minutes, amount: r.amount, desc: r.desc || '', areas: [], hide: !offered.has(r) })),
+          rates: ratesFor(p).map(r => ({ id: r.id || null, name: r.name, minutes: r.minutes, amount: r.amount, desc: r.desc || '', areas: [], hide: !offered.has(r),
+            over: !!(stay && stay.max && Number(r.minutes) > stay.left) })),
         },
+        stay: stay && stay.max ? { max: stay.max, used: stay.used, left: stay.left } : null,
         extend: { id: s.id, plate: s.plate, vehicle_desc: s.vehicle_desc || '', area: s.area || null, area_id: areaRow ? areaRow.id : null,
           stall: s.stall || null, expires_at: s.expires_at, has_email: !!s.email },
       });
@@ -101,7 +103,7 @@ exports.handler = async (event) => {
         areas: areaModeFor(p) === 'off' ? [] : areasFor(p).map(a => ({ id: a.id, name: String(a.name).trim(), desc: a.desc || '' })),
         promos: await hasPromos(p.id),
         rates: ratesFor(p).map(r => ({ id: r.id || null, name: r.name, minutes: r.minutes, amount: r.amount, desc: r.desc || '',
-          areas: areaModeFor(p) !== 'off' && Array.isArray(r.areas) ? r.areas : [] })),
+          areas: areaModeFor(p) !== 'off' && Array.isArray(r.areas) ? r.areas : [], ...(fitsMax(p, r) ? {} : { hide: true }) })),
       },
     });
   } catch (err) {
